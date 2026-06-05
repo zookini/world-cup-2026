@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>World Cup 2026</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="arena">
+      <header class="marquee">
+        <div>
+          <h1>World Cup 2026</h1>
+        </div>
+      </header>
+
+      <section class="player-legend" aria-label="Players">
+        <div id="players" class="player-strip"></div>
+      </section>
+
+      <section class="world-board" aria-label="Group standings">
+        <div class="board-head">
+          <h2>Group Stage</h2>
+        </div>
+        <div id="groups" class="group-stage"></div>
+      </section>
+
+      <section class="knockout-board" aria-label="Knockout stage">
+        <div class="board-head">
+          <h2>Knockout Stage</h2>
+        </div>
+        <div id="knockouts" class="knockout-grid"></div>
+      </section>
+
+      <p id="sync-status" class="visually-hidden" aria-live="polite"></p>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>

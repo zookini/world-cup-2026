@@ -80,6 +80,7 @@ h3 {
 }
 
 .player-legend,
+.money-board,
 .world-board,
 .knockout-board {
   border: 4px solid var(--shadow);
@@ -100,10 +101,10 @@ h3 {
 
 .player-token {
   display: grid;
-  grid-template-columns: 28px minmax(0, 1fr);
-  gap: 8px;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 9px;
   align-items: center;
-  min-height: 42px;
+  min-height: 58px;
   padding: 6px 8px;
   border: 3px solid #3a2934;
   background: #171018;
@@ -114,6 +115,11 @@ h3 {
 
 .world-board,
 .knockout-board {
+  padding: 14px;
+}
+
+.money-board {
+  margin-top: 18px;
   padding: 14px;
 }
 
@@ -132,6 +138,85 @@ h3 {
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 12px;
+}
+
+.board-head p {
+  color: var(--white);
+  font-family: "Trebuchet MS", Arial, sans-serif;
+  font-size: 0.86rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.contender-table table {
+  table-layout: fixed;
+  border: 3px solid #3a2934;
+  background: #171018;
+}
+
+.contender-row th,
+.contender-row td {
+  padding: 8px;
+  border-top: 2px solid #3a2934;
+  text-align: left;
+}
+
+.contender-row:first-child th,
+.contender-row:first-child td {
+  border-top: 0;
+}
+
+.contender-row th {
+  width: 160px;
+}
+
+.contender-name {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  color: var(--white);
+  font-family: "Trebuchet MS", Arial, sans-serif;
+  font-size: 0.94rem;
+  font-weight: 900;
+}
+
+.flag-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.team-flag {
+  display: inline-grid;
+  grid-template-columns: auto auto;
+  gap: 6px;
+  align-items: center;
+  min-width: 50px;
+  padding: 0;
+  color: var(--white);
+  font-family: "Trebuchet MS", Arial, sans-serif;
+  line-height: 1;
+}
+
+.team-flag img {
+  display: block;
+  width: 30px;
+  height: 20px;
+  object-fit: cover;
+  border: 1px solid rgba(255, 248, 222, 0.38);
+  box-shadow: 1px 1px 0 rgba(5, 5, 5, 0.7);
+}
+
+.team-flag small {
+  color: #f1dba1;
+  font-size: 0.66rem;
+  font-weight: 900;
+}
+
+.team-flag.eliminated {
+  opacity: 0.32;
+  filter: grayscale(1);
 }
 
 .board-head input {
@@ -198,6 +283,7 @@ td.rank {
   grid-template-columns: 38px minmax(0, 1fr) auto;
   gap: 7px;
   align-items: center;
+  min-height: 34px;
 }
 
 .team-cell b {
@@ -211,8 +297,8 @@ td.rank {
 .owner-badge {
   display: inline-grid;
   place-items: center;
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   padding: 2px;
   color: #111;
   background: var(--gold);
@@ -222,6 +308,10 @@ td.rank {
   font-style: normal;
   font-weight: 900;
   text-transform: uppercase;
+}
+
+.owner-badge .mini-avatar {
+  zoom: 0.72;
 }
 
 tr.selected {
@@ -245,8 +335,17 @@ tr.eliminated {
 .mini-avatar {
   position: relative;
   display: inline-block;
-  width: 18px;
-  height: 22px;
+  width: 42px;
+  height: 42px;
+  overflow: hidden;
+  background-image: url("assets/fighter-avatars.png");
+  background-size: 400% 300%;
+  background-position: var(--avatar-x, 0%) var(--avatar-y, 0%);
+  border: 2px solid #050505;
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 255, 255, 0.22),
+    inset 0 -8px 0 rgba(0, 0, 0, 0.22),
+    2px 2px 0 #050505;
   filter: saturate(calc(1 - var(--avatar-damage, 0) * 0.14)) grayscale(calc(var(--avatar-damage, 0) / 4));
 }
 
@@ -270,85 +369,81 @@ tr.eliminated {
   --avatar-damage: 4;
 }
 
-.mini-avatar i,
-.mini-avatar b,
-.mini-avatar small {
-  position: absolute;
-  display: block;
-  border: 1px solid #050505;
+.avatar-t {
+  --avatar-x: 0%;
+  --avatar-y: 0%;
 }
 
-.mini-avatar i {
-  left: 5px;
-  top: 1px;
-  width: 9px;
-  height: 9px;
-  background: #e6aa76;
+.avatar-jane {
+  --avatar-x: 33.333%;
+  --avatar-y: 0%;
 }
 
-.mini-avatar b {
-  left: 2px;
-  top: 10px;
-  width: 14px;
-  height: 11px;
-  background: var(--red);
+.avatar-colm {
+  --avatar-x: 66.666%;
+  --avatar-y: 0%;
 }
 
-.avatar-t b {
-  background: #e62f25;
+.avatar-sharon {
+  --avatar-x: 100%;
+  --avatar-y: 0%;
 }
 
-.avatar-jane b {
-  background: #1d6ee8;
+.avatar-ivan {
+  --avatar-x: 0%;
+  --avatar-y: 50%;
 }
 
-.avatar-colm b {
-  background: #36d45e;
+.avatar-joey {
+  --avatar-x: 33.333%;
+  --avatar-y: 50%;
 }
 
-.avatar-sharon b {
-  background: #ffcc32;
+.avatar-chun {
+  --avatar-x: 66.666%;
+  --avatar-y: 50%;
 }
 
-.avatar-ivan b {
-  background: #7b3fb5;
+.avatar-andy {
+  --avatar-x: 100%;
+  --avatar-y: 50%;
 }
 
-.avatar-joey b {
-  background: #e06a26;
+.avatar-kachun {
+  --avatar-x: 0%;
+  --avatar-y: 100%;
 }
 
-.avatar-chun b {
-  background: #25bfd1;
+.avatar-kakei {
+  --avatar-x: 33.333%;
+  --avatar-y: 100%;
 }
 
-.avatar-andy b {
-  background: #d34889;
+.avatar-vinny {
+  --avatar-x: 66.666%;
+  --avatar-y: 100%;
 }
 
-.avatar-kachun b {
-  background: #86ce42;
-}
-
-.avatar-kakei b {
-  background: #fff8de;
-}
-
-.avatar-vinny b {
-  background: #8f5cff;
-}
-
-.avatar-boe b {
-  background: #40e0a0;
+.avatar-boe {
+  --avatar-x: 100%;
+  --avatar-y: 100%;
 }
 
 .mini-avatar small {
   opacity: 0;
-  left: 10px;
-  top: 4px;
-  width: 6px;
-  height: 5px;
-  background: #352032;
+  z-index: 4;
+  left: 23px;
+  top: 8px;
+  width: 9px;
+  height: 8px;
+  background:
+    linear-gradient(45deg, transparent 0 42%, #050505 43% 57%, transparent 58%),
+    linear-gradient(-45deg, transparent 0 42%, #050505 43% 57%, transparent 58%);
+}
+
+.mini-avatar i,
+.mini-avatar b {
+  display: none;
 }
 
 .damage-1 .mini-avatar small,
@@ -461,5 +556,75 @@ tr.eliminated {
 
   .group-stage {
     grid-template-columns: 1fr;
+  }
+
+  .player-legend {
+    display: none;
+  }
+
+  .contender-row th {
+    width: 98px;
+  }
+
+  .contender-row th,
+  .contender-row td {
+    padding: 5px;
+  }
+
+  .contender-name {
+    grid-template-columns: 28px minmax(0, 1fr);
+    gap: 5px;
+    font-size: 0.78rem;
+  }
+
+  .contender-name .mini-avatar {
+    width: 28px;
+    height: 28px;
+  }
+
+  .flag-strip {
+    flex-wrap: nowrap;
+    gap: 4px;
+  }
+
+  .team-flag {
+    min-width: auto;
+  }
+
+  .team-flag img {
+    width: 25px;
+    height: 17px;
+  }
+
+  .team-flag small {
+    display: none;
+  }
+
+  .world-board,
+  .knockout-board {
+    padding: 10px;
+  }
+
+  .group-table th:nth-child(4),
+  .group-table th:nth-child(5),
+  .group-table th:nth-child(6),
+  .group-table td:nth-child(4),
+  .group-table td:nth-child(5),
+  .group-table td:nth-child(6) {
+    display: none;
+  }
+
+  .team-cell {
+    grid-template-columns: 34px minmax(0, 1fr) auto;
+  }
+
+  th,
+  td {
+    padding: 6px 4px;
+  }
+
+  .knockout-grid {
+    grid-template-columns: 1fr;
+    overflow-x: visible;
   }
 }

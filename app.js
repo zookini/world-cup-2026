@@ -1,5 +1,55 @@
 const API_BASE = "https://worldcup26.ir/get";
 const PLAYER_ORDER = ["T", "Jane", "Colm", "Sharon", "Ivan", "Joey", "Chun", "Andy", "Kachun", "Kakei", "Vinny", "Boe"];
+const FLAG_CODES = {
+  ALG: "DZ",
+  ARG: "AR",
+  AUT: "AT",
+  AUS: "AU",
+  BEL: "BE",
+  BIH: "BA",
+  BRA: "BR",
+  CAN: "CA",
+  CIV: "CI",
+  COD: "CD",
+  COL: "CO",
+  CPV: "CV",
+  CRO: "HR",
+  CUW: "CW",
+  CZE: "CZ",
+  ECU: "EC",
+  EGY: "EG",
+  ENG: "GB-ENG",
+  ESP: "ES",
+  FRA: "FR",
+  GER: "DE",
+  GHA: "GH",
+  HAI: "HT",
+  IRN: "IR",
+  IRQ: "IQ",
+  JOR: "JO",
+  JPN: "JP",
+  KOR: "KR",
+  KSA: "SA",
+  MAR: "MA",
+  MEX: "MX",
+  NED: "NL",
+  NOR: "NO",
+  NZL: "NZ",
+  PAN: "PA",
+  PAR: "PY",
+  POR: "PT",
+  QAT: "QA",
+  RSA: "ZA",
+  SCO: "GB-SCT",
+  SEN: "SN",
+  SUI: "CH",
+  SWE: "SE",
+  TUN: "TN",
+  TUR: "TR",
+  URU: "UY",
+  USA: "US",
+  UZB: "UZ",
+};
 
 let selections = [];
 let groups = [];
@@ -8,6 +58,7 @@ let teamById = new Map();
 let teamByName = new Map();
 
 const playersEl = document.querySelector("#players");
+const contendersEl = document.querySelector("#contenders");
 const groupsEl = document.querySelector("#groups");
 const knockoutsEl = document.querySelector("#knockouts");
 const syncStatusEl = document.querySelector("#sync-status");
@@ -181,6 +232,7 @@ function loserId(game) {
 
 function render() {
   renderPlayers();
+  renderContenders();
   renderGroups();
   renderKnockouts();
 }
@@ -197,6 +249,52 @@ function renderPlayers() {
       </article>
     `;
   }).join("");
+}
+
+function renderContenders() {
+  const players = [...new Set([...PLAYER_ORDER, ...selections.map((team) => team.player)])];
+  contendersEl.innerHTML = `
+    <table>
+      <tbody>
+        ${players.map((player) => {
+          const owned = selections.filter((team) => team.player === player);
+          return `
+            <tr class="contender-row damage-${playerDamage(player)}">
+              <th scope="row">
+                <span class="contender-name">${avatarMarkup(player)}<span>${player}</span></span>
+              </th>
+              <td>
+                <div class="flag-strip">
+                  ${owned.sort(sortOwnedTeams).map((team) => flagMarkup(team)).join("")}
+                </div>
+              </td>
+            </tr>
+          `;
+        }).join("")}
+      </tbody>
+    </table>
+  `;
+}
+
+function sortOwnedTeams(a, b) {
+  const aEliminated = teamStatus(a) === "eliminated";
+  const bEliminated = teamStatus(b) === "eliminated";
+  return Number(aEliminated) - Number(bEliminated);
+}
+
+function flagMarkup(team) {
+  const status = teamStatus(team);
+  return `
+    <span class="team-flag ${status}" title="${team.name}">
+      <img src="${flagUrl(team)}" alt="${team.name} flag" loading="lazy" />
+      <small>${team.code}</small>
+    </span>
+  `;
+}
+
+function flagUrl(team) {
+  const code = FLAG_CODES[team.code] || team.code;
+  return `assets/flags/${code.toLowerCase()}.png`;
 }
 
 function renderGroups() {

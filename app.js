@@ -60,6 +60,7 @@ let teamByName = new Map();
 const contendersEl = document.querySelector("#contenders");
 const groupsEl = document.querySelector("#groups");
 const knockoutsEl = document.querySelector("#knockouts");
+const fixturesEl = document.querySelector("#fixtures");
 const syncStatusEl = document.querySelector("#sync-status");
 const viewButtons = document.querySelectorAll("[data-view]");
 const viewPanels = document.querySelectorAll("[data-panel]");
@@ -77,6 +78,7 @@ function bindViewTabs() {
       const view = button.dataset.view;
       viewButtons.forEach((item) => item.classList.toggle("active", item === button));
       viewPanels.forEach((panel) => panel.classList.toggle("active", panel.dataset.panel === view));
+      if (view === "fixtures") scrollFixturesToNext();
     });
   });
 }
@@ -246,6 +248,7 @@ function render() {
   renderContenders();
   renderGroups();
   renderKnockouts();
+  renderFixtures();
 }
 
 function renderContenders() {
@@ -445,6 +448,166 @@ function renderMatch(game) {
     <time>${game.local_date || "TBD"}</time>
   `;
   return card;
+}
+
+const STAGE_LABELS = {
+  group: "Group",
+  r32: "Round of 32",
+  r16: "Round of 16",
+  qf: "Quarter-final",
+  sf: "Semi-final",
+  third: "Third Place",
+  final: "Final",
+};
+
+function renderFixtures() {
+  const ordered = sortedGames();
+  if (!ordered.length) {
+    fixturesEl.innerHTML = `<p class="fixtures-empty">No fixtures available yet.</p>`;
+    return;
+  }
+
+  const nextGame = nextFixtureId(ordered);
+  let currentDay = "";
+  fixturesEl.innerHTML = ordered.map((game) => {
+    const date = parseMatchDate(game);
+    const dayLabel = dayHeading(date);
+    let header = "";
+    if (dayLabel !== currentDay) {
+      currentDay = dayLabel;
+      header = `<div class="fixture-day">${dayLabel}</div>`;
+    }
+    return header + fixtureRow(game, game === nextGame);
+  }).join("");
+
+  if (document.querySelector('[data-panel="fixtures"]')?.classList.contains("active")) {
+    scrollFixturesToNext();
+  }
+}
+
+function fixtureRow(game, isNext) {
+  const home = fixtureTeam(game, "home");
+  const away = fixtureTeam(game, "away");
+  const state = matchState(game);
+  const started = state !== "upcoming";
+  const stage = game.type === "group" ? `Group ${game.group}` : STAGE_LABELS[game.type] || "Match";
+  const date = parseMatchDate(game);
+  const meta = state === "finished"
+    ? `<span class="fixture-ft">Full time</span>`
+    : state === "live"
+    ? `<span class="fixture-live">${liveLabel(game)}</span>`
+    : `<time>${date ? timeLabel(date) : "TBD"}</time>`;
+  return `
+    <div class="fixture ${state} ${isNext ? "next" : ""}">
+      ${fixtureTeamLine(home, started ? number(game.home_score) : "")}
+      ${fixtureTeamLine(away, started ? number(game.away_score) : "")}
+      <div class="fixture-foot">
+        <span class="fixture-stage">${stage}</span>
+        ${meta}
+      </div>
+    </div>
+  `;
+}
+
+function fixtureTeamLine(team, score) {
+  return `
+    <div class="fixture-team ${team.status} ${team.selected ? "selected" : ""}">
+      <span class="fixture-gambler">${ownerBadge(team.owner, team.status)}</span>
+      ${fixtureFlag(team)}
+      <span class="team-name" title="${team.name}">${team.name}</span>
+      <strong>${score}</strong>
+    </div>
+  `;
+}
+
+function matchState(game) {
+  if (isFinished(game)) return "finished";
+  const elapsed = `${game.time_elapsed}`.trim().toLowerCase();
+  if (elapsed && elapsed !== "notstarted" && elapsed !== "null") return "live";
+  return "upcoming";
+}
+
+function liveLabel(game) {
+  const elapsed = `${game.time_elapsed}`.trim();
+  if (!elapsed || elapsed.toLowerCase() === "notstarted") return "Live";
+  return /^\d+$/.test(elapsed) ? `${elapsed}'` : elapsed;
+}
+
+function fixtureTeam(game, side) {
+  const id = `${game[`${side}_team_id`]}`;
+  const fallbackName = game[`${side}_team_name_en`] || game[`${side}_team_label`] || "TBD";
+  const team = teamById.get(id) || { name: fallbackName, code: "TBD" };
+  const selection = selectionForName(team.name);
+  return {
+    name: teamDisplayName(team),
+    code: team.code,
+    owner: selection?.player || team.owner || "",
+    selected: Boolean(selection),
+    status: selection ? teamStatus(selection) : "neutral",
+  };
+}
+
+function fixtureFlag(team) {
+  if (!team.code || team.code === "TBD") {
+    return `<span class="table-flag placeholder" aria-hidden="true"></span>`;
+  }
+  return `<img class="table-flag" src="${flagUrl(team)}" alt="${team.name} flag" />`;
+}
+
+function sortedGames() {
+  return games.slice().sort((a, b) => {
+    const dateA = parseMatchDate(a);
+    const dateB = parseMatchDate(b);
+    if (dateA && dateB && dateA.getTime() !== dateB.getTime()) return dateA - dateB;
+    if (dateA && !dateB) return -1;
+    if (!dateA && dateB) return 1;
+    return number(a.id) - number(b.id);
+  });
+}
+
+function nextFixtureId(ordered) {
+  return ordered.find((game) => !isFinished(game)) || ordered[ordered.length - 1];
+}
+
+function scrollFixturesToNext() {
+  requestAnimationFrame(() => {
+    const target = fixturesEl.querySelector(".fixture.next") || fixturesEl.querySelector(".fixture:last-child");
+    if (!target) return;
+    const rect = target.getBoundingClientRect();
+    const top = window.scrollY + rect.bottom - window.innerHeight + 16;
+    window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+  });
+}
+
+// The feed lists each kickoff in its venue's own local wall-clock, so we resolve
+// the true instant per stadium and then render in the viewer's local timezone.
+// The tournament (Jun 11 - Jul 19, 2026) sits entirely within one DST state, so
+// fixed offsets are exact: US/Canada venues are on summer time, while Mexico has
+// observed no DST since 2022. Offsets are the venue zone's minutes from UTC.
+const STADIUM_UTC_OFFSET_MINUTES = {
+  1: -360, 2: -360, 3: -360, // Mexico City, Guadalajara, Monterrey — UTC-6 (no DST)
+  4: -300, 5: -300, 6: -300, // Dallas, Houston, Kansas City — Central (CDT) UTC-5
+  7: -240, 8: -240, 9: -240, 10: -240, 11: -240, 12: -240, // Atlanta, Miami, Boston, Philadelphia, NY/NJ, Toronto — Eastern (EDT) UTC-4
+  13: -420, 14: -420, 15: -420, 16: -420, // Vancouver, Seattle, SF Bay Area, Los Angeles — Pacific (PDT) UTC-7
+};
+const DEFAULT_UTC_OFFSET_MINUTES = -240; // fall back to Eastern if a stadium is unknown
+
+function parseMatchDate(game) {
+  const match = /^(\d{2})\/(\d{2})\/(\d{4})(?: (\d{2}):(\d{2}))?/.exec(`${game?.local_date || ""}`.trim());
+  if (!match) return null;
+  const [, mm, dd, yyyy, hh = "0", min = "0"] = match;
+  const offset = STADIUM_UTC_OFFSET_MINUTES[Number(game?.stadium_id)] ?? DEFAULT_UTC_OFFSET_MINUTES;
+  const utcMs = Date.UTC(Number(yyyy), Number(mm) - 1, Number(dd), Number(hh), Number(min));
+  return new Date(utcMs - offset * 60000);
+}
+
+function dayHeading(date) {
+  if (!date) return "Date TBD";
+  return date.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+}
+
+function timeLabel(date) {
+  return date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
 }
 
 function ownerBadge(owner, status) {

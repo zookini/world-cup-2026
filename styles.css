@@ -323,6 +323,135 @@ tr.eliminated {
   font-size: 0.82rem;
 }
 
+.fixture-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(440px, 100%), 1fr));
+  align-items: start;
+  gap: 8px 16px;
+}
+
+.fixture-day {
+  grid-column: 1 / -1;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 12px 0 4px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: var(--bg);
+}
+
+.fixture {
+  display: grid;
+  gap: 5px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+}
+
+.fixture-team {
+  display: grid;
+  grid-template-columns: 72px 30px minmax(0, 1fr) 24px;
+  gap: 10px;
+  align-items: center;
+}
+
+.fixture-gambler {
+  overflow: hidden;
+}
+
+.fixture-team .gambler-name {
+  display: block;
+  font-size: 0.84rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fixture-team .team-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.fixture-team > strong {
+  font-weight: 750;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.fixture-team.eliminated {
+  opacity: 0.4;
+  filter: grayscale(1);
+}
+
+.table-flag.placeholder {
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--soft),
+    var(--soft) 4px,
+    var(--bg) 4px,
+    var(--bg) 8px
+  );
+  border-style: dashed;
+}
+
+.fixture-foot {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 3px;
+  margin-top: 1px;
+  border-top: 1px solid var(--line);
+}
+
+.fixture-stage {
+  color: var(--muted);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.fixture-foot time,
+.fixture-foot .fixture-ft {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.fixture-foot .fixture-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--accent);
+  font-size: 0.78rem;
+  font-weight: 750;
+}
+
+.fixture-foot .fixture-live::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #e5342b;
+}
+
+.fixture.next {
+  border-color: var(--accent);
+  background: var(--soft);
+}
+
+.fixture.next .fixture-foot time {
+  color: var(--accent);
+}
+
 .visually-hidden {
   position: absolute;
   width: 1px;
@@ -338,11 +467,17 @@ tr.eliminated {
   }
 
   .view-tabs {
-    overflow-x: auto;
+    gap: 2px;
+    overflow-x: visible;
   }
 
   .view-tabs button {
-    flex: 0 0 auto;
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 10px 4px;
+    font-size: 0.82rem;
+    text-align: center;
+    white-space: nowrap;
   }
 
   th,
@@ -422,5 +557,18 @@ tr.eliminated {
     display: block;
     width: 23px;
     height: 16px;
+  }
+
+  .fixture {
+    padding: 9px 10px;
+  }
+
+  .fixture-team {
+    grid-template-columns: 62px 23px minmax(0, 1fr) 22px;
+    gap: 8px;
+  }
+
+  .fixture-team .team-name {
+    font-size: 0.86rem;
   }
 }

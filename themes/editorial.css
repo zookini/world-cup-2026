@@ -1,0 +1,175 @@
+/* ============================================================
+   THEME: Editorial — classic newspaper sports section
+   Cream stock, serif headlines, hairline rules, restrained red.
+   ============================================================ */
+@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,800;1,700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=Inter:wght@400;600;700&display=swap");
+
+:root {
+  --bg: #f5f1e6;
+  --text: #1c1a17;
+  --muted: #6c6760;
+  --line: #cfc8b8;
+  --soft: #ece6d6;
+  --accent: #a51c1c;
+  --paper: #fbf8f0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Source Serif 4", Georgia, serif;
+}
+
+/* --- Masthead --- */
+.marquee {
+  padding: 6px 0 10px;
+  border-bottom: 3px double var(--text);
+  margin-bottom: 16px;
+}
+.marquee h1 {
+  font-family: "Playfair Display", Georgia, serif;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  text-align: center;
+  color: var(--text);
+}
+.marquee::after {
+  content: "THE TOURNAMENT EDITION · EST. 2026";
+  display: block;
+  margin-top: 4px;
+  font-family: Inter, sans-serif;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--muted);
+}
+
+/* --- Tabs as section nav --- */
+.view-tabs {
+  justify-content: center;
+  gap: 0;
+  border-bottom: 1px solid var(--text);
+  border-top: 1px solid var(--text);
+  padding: 2px 0;
+  margin-bottom: 20px;
+}
+.view-tabs button {
+  font-family: Inter, sans-serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 8px 18px;
+  border-bottom: 2px solid transparent;
+}
+.view-tabs button + button {
+  border-left: 1px solid var(--line);
+}
+.view-tabs button.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+h2 {
+  font-family: "Playfair Display", Georgia, serif;
+  font-weight: 700;
+  font-size: 1.5rem;
+  color: var(--text);
+}
+h3 {
+  font-family: "Playfair Display", Georgia, serif;
+  font-weight: 700;
+}
+.board-head {
+  border-bottom: 2px solid var(--text);
+  padding-bottom: 6px;
+}
+
+/* --- Tables: ledger ruled --- */
+.contender-table > table,
+.group-table {
+  background: var(--paper);
+  border: 1px solid var(--line);
+}
+thead th {
+  font-family: Inter, sans-serif;
+  color: var(--text);
+  border-bottom: 2px solid var(--text);
+  background: var(--soft);
+}
+th,
+td {
+  border-bottom: 1px solid var(--line);
+}
+.gambler-name {
+  font-family: Inter, sans-serif;
+}
+.contender-row strong,
+.group-table strong,
+.match-card strong,
+.fixture-team > strong {
+  color: var(--accent);
+  font-family: "Playfair Display", serif;
+  font-variant-numeric: tabular-nums;
+}
+tr.selected {
+  background: var(--soft);
+}
+
+.group-table h3 {
+  background: var(--soft);
+  border-bottom: 1px solid var(--text);
+  padding: 10px;
+}
+.group-table h3::before {
+  content: "§ ";
+  color: var(--accent);
+}
+
+.table-flag,
+.team-flag img {
+  border: 1px solid #b3ab98;
+}
+
+/* --- Fixtures & knockouts as clipped notices --- */
+.fixture,
+.match-card {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 0;
+  border-left: 3px solid var(--accent);
+}
+.fixture.next {
+  background: var(--soft);
+  border-left-color: var(--text);
+}
+.fixture-day {
+  font-family: Inter, sans-serif;
+  color: var(--text);
+  border-bottom: 1px solid var(--line);
+  background: var(--bg);
+}
+.fixture-foot {
+  border-top: 1px solid var(--line);
+}
+.fixture-stage,
+.fixture-foot time,
+.fixture-foot .fixture-ft {
+  font-family: Inter, sans-serif;
+}
+.fixture-foot .fixture-live {
+  color: var(--accent);
+  font-family: Inter, sans-serif;
+}
+.round-column h3 {
+  border-bottom: 2px solid var(--text);
+}
+
+@media (max-width: 720px) {
+  .view-tabs button {
+    padding: 8px 6px;
+    letter-spacing: 0.06em;
+  }
+}

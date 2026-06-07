@@ -1,0 +1,187 @@
+/* ============================================================
+   THEME: Blue Lock — modern football anime, "ego" intensity
+   Black pitch, electric cobalt glow, red accent, angular cuts, glitch.
+   ============================================================ */
+@import url("https://fonts.googleapis.com/css2?family=Saira+Condensed:ital,wght@0,600;0,700;0,800;1,700;1,800&family=Saira:wght@400;500;600;700&display=swap");
+
+:root {
+  --bg: #04060f;
+  --text: #eaf1ff;
+  --muted: #6f86b8;
+  --line: rgba(56, 120, 255, 0.22);
+  --soft: rgba(37, 99, 255, 0.08);
+  --accent: #2f7bff;
+  --ego: #ff2d4b;
+  --glow: 0 0 10px rgba(47, 123, 255, 0.75);
+  --panel: rgba(10, 18, 38, 0.66);
+}
+
+body {
+  background:
+    radial-gradient(820px 420px at 8% -8%, rgba(47, 123, 255, 0.28), transparent 60%),
+    radial-gradient(700px 460px at 105% 6%, rgba(255, 45, 75, 0.14), transparent 60%),
+    repeating-linear-gradient(125deg, rgba(47, 123, 255, 0.05) 0 1px, transparent 1px 26px),
+    linear-gradient(180deg, #060a18 0%, #02030a 100%);
+  background-attachment: fixed;
+  font-family: Saira, system-ui, sans-serif;
+}
+
+/* --- Angular HUD title --- */
+.marquee {
+  position: relative;
+  margin-bottom: 16px;
+  padding: 18px 22px;
+  background: linear-gradient(110deg, rgba(47, 123, 255, 0.2), rgba(10, 18, 38, 0.85));
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--accent);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 26px 100%, 0 calc(100% - 22px));
+  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+}
+.marquee::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(115deg, transparent 0 9px, rgba(47, 123, 255, 0.06) 9px 11px);
+}
+.marquee h1 {
+  position: relative;
+  font-family: "Saira Condensed", sans-serif;
+  font-weight: 800;
+  font-style: italic;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  color: #fff;
+  text-shadow: 2px 0 var(--ego), -2px 0 var(--accent), 0 0 18px rgba(47, 123, 255, 0.6);
+}
+
+/* --- Skewed tab switches --- */
+.view-tabs {
+  gap: 6px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 6px;
+}
+.view-tabs button {
+  font-family: "Saira Condensed", sans-serif;
+  font-weight: 700;
+  font-style: italic;
+  font-size: 0.92rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: rgba(10, 18, 38, 0.6);
+  border: 1px solid var(--line);
+  clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+}
+.view-tabs button.active {
+  color: #fff;
+  background: linear-gradient(180deg, rgba(47, 123, 255, 0.35), rgba(47, 123, 255, 0.05));
+  border-color: var(--accent);
+  border-bottom-color: var(--accent);
+  text-shadow: var(--glow);
+}
+
+h2,
+h3 {
+  font-family: "Saira Condensed", sans-serif;
+  font-weight: 800;
+  font-style: italic;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: #fff;
+}
+h2::before {
+  content: "// ";
+  color: var(--accent);
+  font-style: normal;
+}
+
+/* --- Dark HUD panels --- */
+.contender-table > table,
+.group-table,
+.fixture,
+.match-card {
+  background: var(--panel);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.contender-table > table {
+  box-shadow: 0 0 0 1px rgba(47, 123, 255, 0.12), 0 18px 44px rgba(0, 0, 0, 0.6);
+}
+thead th {
+  background: rgba(47, 123, 255, 0.08);
+  color: var(--accent);
+  font-family: "Saira Condensed", sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+th,
+td {
+  border-bottom: 1px solid var(--line);
+}
+td,
+.gambler-name {
+  color: var(--text);
+}
+.contender-row strong,
+.group-table strong,
+.match-card strong,
+.fixture-team > strong {
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  text-shadow: var(--glow);
+}
+tr.selected {
+  background: var(--soft);
+}
+
+.group-table h3 {
+  background: linear-gradient(90deg, rgba(47, 123, 255, 0.3), transparent);
+  border-bottom: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  padding: 10px 12px;
+}
+
+.table-flag,
+.team-flag img {
+  border: 1px solid rgba(47, 123, 255, 0.4);
+  border-radius: 2px;
+}
+
+.fixture {
+  padding: 11px 13px;
+  border-left: 3px solid var(--line);
+}
+.fixture.next {
+  border-color: var(--accent);
+  border-left-color: var(--ego);
+  box-shadow: 0 0 18px rgba(47, 123, 255, 0.3);
+}
+.fixture-day {
+  font-family: "Saira Condensed", sans-serif;
+  font-style: italic;
+  color: var(--accent);
+  background: var(--bg);
+}
+.fixture-foot {
+  border-top: 1px solid var(--line);
+}
+.fixture-foot .fixture-live {
+  color: var(--ego);
+  text-shadow: 0 0 8px rgba(255, 45, 75, 0.7);
+}
+.fixture-foot .fixture-live::before {
+  background: var(--ego);
+  box-shadow: 0 0 8px var(--ego);
+}
+.round-column h3 {
+  border-bottom: 2px solid var(--accent);
+  box-shadow: 0 2px 14px rgba(47, 123, 255, 0.25);
+}
+.match-card.empty,
+.match-card span,
+.match-card time {
+  color: var(--muted);
+}

@@ -1,0 +1,185 @@
+/* ============================================================
+   THEME: Host Nations '26 — USA / Canada / Mexico branding
+   Sand canvas, maple red + ocean teal, bold geometric poster.
+   ============================================================ */
+@import url("https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap");
+
+:root {
+  --bg: #f3e9d6;
+  --text: #1c2b33;
+  --muted: #6f7c80;
+  --line: #ddcdae;
+  --soft: #fbf5e8;
+  --accent: #d8232a;
+  --teal: #009a93;
+  --gold: #f4b32c;
+  --card: #fffdf7;
+}
+
+body {
+  background:
+    radial-gradient(circle at 100% 0, rgba(0, 154, 147, 0.16), transparent 42%),
+    radial-gradient(circle at 0 12%, rgba(216, 35, 42, 0.12), transparent 38%),
+    var(--bg);
+  background-attachment: fixed;
+  font-family: Inter, system-ui, sans-serif;
+}
+
+/* --- Poster header with tri-band accent --- */
+.marquee {
+  position: relative;
+  margin-bottom: 16px;
+  padding: 18px 20px 20px;
+  border-radius: 14px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  box-shadow: 0 10px 28px rgba(28, 43, 51, 0.1);
+  overflow: hidden;
+}
+.marquee::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 10px;
+  background: linear-gradient(180deg, var(--accent) 0 33%, #ffffff 33% 66%, var(--teal) 66%);
+}
+.marquee h1 {
+  font-family: Sora, sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  color: var(--text);
+  padding-left: 12px;
+}
+.marquee h1::after {
+  content: " ★";
+  color: var(--gold);
+}
+
+/* --- Tabs as poster chips --- */
+.view-tabs {
+  gap: 8px;
+  border-bottom: 0;
+}
+.view-tabs button {
+  font-family: Sora, sans-serif;
+  font-weight: 700;
+  font-size: 0.8rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--text);
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.view-tabs button.active {
+  color: #fff;
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+h2 {
+  font-family: Sora, sans-serif;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+h2::after {
+  content: "";
+  display: inline-block;
+  width: 26px;
+  height: 4px;
+  margin-left: 10px;
+  vertical-align: middle;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--accent), var(--teal));
+}
+h3 {
+  font-family: Sora, sans-serif;
+  font-weight: 700;
+}
+
+/* --- Cards --- */
+.contender-table > table,
+.group-table,
+.fixture,
+.match-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.contender-table > table {
+  box-shadow: 0 8px 22px rgba(28, 43, 51, 0.08);
+}
+thead th {
+  background: var(--soft);
+  color: var(--teal);
+  font-family: Sora, sans-serif;
+}
+th,
+td {
+  border-bottom: 1px solid var(--line);
+}
+.gambler-name {
+  color: var(--text);
+  font-weight: 700;
+}
+.contender-row strong,
+.group-table strong,
+.match-card strong,
+.fixture-team > strong {
+  color: var(--accent);
+  font-family: Sora, sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+tr.selected {
+  background: var(--soft);
+}
+
+.group-table h3 {
+  background: linear-gradient(90deg, var(--teal), #00746f);
+  color: #fff;
+  border-bottom: 0;
+  padding: 11px;
+}
+
+.table-flag,
+.team-flag img {
+  border: 1px solid var(--line);
+  border-radius: 3px;
+}
+
+.fixture {
+  padding: 11px 13px;
+  border-left: 4px solid var(--teal);
+}
+.fixture.next {
+  border-color: var(--accent);
+  border-left-color: var(--accent);
+  background: var(--soft);
+}
+.fixture-day {
+  font-family: Sora, sans-serif;
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--bg);
+}
+.fixture-foot {
+  border-top: 1px solid var(--line);
+}
+.fixture-foot .fixture-live {
+  color: var(--accent);
+}
+.round-column h3 {
+  color: var(--text);
+  border-bottom: 3px solid var(--gold);
+}
+.match-card.empty,
+.match-card span,
+.match-card time {
+  color: var(--muted);
+}

@@ -1,0 +1,151 @@
+/* ============================================================
+   THEME: Stadium Night — neon, dark glassmorphism, pitch glow
+   Near-black field, electric magenta + cyan, frosted glass cards.
+   ============================================================ */
+@import url("https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=Rajdhani:wght@500;600;700&display=swap");
+
+:root {
+  --bg: #06060f;
+  --text: #f3f0ff;
+  --muted: #9b95c7;
+  --line: rgba(124, 92, 255, 0.22);
+  --soft: rgba(124, 92, 255, 0.08);
+  --accent: #00f0ff;
+  --pink: #ff2bd6;
+  --glass: rgba(20, 16, 40, 0.55);
+}
+
+body {
+  background:
+    radial-gradient(900px 500px at 15% -5%, rgba(255, 43, 214, 0.18), transparent 60%),
+    radial-gradient(1000px 600px at 95% 10%, rgba(0, 240, 255, 0.15), transparent 60%),
+    linear-gradient(180deg, #0a0818 0%, #04040a 100%);
+  background-attachment: fixed;
+  font-family: Rajdhani, system-ui, sans-serif;
+  font-weight: 500;
+}
+
+.marquee {
+  padding: 12px 0 18px;
+}
+.marquee h1 {
+  font-family: Orbitron, sans-serif;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #fff;
+  text-shadow:
+    0 0 8px rgba(0, 240, 255, 0.8),
+    0 0 22px rgba(255, 43, 214, 0.55);
+}
+
+.view-tabs {
+  border-bottom: 1px solid var(--line);
+}
+.view-tabs button {
+  font-family: Orbitron, sans-serif;
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.view-tabs button.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  text-shadow: 0 0 10px rgba(0, 240, 255, 0.7);
+}
+
+h2,
+h3 {
+  font-family: Orbitron, sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #fff;
+}
+h2 {
+  color: var(--pink);
+  text-shadow: 0 0 12px rgba(255, 43, 214, 0.5);
+}
+
+/* --- Frosted glass surfaces --- */
+.contender-table > table,
+.group-table,
+.fixture,
+.match-card {
+  background: var(--glass);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.contender-table > table {
+  box-shadow: 0 0 0 1px rgba(0, 240, 255, 0.12), 0 16px 40px rgba(0, 0, 0, 0.55);
+}
+thead th {
+  color: var(--accent);
+  background: rgba(0, 240, 255, 0.05);
+}
+th,
+td {
+  border-bottom: 1px solid var(--line);
+}
+.contender-row strong,
+.group-table strong,
+.match-card strong,
+.fixture-team > strong {
+  color: var(--accent);
+  text-shadow: 0 0 8px rgba(0, 240, 255, 0.6);
+  font-variant-numeric: tabular-nums;
+}
+.gambler-name {
+  color: var(--text);
+}
+tr.selected {
+  background: rgba(255, 43, 214, 0.08);
+}
+
+.group-table h3 {
+  background: linear-gradient(90deg, rgba(255, 43, 214, 0.18), transparent);
+  border-bottom: 1px solid var(--line);
+  padding: 12px;
+}
+
+.table-flag,
+.team-flag img {
+  border: 1px solid rgba(0, 240, 255, 0.35);
+  border-radius: 3px;
+}
+
+.fixture {
+  padding: 12px 14px;
+}
+.fixture.next {
+  border-color: var(--accent);
+  box-shadow: 0 0 18px rgba(0, 240, 255, 0.35);
+  background: linear-gradient(180deg, rgba(0, 240, 255, 0.1), var(--glass));
+}
+.fixture-day {
+  color: var(--pink);
+  background: var(--bg);
+}
+.fixture-foot {
+  border-top: 1px solid var(--line);
+}
+.fixture-foot .fixture-live {
+  color: var(--pink);
+}
+.fixture-foot .fixture-live::before {
+  background: var(--pink);
+  box-shadow: 0 0 8px var(--pink);
+}
+
+.round-column h3 {
+  border-bottom: 2px solid var(--accent);
+  box-shadow: 0 2px 12px rgba(0, 240, 255, 0.25);
+}
+.match-card.empty,
+.match-card span,
+.match-card time {
+  color: var(--muted);
+}

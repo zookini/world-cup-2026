@@ -1,0 +1,221 @@
+/* ============================================================
+   THEME: Captain Tsubasa — anime / shonen manga
+   Bold ink panels, halftone sky, speed-line energy, italic action type.
+   ============================================================ */
+@import url("https://fonts.googleapis.com/css2?family=Anton&family=Mochiy+Pop+One&family=Inter:wght@500;700;800&display=swap");
+
+:root {
+  --bg: #eaf4ff;
+  --text: #0c1b3a;
+  --muted: #3f5b86;
+  --line: #0c1b3a;
+  --soft: #d6e8ff;
+  --accent: #e60023;
+  --ink: #0c1b3a;
+  --pop: #ffd400;
+}
+
+body {
+  background:
+    radial-gradient(circle at 12% 8%, rgba(255, 212, 0, 0.18), transparent 38%),
+    repeating-linear-gradient(115deg, rgba(12, 27, 58, 0.05) 0 2px, transparent 2px 9px),
+    linear-gradient(160deg, #eaf4ff 0%, #c4ddff 100%);
+  background-attachment: fixed;
+  font-family: Inter, system-ui, sans-serif;
+  font-weight: 500;
+}
+
+/* --- Big slanted manga title with speed lines --- */
+.marquee {
+  position: relative;
+  margin-bottom: 14px;
+  padding: 18px 18px 16px;
+  border: 4px solid var(--ink);
+  border-radius: 4px;
+  background: var(--pop);
+  box-shadow: 8px 8px 0 var(--ink);
+  overflow: hidden;
+}
+.marquee::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(105deg, transparent 0 8px, rgba(12, 27, 58, 0.08) 8px 10px);
+  pointer-events: none;
+}
+.marquee h1 {
+  position: relative;
+  font-family: Anton, Impact, sans-serif;
+  font-weight: 400;
+  font-style: italic;
+  letter-spacing: 0.01em;
+  line-height: 0.92;
+  text-transform: uppercase;
+  color: var(--accent);
+  -webkit-text-stroke: 2px var(--ink);
+  text-shadow: 4px 4px 0 #fff, 6px 6px 0 var(--ink);
+}
+
+/* --- Tabs as manga action buttons --- */
+.view-tabs {
+  gap: 8px;
+  border-bottom: 0;
+}
+.view-tabs button {
+  font-family: "Mochiy Pop One", sans-serif;
+  font-size: 0.82rem;
+  color: var(--ink);
+  background: #fff;
+  border: 3px solid var(--ink);
+  border-radius: 4px;
+  box-shadow: 3px 3px 0 var(--ink);
+  transition: transform 0.05s ease;
+}
+.view-tabs button.active {
+  color: #fff;
+  background: var(--accent);
+  border-bottom-color: var(--ink);
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 var(--ink);
+}
+
+/* --- Section headings --- */
+h2 {
+  font-family: Anton, Impact, sans-serif;
+  font-weight: 400;
+  font-style: italic;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--ink);
+}
+h2::before {
+  content: "▶ ";
+  color: var(--accent);
+}
+.board-head {
+  border-bottom: 3px solid var(--ink);
+  padding-bottom: 8px;
+}
+
+/* --- Tables as bold ink panels --- */
+/* Style the container, not the <table>: base sets border-collapse, which makes
+   border-radius a no-op on the table itself (square corners). The group cards
+   already frame an article wrapper, so framing the contender wrapper keeps the
+   rounded manga panel consistent across every view. */
+.contender-table,
+.group-table {
+  border: 3px solid var(--ink);
+  border-radius: 4px;
+  background: #fff;
+  box-shadow: 5px 5px 0 var(--ink);
+  overflow: hidden;
+}
+.contender-table thead th,
+.group-table thead th {
+  background: var(--ink);
+  color: var(--pop);
+  font-family: Inter, sans-serif;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+/* Inner tables share the white card surface (were inheriting --bg). */
+.contender-table table,
+.group-table table {
+  background: #fff;
+}
+/* Give the points column room so "PTS" isn't clipped in the tight grid. */
+.group-table th:last-child,
+.group-table td:last-child {
+  width: 34px;
+}
+th,
+td {
+  border-bottom: 2px solid rgba(12, 27, 58, 0.18);
+}
+.gambler-name {
+  font-family: "Mochiy Pop One", sans-serif;
+  color: var(--ink);
+}
+.contender-row strong,
+.group-table strong,
+.match-card strong {
+  color: var(--accent);
+  font-family: Anton, sans-serif;
+  font-style: italic;
+}
+/* Almost every group row is a picked team, so keep the highlight faint —
+   otherwise the group tables read as blue against the white standings table. */
+tr.selected {
+  background: #eef4fd;
+}
+
+.group-table h3 {
+  font-family: Anton, Impact, sans-serif;
+  font-weight: 400;
+  font-style: italic;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  background: var(--accent);
+  color: #fff;
+  border-bottom: 0;
+  padding: 10px;
+}
+.group-table h3::before {
+  content: "⚽ ";
+}
+
+/* --- Flags get a thick ink frame --- */
+.team-flag img,
+.table-flag {
+  border: 2px solid var(--ink);
+  border-radius: 2px;
+}
+
+/* --- Fixtures & knockout cards as manga panels --- */
+.fixture,
+.match-card {
+  border: 3px solid var(--ink);
+  border-radius: 4px;
+  background: #fff;
+  box-shadow: 4px 4px 0 var(--ink);
+}
+.fixture.next {
+  background: var(--pop);
+  border-color: var(--accent);
+  box-shadow: 4px 4px 0 var(--accent);
+}
+.fixture-foot {
+  border-top: 2px dashed var(--ink);
+}
+.fixture-foot .fixture-live {
+  color: var(--accent);
+  font-family: "Mochiy Pop One", sans-serif;
+}
+.fixture-day {
+  font-family: "Mochiy Pop One", sans-serif;
+  color: var(--accent);
+  background: var(--bg);
+}
+.round-column h3 {
+  font-family: Anton, sans-serif;
+  font-style: italic;
+  text-transform: uppercase;
+  color: var(--ink);
+  border-bottom: 3px solid var(--accent);
+}
+
+@media (max-width: 720px) {
+  /* Mochiy Pop One is too wide for four tabs on an iPhone SE — fall back to
+     a narrower bold face and slim the manga box so every label fits. */
+  .view-tabs button {
+    font-family: Inter, sans-serif;
+    font-weight: 800;
+    font-size: 0.72rem;
+    padding: 9px 3px;
+    border-width: 2px;
+    box-shadow: 2px 2px 0 var(--ink);
+  }
+  .view-tabs button.active {
+    box-shadow: 3px 3px 0 var(--ink);
+  }
+}

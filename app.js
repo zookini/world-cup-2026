@@ -119,9 +119,8 @@ async function refreshData() {
 }
 
 async function fetchJson(url) {
-  const direct = await fetch(url, { mode: "cors" }).catch(() => null);
-  if (direct?.ok) return direct.json();
-
+  // worldcup26.ir sends no CORS header, so we always go through the same-origin
+  // proxy (server.mjs locally, Pages Functions in production).
   const proxiedPath = url.endsWith("/groups") ? "/api/groups" : "/api/games";
   const proxied = await fetch(proxiedPath);
   if (!proxied.ok) throw new Error(`${proxiedPath} returned HTTP ${proxied.status}`);

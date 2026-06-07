@@ -3,17 +3,9 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>World Cup 2026 — Theme Preview</title>
+    <title>World Cup 2026 — Tsubasa Theme Preview</title>
     <link rel="stylesheet" href="styles.css" />
-    <script>
-      // Theme preview shim: ?theme=tsubasa|broadcast|neon|editorial layers a
-      // theme stylesheet on top of the base styles. Does not touch app.js.
-      const theme = new URLSearchParams(location.search).get("theme");
-      if (theme && /^[a-z]+$/.test(theme)) {
-        document.write(`<link rel="stylesheet" href="themes/${theme}.css" />`);
-        document.documentElement.dataset.theme = theme;
-      }
-    </script>
+    <link rel="stylesheet" href="themes/tsubasa.css" />
   </head>
   <body>
     <main class="arena">

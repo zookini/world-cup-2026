@@ -204,9 +204,8 @@ tr.selected {
   border-bottom: 3px solid var(--accent);
 }
 
-@media (max-width: 720px) {
-  /* Mochiy Pop One is too wide for four tabs on an iPhone SE — fall back to
-     a narrower bold face and slim the manga box so every label fits. */
+@media (max-width: 340px) {
+  /* Mochiy Pop One is too wide for four tabs on old 320px iPhones. */
   .view-tabs button {
     font-family: Inter, sans-serif;
     font-weight: 800;

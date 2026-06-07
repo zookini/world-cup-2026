@@ -1,49 +1,49 @@
 pick,player,teamCode,teamName,group,status
-1,T,BRA,Brazil,C,alive
-2,Jane,ESP,Spain,H,alive
-3,Colm,ARG,Argentina,J,alive
-4,Sharon,FRA,France,I,alive
-5,Ivan,ENG,England,L,alive
-6,Joey,GER,Germany,E,alive
-7,Chun,POR,Portugal,K,alive
-8,Andy,NED,Netherlands,F,alive
-9,Kachun,BEL,Belgium,G,alive
-10,Kakei,URU,Uruguay,H,alive
-11,Kakei,CRO,Croatia,L,alive
-12,Kachun,MAR,Morocco,C,alive
-13,Andy,COL,Colombia,K,alive
-14,Chun,SUI,Switzerland,B,alive
-15,Joey,JPN,Japan,F,alive
-16,Ivan,USA,United States,D,alive
-17,Sharon,SWE,Sweden,F,alive
-18,Colm,NOR,Norway,I,alive
-19,Jane,ECU,Ecuador,E,alive
-20,T,AUS,Australia,D,alive
-21,T,CAN,Canada,B,alive
-22,Jane,SEN,Senegal,I,alive
-23,Colm,MEX,Mexico,A,alive
-24,Sharon,PAR,Paraguay,D,alive
-25,Ivan,IRN,Iran,G,alive
-26,Joey,KOR,South Korea,A,alive
-27,Chun,AUT,Austria,J,alive
-28,Andy,TUR,Turkiye,D,alive
-29,Kachun,QAT,Qatar,B,alive
-30,Kakei,CPV,Cape Verde,H,alive
-31,Kakei,CIV,Ivory Coast,E,alive
-32,Kachun,GHA,Ghana,L,alive
-33,Andy,ALG,Algeria,J,alive
-34,Chun,SCO,Scotland,C,alive
-35,Joey,TUN,Tunisia,F,alive
-36,Ivan,NZL,New Zealand,G,alive
-37,Sharon,UZB,Uzbekistan,K,alive
-38,Colm,KSA,Saudi Arabia,H,alive
-39,Jane,PAN,Panama,L,alive
-40,T,CUW,Curacao,E,alive
-41,Vinny,BIH,Bosnia and Herzegovina,B,alive
-42,Vinny,CZE,Czechia,A,alive
-43,Vinny,COD,DR Congo,K,alive
-44,Vinny,EGY,Egypt,G,alive
-45,Boe,HAI,Haiti,C,alive
-46,Boe,IRQ,Iraq,I,alive
-47,Boe,JOR,Jordan,J,alive
-48,Boe,RSA,South Africa,A,alive
+1,Boe,ESP,Spain,H,alive
+2,Boe,ECU,Ecuador,E,alive
+3,Boe,EGY,Egypt,G,alive
+4,Boe,ALG,Algeria,J,alive
+5,Colm,NED,Netherlands,F,alive
+6,Colm,CZE,Czechia,A,alive
+7,Colm,SUI,Switzerland,B,alive
+8,Colm,PAR,Paraguay,D,alive
+9,Ivan,FRA,France,I,alive
+10,Ivan,SWE,Sweden,F,alive
+11,Ivan,CIV,Ivory Coast,E,alive
+12,Ivan,KSA,Saudi Arabia,H,alive
+13,T,ENG,England,L,alive
+14,T,MEX,Mexico,A,alive
+15,T,USA,United States,D,alive
+16,T,AUS,Australia,D,alive
+17,Sharon,ARG,Argentina,J,alive
+18,Sharon,CUW,Curacao,E,alive
+19,Sharon,CPV,Cape Verde,H,alive
+20,Sharon,TUN,Tunisia,F,alive
+21,Andy,BRA,Brazil,C,alive
+22,Andy,HAI,Haiti,C,alive
+23,Andy,SEN,Senegal,I,alive
+24,Andy,COD,DR Congo,K,alive
+25,Joey,GER,Germany,E,alive
+26,Joey,TUR,Turkiye,D,alive
+27,Joey,IRN,Iran,G,alive
+28,Joey,CAN,Canada,B,alive
+29,Vinny,POR,Portugal,K,alive
+30,Vinny,AUT,Austria,J,alive
+31,Vinny,SCO,Scotland,C,alive
+32,Vinny,IRQ,Iraq,I,alive
+33,Kachun,BEL,Belgium,G,alive
+34,Kachun,MAR,Morocco,C,alive
+35,Kachun,NZL,New Zealand,G,alive
+36,Kachun,BIH,Bosnia and Herzegovina,B,alive
+37,Chun,JPN,Japan,F,alive
+38,Chun,URU,Uruguay,H,alive
+39,Chun,GHA,Ghana,L,alive
+40,Chun,RSA,South Africa,A,alive
+41,Kakei,NOR,Norway,I,alive
+42,Kakei,COL,Colombia,K,alive
+43,Kakei,JOR,Jordan,J,alive
+44,Kakei,UZB,Uzbekistan,K,alive
+45,Janey,CRO,Croatia,L,alive
+46,Janey,KOR,South Korea,A,alive
+47,Janey,QAT,Qatar,B,alive
+48,Janey,PAN,Panama,L,alive

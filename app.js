@@ -1,5 +1,5 @@
 const API_BASE = "https://worldcup26.ir/get";
-const PLAYER_ORDER = ["T", "Jane", "Colm", "Sharon", "Ivan", "Joey", "Chun", "Andy", "Kachun", "Kakei", "Vinny", "Boe"];
+const PLAYER_ORDER = ["Boe", "Colm", "Ivan", "T", "Sharon", "Andy", "Joey", "Vinny", "Kachun", "Chun", "Kakei", "Janey"];
 const FLAG_CODES = {
   ALG: "DZ",
   ARG: "AR",

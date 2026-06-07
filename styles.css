@@ -257,10 +257,7 @@ tr.eliminated .table-flag {
 
 .group-table .gambler-name {
   display: block;
-  max-width: 68px;
-  overflow: hidden;
   font-size: inherit;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -364,11 +361,16 @@ tr.eliminated {
 
   .group-table th:first-child,
   .group-table td:first-child {
-    width: 58px;
+    width: 64px;
   }
 
-  .group-table .gambler-name {
-    max-width: 54px;
+  .group-table th:first-child {
+    font-size: 0.72rem;
+  }
+
+  .group-table th:nth-child(2),
+  .group-table td:nth-child(2) {
+    padding-left: 8px;
   }
 
   .flag-strip {
@@ -397,15 +399,28 @@ tr.eliminated {
 
   .group-table table {
     min-width: 0;
-    font-size: 0.76rem;
+    font-size: 0.74rem;
+  }
+
+  .group-table th,
+  .group-table td {
+    padding-right: 3px;
+    padding-left: 3px;
+  }
+
+  .group-table th:nth-child(n + 3),
+  .group-table td:nth-child(n + 3) {
+    width: 24px;
   }
 
   .team-cell {
-    grid-template-columns: 30px minmax(0, 1fr) auto;
+    grid-template-columns: 23px minmax(0, 1fr);
+    gap: 5px;
   }
 
   .table-flag {
-    width: 25px;
-    height: 17px;
+    display: block;
+    width: 23px;
+    height: 16px;
   }
 }

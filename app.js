@@ -354,10 +354,11 @@ function renderGroups() {
     const rows = standings.map((team) => {
       const selected = selections.find((item) => normalizeName(item.name) === normalizeName(team.name));
       const status = selected ? teamStatus(selected) : "neutral";
+      const displayName = teamDisplayName(team);
       return `
         <tr class="${status} ${selected ? "selected" : ""}">
           <td>${ownerBadge(team.owner, status)}</td>
-          <td><div class="team-cell">${tableFlagMarkup(team)}<span>${team.name}</span></div></td>
+          <td><div class="team-cell">${tableFlagMarkup(team)}<span class="team-name" title="${team.name}">${displayName}</span></div></td>
           <td>${team.mp}</td>
           <td>${team.w}</td>
           <td>${team.l}</td>
@@ -380,6 +381,11 @@ function renderGroups() {
 
 function tableFlagMarkup(team) {
   return `<img class="table-flag" src="${flagUrl(team)}" alt="${team.name} flag" />`;
+}
+
+function teamDisplayName(team) {
+  if (team.code === "COD") return "DR Congo";
+  return team.name;
 }
 
 function fallbackGroups() {

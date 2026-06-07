@@ -57,16 +57,28 @@ let games = [];
 let teamById = new Map();
 let teamByName = new Map();
 
-const playersEl = document.querySelector("#players");
 const contendersEl = document.querySelector("#contenders");
 const groupsEl = document.querySelector("#groups");
 const knockoutsEl = document.querySelector("#knockouts");
 const syncStatusEl = document.querySelector("#sync-status");
+const viewButtons = document.querySelectorAll("[data-view]");
+const viewPanels = document.querySelectorAll("[data-panel]");
 
 async function init() {
+  bindViewTabs();
   await loadSelections();
   render();
   await refreshData();
+}
+
+function bindViewTabs() {
+  viewButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const view = button.dataset.view;
+      viewButtons.forEach((item) => item.classList.toggle("active", item === button));
+      viewPanels.forEach((panel) => panel.classList.toggle("active", panel.dataset.panel === view));
+    });
+  });
 }
 
 async function loadSelections() {
@@ -231,49 +243,75 @@ function loserId(game) {
 }
 
 function render() {
-  renderPlayers();
   renderContenders();
   renderGroups();
   renderKnockouts();
 }
 
-function renderPlayers() {
-  const players = [...new Set([...PLAYER_ORDER, ...selections.map((team) => team.player)])];
-  playersEl.innerHTML = players.map((player) => {
-    const owned = selections.filter((team) => team.player === player);
-    const alive = owned.filter((team) => teamStatus(team) !== "eliminated").length;
-    return `
-      <article class="player-token damage-${playerDamage(player)}" title="${player}: ${alive}/${owned.length} teams alive">
-        ${avatarMarkup(player)}
-        <span>${player}</span>
-      </article>
-    `;
-  }).join("");
-}
-
 function renderContenders() {
   const players = [...new Set([...PLAYER_ORDER, ...selections.map((team) => team.player)])];
+  const rows = players.map(playerSummary).sort(sortPlayerSummaries);
   contendersEl.innerHTML = `
     <table>
+      <thead>
+        <tr>
+          <th>Gambler</th>
+          <th>Teams</th>
+          <th>P</th>
+          <th>W</th>
+          <th>L</th>
+          <th>D</th>
+          <th>Pts</th>
+        </tr>
+      </thead>
       <tbody>
-        ${players.map((player) => {
-          const owned = selections.filter((team) => team.player === player);
+        ${rows.map(({ player, owned, played, w, l, d, pts }) => {
           return `
-            <tr class="contender-row damage-${playerDamage(player)}">
+            <tr class="contender-row">
               <th scope="row">
-                <span class="contender-name">${avatarMarkup(player)}<span>${player}</span></span>
+                <span class="gambler-name">${player}</span>
               </th>
               <td>
                 <div class="flag-strip">
                   ${owned.sort(sortOwnedTeams).map((team) => flagMarkup(team)).join("")}
                 </div>
               </td>
+              <td>${played}</td>
+              <td>${w}</td>
+              <td>${l}</td>
+              <td>${d}</td>
+              <td><strong>${pts}</strong></td>
             </tr>
           `;
         }).join("")}
       </tbody>
     </table>
   `;
+}
+
+function playerSummary(player) {
+  const owned = selections.filter((team) => team.player === player);
+  return owned.reduce((summary, team) => {
+    const record = teamGroupRecord(team);
+    summary.played += record.played;
+    summary.w += record.w;
+    summary.l += record.l;
+    summary.d += record.d;
+    summary.pts += record.pts;
+    return summary;
+  }, { player, owned, played: 0, w: 0, l: 0, d: 0, pts: 0 });
+}
+
+function sortPlayerSummaries(a, b) {
+  return b.pts - a.pts || b.w - a.w || a.l - b.l || PLAYER_ORDER.indexOf(a.player) - PLAYER_ORDER.indexOf(b.player);
+}
+
+function teamGroupRecord(selection) {
+  const group = groups.find((item) => item.name === selection.group);
+  if (!group) return { played: 0, w: 0, l: 0, d: 0, pts: 0 };
+  const team = standingsForGroup(group).find((item) => normalizeName(item.name) === normalizeName(selection.name));
+  if (!team) return { played: 0, w: 0, l: 0, d: 0, pts: 0 };
+  return { played: team.mp, w: team.w, l: team.l, d: team.d, pts: team.pts };
 }
 
 function sortOwnedTeams(a, b) {
@@ -286,7 +324,7 @@ function flagMarkup(team) {
   const status = teamStatus(team);
   return `
     <span class="team-flag ${status}" title="${team.name}">
-      <img src="${flagUrl(team)}" alt="${team.name} flag" loading="lazy" />
+      <img src="${flagUrl(team)}" alt="${team.name} flag" />
       <small>${team.code}</small>
     </span>
   `;
@@ -304,31 +342,35 @@ function renderGroups() {
     const table = document.createElement("article");
     table.className = "group-table";
     const standings = groups.length ? standingsForGroup(group) : group.teams;
-    const rows = standings.map((team, index) => {
+    const rows = standings.map((team) => {
       const selected = selections.find((item) => normalizeName(item.name) === normalizeName(team.name));
       const status = selected ? teamStatus(selected) : "neutral";
       return `
         <tr class="${status} ${selected ? "selected" : ""}">
-          <td class="rank">${index + 1}</td>
-          <td><div class="team-cell"><b>${team.code}</b><span>${team.name}</span>${ownerBadge(team.owner, status)}</div></td>
+          <td>${ownerBadge(team.owner, status)}</td>
+          <td><div class="team-cell">${tableFlagMarkup(team)}<span>${team.name}</span></div></td>
           <td>${team.mp}</td>
           <td>${team.w}</td>
-          <td>${team.d}</td>
           <td>${team.l}</td>
+          <td>${team.d}</td>
           <td>${team.gd}</td>
-          <td>${team.pts}</td>
+          <td><strong>${team.pts}</strong></td>
         </tr>
       `;
     }).join("");
     table.innerHTML = `
       <h3>Group ${group.name}</h3>
       <table>
-        <thead><tr><th>#</th><th>Team</th><th>MP</th><th>W</th><th>D</th><th>L</th><th>GD</th><th>PTS</th></tr></thead>
+        <thead><tr><th>Gambler</th><th>Team</th><th>P</th><th>W</th><th>L</th><th>D</th><th>GD</th><th>Pts</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
     `;
     groupsEl.append(table);
   });
+}
+
+function tableFlagMarkup(team) {
+  return `<img class="table-flag" src="${flagUrl(team)}" alt="${team.name} flag" />`;
 }
 
 function fallbackGroups() {
@@ -370,6 +412,12 @@ function renderKnockouts() {
 function renderMatch(game) {
   const home = teamById.get(`${game.home_team_id}`) || { name: game.home_team_name_en || "TBD", code: "TBD" };
   const away = teamById.get(`${game.away_team_id}`) || { name: game.away_team_name_en || "TBD", code: "TBD" };
+  if (home.code === "TBD" && away.code === "TBD") {
+    const empty = document.createElement("article");
+    empty.className = "match-card empty";
+    empty.textContent = "Awaiting qualifiers";
+    return empty;
+  }
   const homeSelection = selectionForName(home.name);
   const awaySelection = selectionForName(away.name);
   const homeStatus = homeSelection ? teamStatus(homeSelection) : "neutral";
@@ -386,26 +434,7 @@ function renderMatch(game) {
 
 function ownerBadge(owner, status) {
   if (!owner) return "";
-  const damage = playerDamage(owner);
-  return `
-    <em class="owner-badge ${status} damage-${damage}" title="${owner}">
-      ${avatarMarkup(owner)}
-    </em>
-  `;
-}
-
-function avatarMarkup(player) {
-  return `<span class="mini-avatar avatar-${playerClass(player)}" aria-label="${player}" role="img"><i></i><b></b><small></small></span>`;
-}
-
-function playerClass(player) {
-  return `${player}`.toLowerCase().replace(/[^a-z0-9]/g, "");
-}
-
-function playerDamage(player) {
-  const owned = selections.filter((team) => team.player === player);
-  const eliminated = owned.filter((team) => teamStatus(team) === "eliminated").length;
-  return Math.min(4, eliminated);
+  return `<span class="gambler-name ${status}" title="${owner}">${owner}</span>`;
 }
 
 function parseCsv(text) {
@@ -440,7 +469,15 @@ function parseCsv(text) {
 }
 
 function normalizeName(name) {
-  return `${name}`.toLowerCase().replace(/czech republic/g, "czechia").replace(/turkey/g, "turkiye").replace(/[^a-z]/g, "");
+  return `${name}`
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/democratic republic of the congo/g, "dr congo")
+    .replace(/democratic republic of congo/g, "dr congo")
+    .replace(/czech republic/g, "czechia")
+    .replace(/turkey/g, "turkiye")
+    .replace(/[^a-z]/g, "");
 }
 
 function number(value) {

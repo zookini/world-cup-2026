@@ -9,32 +9,32 @@
   <body>
     <main class="arena">
       <header class="marquee">
-        <div>
-          <h1>World Cup 2026</h1>
-        </div>
+        <h1>World Cup 2026</h1>
       </header>
 
-      <section class="player-legend" aria-label="Players">
-        <div id="players" class="player-strip"></div>
-      </section>
+      <nav class="view-tabs" aria-label="Views">
+        <button class="active" type="button" data-view="standings">Standings</button>
+        <button type="button" data-view="groups">Groups</button>
+        <button type="button" data-view="knockouts">Knockouts</button>
+      </nav>
 
-      <section class="money-board" aria-label="Money contention">
+      <section class="view-panel money-board active" data-panel="standings" aria-label="Pool standings">
         <div class="board-head">
           <h2>Standings</h2>
         </div>
         <div id="contenders" class="contender-table"></div>
       </section>
 
-      <section class="world-board" aria-label="Group standings">
+      <section class="view-panel world-board" data-panel="groups" aria-label="Group standings">
         <div class="board-head">
-          <h2>Group Stage</h2>
+          <h2>Groups</h2>
         </div>
         <div id="groups" class="group-stage"></div>
       </section>
 
-      <section class="knockout-board" aria-label="Knockout stage">
+      <section class="view-panel knockout-board" data-panel="knockouts" aria-label="Knockout stage">
         <div class="board-head">
-          <h2>Knockout Stage</h2>
+          <h2>Knockouts</h2>
         </div>
         <div id="knockouts" class="knockout-grid"></div>
       </section>

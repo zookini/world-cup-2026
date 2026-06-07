@@ -178,7 +178,8 @@ th:nth-child(2),
 .team-flag {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  width: 30px;
   color: var(--muted);
   line-height: 1;
 }
@@ -193,8 +194,12 @@ th:nth-child(2),
 }
 
 .team-flag small {
-  font-size: 0.68rem;
-  font-weight: 700;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
 .team-flag.eliminated,
@@ -205,7 +210,7 @@ tr.eliminated .table-flag {
 
 .group-stage {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(460px, 1fr));
   gap: 18px;
 }
 
@@ -222,7 +227,18 @@ tr.eliminated .table-flag {
 }
 
 .group-table table {
+  table-layout: fixed;
   font-size: 0.84rem;
+}
+
+.group-table th:first-child,
+.group-table td:first-child {
+  width: 74px;
+}
+
+.group-table th:nth-child(n + 3),
+.group-table td:nth-child(n + 3) {
+  width: 38px;
 }
 
 .team-cell {
@@ -258,9 +274,8 @@ tr.eliminated {
 
 .knockout-grid {
   display: grid;
-  grid-template-columns: repeat(6, minmax(190px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 12px;
-  overflow-x: auto;
 }
 
 .round-column {

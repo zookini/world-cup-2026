@@ -293,17 +293,26 @@ function playerSummary(player) {
   const owned = selections.filter((team) => team.player === player);
   return owned.reduce((summary, team) => {
     const record = teamGroupRecord(team);
+    if (teamStatus(team) !== "eliminated") summary.alive += 1;
     summary.played += record.played;
     summary.w += record.w;
     summary.l += record.l;
     summary.d += record.d;
     summary.pts += record.pts;
     return summary;
-  }, { player, owned, played: 0, w: 0, l: 0, d: 0, pts: 0 });
+  }, { player, owned, alive: 0, played: 0, w: 0, l: 0, d: 0, pts: 0 });
 }
 
 function sortPlayerSummaries(a, b) {
+  if (survivalSortingActive()) {
+    const aliveDifference = b.alive - a.alive;
+    if (aliveDifference) return aliveDifference;
+  }
   return b.pts - a.pts || b.w - a.w || a.l - b.l || PLAYER_ORDER.indexOf(a.player) - PLAYER_ORDER.indexOf(b.player);
+}
+
+function survivalSortingActive() {
+  return selections.some((team) => teamStatus(team) === "eliminated");
 }
 
 function teamGroupRecord(selection) {

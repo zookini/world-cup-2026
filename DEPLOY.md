@@ -3,8 +3,8 @@
 The app is static HTML/CSS/JS plus a tiny proxy. The proxy exists because the
 `worldcup26.ir` feed sends no CORS header, so the browser can't call it directly.
 
-- **Local dev:** `node server.mjs` → http://127.0.0.1:4173 (serves files *and*
-  proxies `/api/*`). Unchanged.
+- **Local dev:** `npx wrangler pages dev .` — serves files and runs Pages
+  Functions (`/api/*`) locally.
 - **Production:** Cloudflare Pages serves the files from its global CDN and runs
   the proxy as Pages Functions in `functions/api/`.
 
@@ -34,8 +34,3 @@ Every `git push` to the main branch redeploys automatically.
   stale-last-known-good` header) instead of a blank board.
 
 Tune `FRESH_TTL` in `_proxy.js` if you want scores to refresh faster or slower.
-
-## Local testing of the Functions (optional)
-
-`node server.mjs` covers local dev. To exercise the actual Pages Functions +
-edge cache locally, use Wrangler: `npx wrangler pages dev .`

@@ -557,7 +557,7 @@ function fallbackGroups() {
 
 function renderKnockouts() {
   knockoutsEl.innerHTML = "";
-  const knockoutGames = games.filter((game) => game.type !== "group");
+  const knockoutGames = sortedGames().filter((game) => game.type !== "group");
   const rounds = ["r32", "r16", "qf", "sf", "third", "final"];
   const labels = {
     r32: "Round of 32",

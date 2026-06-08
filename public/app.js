@@ -517,7 +517,7 @@ function renderContenders() {
               </th>
               <td>
                 <div class="flag-strip">
-                  ${owned.sort(sortOwnedTeams).map((team) => flagMarkup(team)).join("")}
+                  ${owned.map((team) => flagMarkup(team)).join("")}
                 </div>
               </td>
               <td>${played}</td>
@@ -591,12 +591,6 @@ function teamGroupRecord(selection) {
   const team = standingsForGroup(group).find((item) => normalizeName(item.name) === normalizeName(selection.name));
   if (!team) return { played: 0, w: 0, l: 0, d: 0, pts: 0 };
   return { played: team.mp, w: team.w, l: team.l, d: team.d, pts: team.pts };
-}
-
-function sortOwnedTeams(a, b) {
-  const aEliminated = teamStatus(a) === "eliminated";
-  const bEliminated = teamStatus(b) === "eliminated";
-  return Number(aEliminated) - Number(bEliminated);
 }
 
 function flagMarkup(team) {
@@ -836,7 +830,7 @@ function renderSurvivors(rows) {
               </th>
               <td>
                 <div class="flag-strip">
-                  ${owned.sort(sortOwnedTeams).map((team) => flagMarkup(team)).join("")}
+                  ${owned.map((team) => flagMarkup(team)).join("")}
                 </div>
               </td>
             </tr>

@@ -222,17 +222,27 @@ tr.selected {
   box-shadow: 0 0 0 4px var(--ink), 4px 4px 0 var(--ink);
 }
 
-@media (max-width: 340px) {
-  /* Mochiy Pop One is too wide for four tabs on old 320px iPhones. */
+@media (max-width: 430px) {
+  /* Keep the manga tab font, but trim the chrome for narrow iPhones. */
+  .view-tabs {
+    gap: 5px;
+  }
   .view-tabs button {
-    font-family: Inter, sans-serif;
-    font-weight: 800;
-    font-size: 0.72rem;
-    padding: 9px 3px;
+    font-size: 0.68rem;
+    padding: 8px 1px;
     border-width: 2px;
     box-shadow: 2px 2px 0 var(--ink);
   }
   .view-tabs button.active {
+    transform: translateY(-1px);
     box-shadow: 3px 3px 0 var(--ink);
+  }
+}
+
+@media (max-width: 340px) {
+  .view-tabs button {
+    font-size: 0.61rem;
+    padding-right: 1px;
+    padding-left: 1px;
   }
 }

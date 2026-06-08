@@ -56,6 +56,7 @@ let groups = [];
 let games = [];
 let teamById = new Map();
 let teamByName = new Map();
+let dataStatus = "";
 
 const contendersEl = document.querySelector("#contenders");
 const groupsEl = document.querySelector("#groups");
@@ -241,15 +242,58 @@ async function refreshData() {
       fetchJson(`${API_BASE}/groups`),
       fetchJson(`${API_BASE}/games`),
     ]);
-    groups = groupPayload.groups || groupPayload.data || [];
-    games = gamePayload.games || gamePayload.data || [];
+    const dataSet = await dataSetForUrl({
+      groups: groupPayload.groups || groupPayload.data || [],
+      games: gamePayload.games || gamePayload.data || [],
+    });
+    groups = dataSet.groups;
+    games = dataSet.games;
+    dataStatus = dataSet.status;
     indexTeams();
     render();
-    syncStatusEl.textContent = `Results updated from worldcup26.ir. ${finishedGames().length} finished matches currently reflected.`;
+    syncStatusEl.textContent = dataStatus || `Results updated from worldcup26.ir. ${finishedGames().length} finished matches currently reflected.`;
   } catch (error) {
     render();
     syncStatusEl.textContent = `Could not fetch live results: ${error.message}. The board is showing the selected teams from selections.csv only.`;
   }
+}
+
+async function dataSetForUrl(liveData) {
+  if (!hasMockParam(location.search)) {
+    return liveDataSet(liveData);
+  }
+
+  await loadMockFeed();
+  const mock = window.WorldCupMockFeed?.fromUrl?.({
+    ...liveData,
+    search: location.search,
+  });
+  if (mock) return mock;
+
+  return liveDataSet(liveData);
+}
+
+function liveDataSet(liveData) {
+  return {
+    ...liveData,
+    status: `Results updated from worldcup26.ir. ${liveData.games.filter(isFinished).length} finished matches currently reflected.`,
+  };
+}
+
+function hasMockParam(search) {
+  return /^match-\d+$/.test(new URLSearchParams(search).get("mock") || "");
+}
+
+function loadMockFeed() {
+  if (window.WorldCupMockFeed) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "mock-feed.js";
+    script.async = true;
+    script.onload = resolve;
+    script.onerror = () => reject(new Error("Could not load mock-feed.js"));
+    document.head.append(script);
+  });
 }
 
 async function fetchJson(url) {

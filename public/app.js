@@ -376,34 +376,61 @@ function sortStandings(a, b) {
 function teamStatus(selection) {
   const apiTeam = teamByName.get(normalizeName(selection.name));
   const teamId = apiTeam?.id;
-  const knockoutLoss = games.some((game) => {
-    if (game.type === "group" || !isFinished(game)) return false;
-    const homeId = `${game.home_team_id}`;
-    const awayId = `${game.away_team_id}`;
-    if (homeId !== teamId && awayId !== teamId) return false;
-    return loserId(game) === teamId;
-  });
+  const knockoutLoss = hasKnockoutLoss(teamId);
   if (knockoutLoss) return "eliminated";
 
+  return groupStageStatus(selection, teamId);
+}
+
+function groupStageStatus(selection, teamId) {
+  return groupStageStatusThrough(selection, teamId);
+}
+
+function groupStageStatusThrough(selection, teamId, throughGame = null) {
   const group = groups.find((item) => item.name === selection.group);
   if (!group) return "alive";
-  const groupComplete = games.filter((game) => game.type === "group" && game.group === selection.group).every(isFinished);
+  const groupComplete = groupGamesComplete(group.name, throughGame);
   if (!groupComplete) return "alive";
 
   const standings = standingsForGroup(group);
   const rank = standings.findIndex((team) => team.id === teamId) + 1;
   if (rank > 0 && rank <= 2) return "alive";
-  if (rank > 0 && rank === 3 && bestThirdPlaceIds().has(teamId)) return "alive";
+  if (rank > 0 && rank === 3 && bestThirdPlaceIds(throughGame).has(teamId)) return "alive";
   return "eliminated";
 }
 
-function bestThirdPlaceIds() {
+function teamStatusAtMatch(selection, game) {
+  const apiTeam = teamByName.get(normalizeName(selection.name));
+  const teamId = apiTeam?.id;
+  if (!teamId) return "alive";
+  if (game.type !== "group" && hasKnockoutLoss(teamId, game)) return "eliminated";
+  return groupStageStatusThrough(selection, teamId, game);
+}
+
+function hasKnockoutLoss(teamId, throughGame = null) {
+  return games.some((game) => {
+    if (game.type === "group" || !isFinished(game)) return false;
+    if (throughGame && compareGames(game, throughGame) > 0) return false;
+    const homeId = `${game.home_team_id}`;
+    const awayId = `${game.away_team_id}`;
+    if (homeId !== teamId && awayId !== teamId) return false;
+    return loserId(game) === teamId;
+  });
+}
+
+function bestThirdPlaceIds(throughGame = null) {
   const thirds = groups.map((group) => {
-    const complete = games.filter((game) => game.type === "group" && game.group === group.name).every(isFinished);
+    const complete = groupGamesComplete(group.name, throughGame);
     if (!complete) return null;
     return standingsForGroup(group)[2];
   }).filter(Boolean).sort(sortStandings);
   return new Set(thirds.slice(0, 8).map((team) => team.id));
+}
+
+function groupGamesComplete(groupName, throughGame = null) {
+  return games
+    .filter((game) => game.type === "group" && game.group === groupName)
+    .every((game) => isFinished(game) && (!throughGame || compareGames(game, throughGame) <= 0));
 }
 
 function isFinished(game) {
@@ -549,7 +576,7 @@ function renderGroups() {
     const standings = groups.length ? standingsForGroup(group) : group.teams;
     const rows = standings.map((team) => {
       const selected = selections.find((item) => normalizeName(item.name) === normalizeName(team.name));
-      const status = selected ? teamStatus(selected) : "neutral";
+      const status = selected ? groupStageStatus(selected, team.id) : "neutral";
       const displayName = teamDisplayName(team);
       return `
         <tr class="${status} ${selected ? "selected" : ""}">
@@ -632,8 +659,8 @@ function renderKnockouts() {
 }
 
 function renderMatch(game) {
-  const home = fixtureTeam(game, "home");
-  const away = fixtureTeam(game, "away");
+  const home = fixtureTeam(game, "home", game);
+  const away = fixtureTeam(game, "away", game);
   const state = matchState(game);
   const started = state !== "upcoming";
   const date = parseMatchDate(game);
@@ -710,8 +737,8 @@ const SHARE_ICON =
   'd="M12 3v12M8 7l4-4 4 4M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7"/></svg>';
 
 function fixtureRow(game, isNext) {
-  const home = fixtureTeam(game, "home");
-  const away = fixtureTeam(game, "away");
+  const home = fixtureTeam(game, "home", game);
+  const away = fixtureTeam(game, "away", game);
   const state = matchState(game);
   const started = state !== "upcoming";
   const stage = game.type === "group" ? `Group ${game.group}` : STAGE_LABELS[game.type] || "Match";
@@ -739,7 +766,7 @@ function fixtureRow(game, isNext) {
 function fixtureTeamLine(team, score) {
   return `
     <div class="fixture-team ${team.status} ${team.selected ? "selected" : ""} ${team.placeholder ? "placeholder" : ""}">
-      <span class="fixture-gambler">${ownerBadge(team.owner, team.status)}</span>
+      <span class="fixture-gambler">${ownerBadge(team.owner, team.ownerStatus)}</span>
       ${fixtureFlag(team)}
       <span class="team-name" title="${team.name}">${team.name}</span>
       <strong>${score}</strong>
@@ -760,20 +787,28 @@ function liveLabel(game) {
   return /^\d+$/.test(elapsed) ? `${elapsed}'` : elapsed;
 }
 
-function fixtureTeam(game, side) {
+function fixtureTeam(game, side, statusGame = null) {
   const id = `${game[`${side}_team_id`]}`;
   const fallbackName = game[`${side}_team_name_en`] || game[`${side}_team_label`] || "TBD";
   const team = teamById.get(id) || { name: fallbackName, code: "TBD" };
   const selection = selectionForName(team.name);
   const placeholder = !selection && (!team.code || team.code === "TBD");
+  const status = selection ? teamStatusAtMatch(selection, statusGame || game) : "neutral";
   return {
     name: teamDisplayName(team),
     code: team.code,
     owner: selection?.player || team.owner || "",
     selected: Boolean(selection),
-    status: selection ? teamStatus(selection) : "neutral",
+    status,
+    ownerStatus: selection && playerEliminatedAtMatch(selection.player, statusGame || game) ? "eliminated" : "alive",
     placeholder,
   };
+}
+
+function playerEliminatedAtMatch(player, game) {
+  return selections
+    .filter((team) => team.player === player)
+    .every((team) => teamStatusAtMatch(team, game) === "eliminated");
 }
 
 function fixtureFlag(team) {
@@ -784,14 +819,16 @@ function fixtureFlag(team) {
 }
 
 function sortedGames() {
-  return games.slice().sort((a, b) => {
+  return games.slice().sort(compareGames);
+}
+
+function compareGames(a, b) {
     const dateA = parseMatchDate(a);
     const dateB = parseMatchDate(b);
     if (dateA && dateB && dateA.getTime() !== dateB.getTime()) return dateA - dateB;
     if (dateA && !dateB) return -1;
     if (!dateA && dateB) return 1;
     return number(a.id) - number(b.id);
-  });
 }
 
 function nextFixtureId(ordered) {

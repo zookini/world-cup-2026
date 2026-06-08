@@ -351,7 +351,9 @@ tr.eliminated {
   white-space: normal;
 }
 
-.match-card .fixture-team.eliminated {
+.match-card .fixture-team.eliminated .table-flag,
+.match-card .fixture-team.eliminated .team-name,
+.match-card .fixture-team.eliminated > strong {
   opacity: 0.42;
   filter: grayscale(1);
 }
@@ -462,9 +464,16 @@ tr.eliminated {
   font-variant-numeric: tabular-nums;
 }
 
-.fixture-team.eliminated {
+.fixture-team.eliminated .table-flag,
+.fixture-team.eliminated .team-name,
+.fixture-team.eliminated > strong {
   opacity: 0.4;
   filter: grayscale(1);
+}
+
+.fixture-team .gambler-name.eliminated {
+  color: var(--muted);
+  opacity: 0.45;
 }
 
 .table-flag.placeholder {

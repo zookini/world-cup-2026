@@ -1,1 +1,2 @@
+- Read `README.md` before making changes.
 - UI must render well on mobile (iPhone form factor).

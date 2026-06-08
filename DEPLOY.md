@@ -8,19 +8,6 @@ The app is static HTML/CSS/JS plus a tiny proxy. The proxy exists because the
 - **Production:** Cloudflare Pages serves the files from its global CDN and runs
   the proxy as Pages Functions in `functions/api/`.
 
-## One-time setup
-
-1. Push this repo to GitHub.
-2. Cloudflare dashboard → **Workers & Pages** → **Create** → **Pages** →
-   **Connect to Git**, pick the repo.
-3. Build settings:
-   - **Framework preset:** None
-   - **Build command:** *(leave empty)*
-   - **Build output directory:** `/`
-4. Deploy. Cloudflare auto-detects `functions/` and wires up `/api/groups` and
-   `/api/games`. Share the `*.pages.dev` URL with friends (or add a custom domain
-   under the project's **Custom domains** tab).
-
 Every `git push` to the main branch redeploys automatically.
 
 ## Caching

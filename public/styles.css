@@ -126,10 +126,12 @@ td {
   color: var(--text);
 }
 
-td:nth-child(2),
-th:nth-child(2),
+td:nth-child(3),
+th:nth-child(3),
 .contender-table th:first-child,
 .contender-table td:first-child,
+.contender-table th:nth-child(2),
+.contender-table td:nth-child(2),
 .group-table th:first-child,
 .group-table td:first-child,
 .group-table th:nth-child(2),
@@ -161,7 +163,19 @@ th:nth-child(2),
 
 .contender-table th:first-child,
 .contender-table td:first-child {
+  width: 34px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.contender-table th:nth-child(2),
+.contender-table td:nth-child(2) {
   width: 110px;
+}
+
+.contender-table th:last-child,
+.contender-table td:last-child {
+  width: 38px;
 }
 
 .group-table th:first-child,
@@ -280,6 +294,11 @@ tr.selected {
 
 tr.eliminated {
   color: var(--muted);
+}
+
+.contender-row.eliminated .gambler-name {
+  color: var(--muted);
+  opacity: 0.45;
 }
 
 .knockout-grid {
@@ -634,7 +653,29 @@ tr.eliminated {
 
   .contender-table th:first-child,
   .contender-table td:first-child {
-    width: 82px;
+    width: 22px;
+  }
+
+  .contender-table th:nth-child(2),
+  .contender-table td:nth-child(2) {
+    width: 62px;
+  }
+
+  .contender-table th,
+  .contender-table td {
+    padding-right: 2px;
+    padding-left: 2px;
+    font-size: 0.74rem;
+  }
+
+  .contender-table th:nth-child(n + 4),
+  .contender-table td:nth-child(n + 4) {
+    width: 21px;
+  }
+
+  .contender-table th:last-child,
+  .contender-table td:last-child {
+    width: 32px;
   }
 
   .group-table th:first-child,
@@ -654,6 +695,20 @@ tr.eliminated {
   .flag-strip {
     flex-wrap: nowrap;
     gap: 5px;
+  }
+
+  .contender-table .flag-strip {
+    flex-wrap: nowrap;
+    gap: 2px;
+  }
+
+  .contender-table .team-flag {
+    width: clamp(20px, calc((100vw - 228px) / 4), 25px);
+  }
+
+  .contender-table .team-flag img {
+    width: clamp(20px, calc((100vw - 228px) / 4), 25px);
+    height: clamp(14px, calc((100vw - 228px) / 6), 17px);
   }
 
   .team-flag img {

@@ -386,6 +386,26 @@ function groupStageStatus(selection, teamId) {
   return groupStageStatusThrough(selection, teamId);
 }
 
+function teamEliminatedAt(selection) {
+  const apiTeam = teamByName.get(normalizeName(selection.name));
+  const teamId = apiTeam?.id;
+  if (!teamId || teamStatus(selection) !== "eliminated") return null;
+
+  const knockoutLoss = games
+    .filter((game) => game.type !== "group" && isFinished(game))
+    .find((game) => {
+      const homeId = `${game.home_team_id}`;
+      const awayId = `${game.away_team_id}`;
+      return (homeId === teamId || awayId === teamId) && loserId(game) === teamId;
+    });
+  if (knockoutLoss) return knockoutLoss;
+
+  const groupGames = games
+    .filter((game) => game.type === "group" && game.group === selection.group && isFinished(game))
+    .sort(compareGames);
+  return groupGames[groupGames.length - 1] || null;
+}
+
 function groupStageStatusThrough(selection, teamId, throughGame = null) {
   const group = groups.find((item) => item.name === selection.group);
   if (!group) return "alive";
@@ -468,10 +488,16 @@ function renderActiveView() {
 function renderContenders() {
   const players = [...new Set([...PLAYER_ORDER, ...selections.map((team) => team.player)])];
   const rows = players.map(playerSummary).sort(sortPlayerSummaries);
+  if (knockoutStageActive()) {
+    renderSurvivors(rows);
+    return;
+  }
+
   contendersEl.innerHTML = `
     <table>
       <thead>
         <tr>
+          <th>#</th>
           <th>Gambler</th>
           <th>Teams</th>
           <th>P</th>
@@ -482,9 +508,10 @@ function renderContenders() {
         </tr>
       </thead>
       <tbody>
-        ${rows.map(({ player, owned, played, w, l, d, pts }) => {
+        ${rows.map(({ player, owned, played, w, l, d, pts }, index) => {
           return `
             <tr class="contender-row">
+              <td>${index + 1}</td>
               <th scope="row">
                 <span class="gambler-name">${player}</span>
               </th>
@@ -508,28 +535,54 @@ function renderContenders() {
 
 function playerSummary(player) {
   const owned = selections.filter((team) => team.player === player);
-  return owned.reduce((summary, team) => {
+  const summary = owned.reduce((summary, team) => {
     const record = teamGroupRecord(team);
-    if (teamStatus(team) !== "eliminated") summary.alive += 1;
+    const eliminatedAt = teamEliminatedAt(team);
+    if (eliminatedAt) {
+      summary.eliminations.push(eliminatedAt);
+    } else {
+      summary.alive += 1;
+    }
     summary.played += record.played;
     summary.w += record.w;
     summary.l += record.l;
     summary.d += record.d;
     summary.pts += record.pts;
     return summary;
-  }, { player, owned, alive: 0, played: 0, w: 0, l: 0, d: 0, pts: 0 });
+  }, { player, owned, alive: 0, eliminated: false, eliminations: [], lastEliminatedGame: null, played: 0, w: 0, l: 0, d: 0, pts: 0 });
+
+  summary.eliminated = owned.length > 0 && summary.alive === 0;
+  if (summary.eliminated) {
+    summary.lastEliminatedGame = summary.eliminations.slice().sort(compareGames).pop() || null;
+  }
+  return summary;
 }
 
 function sortPlayerSummaries(a, b) {
   if (survivalSortingActive()) {
     const aliveDifference = b.alive - a.alive;
     if (aliveDifference) return aliveDifference;
+    if (a.eliminated !== b.eliminated) return Number(a.eliminated) - Number(b.eliminated);
+    if (a.eliminated && b.eliminated) {
+      const eliminatedDifference = compareGames(b.lastEliminatedGame, a.lastEliminatedGame);
+      if (eliminatedDifference) return eliminatedDifference;
+    }
+    return PLAYER_ORDER.indexOf(a.player) - PLAYER_ORDER.indexOf(b.player);
   }
   return b.pts - a.pts || b.w - a.w || a.l - b.l || PLAYER_ORDER.indexOf(a.player) - PLAYER_ORDER.indexOf(b.player);
 }
 
 function survivalSortingActive() {
   return selections.some((team) => teamStatus(team) === "eliminated");
+}
+
+function knockoutStageActive() {
+  return groupStageComplete() || games.some((game) => game.type !== "group" && matchState(game) !== "upcoming");
+}
+
+function groupStageComplete() {
+  const groupGames = games.filter((game) => game.type === "group");
+  return groupGames.length > 0 && groupGames.every(isFinished);
 }
 
 function teamGroupRecord(selection) {
@@ -763,6 +816,37 @@ function fixtureRow(game, isNext) {
   `;
 }
 
+function renderSurvivors(rows) {
+  contendersEl.innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Gambler</th>
+          <th>Teams</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map(({ player, owned, eliminated }, index) => {
+          return `
+            <tr class="contender-row ${eliminated ? "eliminated" : ""}">
+              <td>${index + 1}</td>
+              <th scope="row">
+                <span class="gambler-name ${eliminated ? "eliminated" : ""}">${player}</span>
+              </th>
+              <td>
+                <div class="flag-strip">
+                  ${owned.sort(sortOwnedTeams).map((team) => flagMarkup(team)).join("")}
+                </div>
+              </td>
+            </tr>
+          `;
+        }).join("")}
+      </tbody>
+    </table>
+  `;
+}
+
 function fixtureTeamLine(team, score) {
   return `
     <div class="fixture-team ${team.status} ${team.selected ? "selected" : ""} ${team.placeholder ? "placeholder" : ""}">
@@ -823,6 +907,9 @@ function sortedGames() {
 }
 
 function compareGames(a, b) {
+    if (!a && !b) return 0;
+    if (!a) return 1;
+    if (!b) return -1;
     const dateA = parseMatchDate(a);
     const dateB = parseMatchDate(b);
     if (dateA && dateB && dateA.getTime() !== dateB.getTime()) return dateA - dateB;

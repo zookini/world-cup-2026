@@ -675,7 +675,8 @@ tr.eliminated {
 
   .contender-table th:last-child,
   .contender-table td:last-child {
-    width: 32px;
+    width: 36px;
+    padding-right: 8px;
   }
 
   .group-table th:first-child,
@@ -699,16 +700,16 @@ tr.eliminated {
 
   .contender-table .flag-strip {
     flex-wrap: nowrap;
-    gap: 2px;
+    gap: 3px;
   }
 
   .contender-table .team-flag {
-    width: clamp(20px, calc((100vw - 228px) / 4), 25px);
+    width: clamp(22px, calc((100vw - 228px) / 4), 30px);
   }
 
   .contender-table .team-flag img {
-    width: clamp(20px, calc((100vw - 228px) / 4), 25px);
-    height: clamp(14px, calc((100vw - 228px) / 6), 17px);
+    width: clamp(22px, calc((100vw - 228px) / 4), 30px);
+    height: clamp(15px, calc((100vw - 228px) / 6), 20px);
   }
 
   .team-flag img {
@@ -744,6 +745,12 @@ tr.eliminated {
   .group-table th:nth-child(n + 3),
   .group-table td:nth-child(n + 3) {
     width: 24px;
+  }
+
+  .group-table th:last-child,
+  .group-table td:last-child {
+    width: 34px;
+    padding-right: 8px;
   }
 
   .team-cell {

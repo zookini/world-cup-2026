@@ -149,19 +149,31 @@ tr.selected {
   background: #eef4fd;
 }
 
-.group-table h3 {
+.group-table .card-context {
+  font-family: Anton, Impact, sans-serif;
+  background: var(--accent);
+  color: #fff;
+  border-bottom: 0;
+  padding: 14px 10px 11px;
+}
+.group-table .card-context h3,
+.fixture .card-context h3,
+.match-card .card-context h3 {
   font-family: Anton, Impact, sans-serif;
   font-weight: 400;
   font-style: italic;
   text-transform: uppercase;
   letter-spacing: 0.01em;
-  background: var(--accent);
-  color: #fff;
-  border-bottom: 0;
-  padding: 10px;
+  line-height: 1.28;
 }
-.group-table h3::before {
+.group-table .card-context h3 {
+  color: #fff;
+}
+.group-table .card-context h3::before {
   content: "⚽ ";
+}
+.group-table .fixture-share {
+  color: #fff;
 }
 
 /* --- Flags get a thick ink frame --- */
@@ -184,24 +196,30 @@ tr.selected {
   border-color: var(--accent);
   box-shadow: 4px 4px 0 var(--accent);
 }
+.fixture.next .card-context h3 {
+  color: var(--ink);
+}
 .fixture-foot {
   border-top: 2px dashed var(--ink);
+}
+.fixture .card-context h3,
+.match-card .card-context h3 {
+  color: var(--accent);
 }
 .fixture-foot .fixture-live {
   color: var(--accent);
   font-family: "Mochiy Pop One", sans-serif;
 }
-.fixture-day {
+.fixture-day,
+.round-column h3 {
   font-family: "Mochiy Pop One", sans-serif;
   color: var(--accent);
   background: var(--bg);
 }
-.round-column h3 {
-  font-family: Anton, sans-serif;
-  font-style: italic;
-  text-transform: uppercase;
-  color: var(--ink);
-  border-bottom: 3px solid var(--accent);
+
+.deep-linked {
+  outline-color: var(--pop);
+  box-shadow: 0 0 0 4px var(--ink), 4px 4px 0 var(--ink);
 }
 
 @media (max-width: 340px) {

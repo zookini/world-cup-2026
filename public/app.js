@@ -71,6 +71,8 @@ let activeView = "standings";
 async function init() {
   bindViewTabs();
   bindFixtureShare();
+  bindGroupShare();
+  bindKnockoutShare();
   applyHashRoute();
   window.addEventListener("hashchange", applyHashRoute);
   await loadSelections();
@@ -97,6 +99,20 @@ function bindFixtureShare() {
   });
 }
 
+function bindGroupShare() {
+  groupsEl.addEventListener("click", (event) => {
+    const button = event.target.closest(".fixture-share");
+    if (button) shareGroup(button.dataset.share, button);
+  });
+}
+
+function bindKnockoutShare() {
+  knockoutsEl.addEventListener("click", (event) => {
+    const button = event.target.closest(".fixture-share");
+    if (button) shareKnockout(button.dataset.share, button);
+  });
+}
+
 // Hand the user a deep link to one match. On phones this opens the native share
 // sheet (Messages/WhatsApp/Copy); elsewhere it copies the link to the clipboard.
 async function shareFixture(id, button) {
@@ -111,6 +127,38 @@ async function shareFixture(id, button) {
     }
     return;
   }
+  copyShareLink(url, button);
+}
+
+async function shareGroup(group, button) {
+  const url = `${location.origin}${location.pathname}#groups/${groupSlug(group)}`;
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: "Degenerate Cup 2026", text: `Group ${group}`, url });
+    } catch (error) {
+      // User dismissed the share sheet.
+    }
+    return;
+  }
+  copyShareLink(url, button);
+}
+
+async function shareKnockout(id, button) {
+  const url = `${location.origin}${location.pathname}#knockouts/match-${id}`;
+  if (navigator.share) {
+    const game = games.find((entry) => `${entry.id}` === id);
+    const label = game ? `${fixtureTeam(game, "home").name} vs ${fixtureTeam(game, "away").name}` : "this knockout match";
+    try {
+      await navigator.share({ title: "Degenerate Cup 2026", text: label, url });
+    } catch (error) {
+      // User dismissed the share sheet.
+    }
+    return;
+  }
+  copyShareLink(url, button);
+}
+
+async function copyShareLink(url, button) {
   try {
     await navigator.clipboard.writeText(url);
     button.classList.add("copied");
@@ -140,6 +188,8 @@ function applyHashRoute() {
   activateView(resolved);
   renderActiveView();
   if (resolved === "fixtures") scrollToFixture(hashFixtureTarget());
+  if (resolved === "groups") scrollToGroup(hashGroupTarget());
+  if (resolved === "knockouts") scrollToGroup(hashKnockoutTarget());
 }
 
 // The element a `#fixtures/<anchor>` hash points at, or null when the hash isn't
@@ -149,6 +199,22 @@ function hashFixtureTarget() {
   const [view, anchor] = parseHash();
   if (view !== "fixtures" || !anchor) return null;
   return document.getElementById(`fixture-${anchor.replace(/^match-/, "")}`);
+}
+
+function hashGroupTarget() {
+  const [view, anchor] = parseHash();
+  if (view !== "groups" || !anchor) return null;
+  return document.getElementById(`group-${anchor.replace(/^group-/, "")}`);
+}
+
+function hashKnockoutTarget() {
+  const [view, anchor] = parseHash();
+  if (view !== "knockouts" || !anchor) return null;
+  return document.getElementById(`knockout-${anchor.replace(/^match-/, "")}`);
+}
+
+function groupSlug(group) {
+  return `${group}`.trim().toLowerCase().replace(/^group\s+/, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }
 
 async function loadSelections() {
@@ -435,6 +501,7 @@ function renderGroups() {
   sourceGroups.slice().sort((a, b) => a.name.localeCompare(b.name)).forEach((group) => {
     const table = document.createElement("article");
     table.className = "group-table";
+    table.id = `group-${groupSlug(group.name)}`;
     const standings = groups.length ? standingsForGroup(group) : group.teams;
     const rows = standings.map((team) => {
       const selected = selections.find((item) => normalizeName(item.name) === normalizeName(team.name));
@@ -454,7 +521,10 @@ function renderGroups() {
       `;
     }).join("");
     table.innerHTML = `
-      <h3>Group ${group.name}</h3>
+      <div class="card-context">
+        <h3>Group ${group.name}</h3>
+        <button type="button" class="fixture-share" data-share="${group.name}" aria-label="Share Group ${group.name}" title="Share group">${SHARE_ICON}</button>
+      </div>
       <table>
         <thead><tr><th>Gambler</th><th>Team</th><th>P</th><th>W</th><th>L</th><th>D</th><th>GD</th><th>Pts</th></tr></thead>
         <tbody>${rows}</tbody>
@@ -462,6 +532,10 @@ function renderGroups() {
     `;
     groupsEl.append(table);
   });
+  markDeepLinkedElement(hashGroupTarget());
+  if (document.querySelector('[data-panel="groups"]')?.classList.contains("active")) {
+    scrollToGroup(hashGroupTarget());
+  }
 }
 
 function tableFlagMarkup(team) {
@@ -484,13 +558,13 @@ function fallbackGroups() {
 function renderKnockouts() {
   knockoutsEl.innerHTML = "";
   const knockoutGames = games.filter((game) => game.type !== "group");
-  const rounds = ["round_of_32", "round_of_16", "quarter_final", "semi_final", "third_place", "final"];
+  const rounds = ["r32", "r16", "qf", "sf", "third", "final"];
   const labels = {
-    round_of_32: "Round of 32",
-    round_of_16: "Round of 16",
-    quarter_final: "Quarter-finals",
-    semi_final: "Semi-finals",
-    third_place: "Third Place",
+    r32: "Round of 32",
+    r16: "Round of 16",
+    qf: "Quarter-finals",
+    sf: "Semi-finals",
+    third: "Third Place",
     final: "Final",
   };
 
@@ -500,40 +574,54 @@ function renderKnockouts() {
     column.className = "round-column";
     column.innerHTML = `<h3>${labels[round]}</h3>`;
     if (!matches.length) {
-      column.innerHTML += `<article class="match-card empty">Awaiting qualifiers</article>`;
+      column.innerHTML += `<article class="match-card empty">Schedule TBD</article>`;
     }
     matches.forEach((game) => {
       column.append(renderMatch(game));
     });
     knockoutsEl.append(column);
   });
+  markDeepLinkedElement(hashKnockoutTarget());
+  if (document.querySelector('[data-panel="knockouts"]')?.classList.contains("active")) {
+    scrollToGroup(hashKnockoutTarget());
+  }
 }
 
 function renderMatch(game) {
-  const home = teamById.get(`${game.home_team_id}`) || { name: game.home_team_name_en || "TBD", code: "TBD" };
-  const away = teamById.get(`${game.away_team_id}`) || { name: game.away_team_name_en || "TBD", code: "TBD" };
-  if (home.code === "TBD" && away.code === "TBD") {
-    const empty = document.createElement("article");
-    empty.className = "match-card empty";
-    empty.textContent = "Awaiting qualifiers";
-    return empty;
-  }
-  const homeSelection = selectionForName(home.name);
-  const awaySelection = selectionForName(away.name);
-  const homeStatus = homeSelection ? teamStatus(homeSelection) : "neutral";
-  const awayStatus = awaySelection ? teamStatus(awaySelection) : "neutral";
+  const home = fixtureTeam(game, "home");
+  const away = fixtureTeam(game, "away");
+  const state = matchState(game);
+  const started = state !== "upcoming";
+  const date = parseMatchDate(game);
+  const meta = state === "finished"
+    ? `<span class="fixture-ft">Full time</span>`
+    : state === "live"
+    ? `<span class="fixture-live">${liveLabel(game)}</span>`
+    : `<time>${date ? timeLabel(date) : "TBD"}</time>`;
   const card = document.createElement("article");
-  card.className = `match-card ${isFinished(game) ? "finished" : ""}`;
+  card.id = `knockout-${game.id}`;
+  card.className = `match-card ${state}`;
   card.innerHTML = `
-    <div class="${homeStatus} ${homeSelection ? "selected" : ""}"><b>${home.code}</b><span>${home.name}</span>${ownerBadge(homeSelection?.player, homeStatus)}<strong>${game.home_score}</strong></div>
-    <div class="${awayStatus} ${awaySelection ? "selected" : ""}"><b>${away.code}</b><span>${away.name}</span>${ownerBadge(awaySelection?.player, awayStatus)}<strong>${game.away_score}</strong></div>
-    <time>${game.local_date || "TBD"}</time>
+    <div class="card-context match-context">
+      <span class="fixture-stage">${date ? dayHeading(date) : "Date TBD"}</span>
+      <span class="fixture-foot-end">
+        ${meta}
+        <button type="button" class="fixture-share" data-share="${game.id}" aria-label="Share this knockout match" title="Share match">${SHARE_ICON}</button>
+      </span>
+    </div>
+    ${fixtureTeamLine(home, started ? number(game.home_score) : "")}
+    ${fixtureTeamLine(away, started ? number(game.away_score) : "")}
   `;
   return card;
 }
 
 const STAGE_LABELS = {
   group: "Group",
+  round_of_32: "Round of 32",
+  round_of_16: "Round of 16",
+  quarter_final: "Quarter-final",
+  semi_final: "Semi-final",
+  third_place: "Third Place",
   r32: "Round of 32",
   r16: "Round of 16",
   qf: "Quarter-final",
@@ -568,6 +656,7 @@ function renderFixtures() {
   if (document.querySelector('[data-panel="fixtures"]')?.classList.contains("active")) {
     scrollToFixture(hashFixtureTarget());
   }
+  markDeepLinkedElement(hashFixtureTarget());
 }
 
 // iOS-style share/upload glyph; inherits colour from the button via currentColor.
@@ -590,22 +679,22 @@ function fixtureRow(game, isNext) {
     : `<time>${date ? timeLabel(date) : "TBD"}</time>`;
   return `
     <div id="fixture-${game.id}" class="fixture ${state} ${isNext ? "next" : ""}">
-      ${fixtureTeamLine(home, started ? number(game.home_score) : "")}
-      ${fixtureTeamLine(away, started ? number(game.away_score) : "")}
-      <div class="fixture-foot">
-        <span class="fixture-stage">${stage}</span>
+      <div class="card-context">
+        <h3>${stage}</h3>
         <span class="fixture-foot-end">
           ${meta}
           <button type="button" class="fixture-share" data-share="${game.id}" aria-label="Share this match" title="Share match">${SHARE_ICON}</button>
         </span>
       </div>
+      ${fixtureTeamLine(home, started ? number(game.home_score) : "")}
+      ${fixtureTeamLine(away, started ? number(game.away_score) : "")}
     </div>
   `;
 }
 
 function fixtureTeamLine(team, score) {
   return `
-    <div class="fixture-team ${team.status} ${team.selected ? "selected" : ""}">
+    <div class="fixture-team ${team.status} ${team.selected ? "selected" : ""} ${team.placeholder ? "placeholder" : ""}">
       <span class="fixture-gambler">${ownerBadge(team.owner, team.status)}</span>
       ${fixtureFlag(team)}
       <span class="team-name" title="${team.name}">${team.name}</span>
@@ -632,12 +721,14 @@ function fixtureTeam(game, side) {
   const fallbackName = game[`${side}_team_name_en`] || game[`${side}_team_label`] || "TBD";
   const team = teamById.get(id) || { name: fallbackName, code: "TBD" };
   const selection = selectionForName(team.name);
+  const placeholder = !selection && (!team.code || team.code === "TBD");
   return {
     name: teamDisplayName(team),
     code: team.code,
     owner: selection?.player || team.owner || "",
     selected: Boolean(selection),
     status: selection ? teamStatus(selection) : "neutral",
+    placeholder,
   };
 }
 
@@ -675,6 +766,18 @@ function scrollToFixture(target) {
     const top = window.scrollY + rect.bottom - window.innerHeight + 16;
     window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
   });
+}
+
+function scrollToGroup(target) {
+  requestAnimationFrame(() => {
+    if (!target) return;
+    target.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+}
+
+function markDeepLinkedElement(target) {
+  document.querySelectorAll(".deep-linked").forEach((element) => element.classList.remove("deep-linked"));
+  if (target) target.classList.add("deep-linked");
 }
 
 // The feed lists each kickoff in its venue's own local wall-clock, so we resolve

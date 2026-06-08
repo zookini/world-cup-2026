@@ -66,6 +66,7 @@ const viewButtons = document.querySelectorAll("[data-view]");
 const viewPanels = document.querySelectorAll("[data-panel]");
 
 const VIEWS = ["standings", "fixtures", "groups", "knockouts"];
+let activeView = "standings";
 
 async function init() {
   bindViewTabs();
@@ -121,6 +122,7 @@ async function shareFixture(id, button) {
 
 // Toggle the active button/panel for a view without touching the URL.
 function activateView(view) {
+  activeView = view;
   viewButtons.forEach((item) => item.classList.toggle("active", item.dataset.view === view));
   viewPanels.forEach((panel) => panel.classList.toggle("active", panel.dataset.panel === view));
 }
@@ -136,6 +138,7 @@ function applyHashRoute() {
   const [view] = parseHash();
   const resolved = VIEWS.includes(view) ? view : VIEWS[0];
   activateView(resolved);
+  renderActiveView();
   if (resolved === "fixtures") scrollToFixture(hashFixtureTarget());
 }
 
@@ -309,10 +312,20 @@ function loserId(game) {
 }
 
 function render() {
-  renderContenders();
-  renderGroups();
-  renderKnockouts();
-  renderFixtures();
+  renderActiveView();
+}
+
+function renderActiveView() {
+  if (!selections.length) return;
+  if (activeView === "fixtures") {
+    renderFixtures();
+  } else if (activeView === "groups") {
+    renderGroups();
+  } else if (activeView === "knockouts") {
+    renderKnockouts();
+  } else {
+    renderContenders();
+  }
 }
 
 function renderContenders() {
@@ -400,7 +413,7 @@ function flagMarkup(team) {
   const status = teamStatus(team);
   return `
     <span class="team-flag ${status}" title="${team.name}">
-      <img src="${flagUrl(team)}" alt="${team.name} flag" />
+      ${flagImage(team)}
       <small>${team.code}</small>
     </span>
   `;
@@ -409,6 +422,11 @@ function flagMarkup(team) {
 function flagUrl(team) {
   const code = FLAG_CODES[team.code] || team.code;
   return `assets/flags/${code.toLowerCase()}.png`;
+}
+
+function flagImage(team, className = "") {
+  const classAttribute = className ? ` class="${className}"` : "";
+  return `<img${classAttribute} src="${flagUrl(team)}" alt="${team.name} flag" loading="lazy" decoding="async" />`;
 }
 
 function renderGroups() {
@@ -447,7 +465,7 @@ function renderGroups() {
 }
 
 function tableFlagMarkup(team) {
-  return `<img class="table-flag" src="${flagUrl(team)}" alt="${team.name} flag" />`;
+  return flagImage(team, "table-flag");
 }
 
 function teamDisplayName(team) {
@@ -627,7 +645,7 @@ function fixtureFlag(team) {
   if (!team.code || team.code === "TBD") {
     return `<span class="table-flag placeholder" aria-hidden="true"></span>`;
   }
-  return `<img class="table-flag" src="${flagUrl(team)}" alt="${team.name} flag" />`;
+  return flagImage(team, "table-flag");
 }
 
 function sortedGames() {

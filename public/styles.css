@@ -298,14 +298,22 @@ tr.eliminated {
   position: sticky;
   top: 0;
   z-index: 1;
-  padding: 12px 0 4px;
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 0 2px;
+  padding: 6px 10px;
   color: var(--muted);
   font-size: 0.72rem;
   font-weight: 700;
+  line-height: 1;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  background: var(--bg);
-  border-bottom: 0;
+  background: var(--soft);
+  border: 1px solid var(--line);
+  border-radius: 999px;
 }
 
 .match-card {
@@ -371,13 +379,22 @@ tr.eliminated {
   position: sticky;
   top: 0;
   z-index: 1;
-  padding: 12px 0 4px;
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 0 2px;
+  padding: 6px 10px;
   color: var(--muted);
   font-size: 0.72rem;
   font-weight: 700;
+  line-height: 1;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  background: var(--bg);
+  background: var(--soft);
+  border: 1px solid var(--line);
+  border-radius: 999px;
 }
 
 .fixture {
@@ -563,8 +580,8 @@ tr.eliminated {
 }
 
 .deep-linked {
-  outline: 4px solid var(--accent);
-  outline-offset: 4px;
+  outline: 0;
+  box-shadow: inset 0 0 0 4px var(--accent);
   scroll-margin-top: 14px;
 }
 

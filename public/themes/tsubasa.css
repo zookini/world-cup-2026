@@ -153,8 +153,9 @@ tr.selected {
   font-family: Anton, Impact, sans-serif;
   background: var(--accent);
   color: #fff;
-  border-bottom: 0;
-  padding: 14px 10px 11px;
+  border-bottom: 3px solid var(--ink);
+  min-height: 42px;
+  padding: 8px 10px;
 }
 .group-table .card-context h3,
 .fixture .card-context h3,
@@ -168,9 +169,6 @@ tr.selected {
 }
 .group-table .card-context h3 {
   color: #fff;
-}
-.group-table .card-context h3::before {
-  content: "⚽ ";
 }
 .group-table .fixture-share {
   color: #fff;
@@ -213,13 +211,17 @@ tr.selected {
 .fixture-day,
 .round-column h3 {
   font-family: "Mochiy Pop One", sans-serif;
-  color: var(--accent);
-  background: var(--bg);
+  color: #fff;
+  background: var(--accent);
+  border: 3px solid var(--ink);
+  border-radius: 4px;
+  box-shadow: 3px 3px 0 var(--ink);
 }
 
-.deep-linked {
-  outline-color: var(--pop);
-  box-shadow: 0 0 0 4px var(--ink), 4px 4px 0 var(--ink);
+.fixture.deep-linked,
+.match-card.deep-linked,
+.group-table.deep-linked {
+  box-shadow: inset 0 0 0 4px var(--pop), 4px 4px 0 var(--ink);
 }
 
 @media (max-width: 430px) {

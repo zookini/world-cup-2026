@@ -3,10 +3,12 @@
 The app is static HTML/CSS/JS plus a tiny proxy. The proxy exists because the
 `worldcup26.ir` feed sends no CORS header, so the browser can't call it directly.
 
-- **Local dev:** `npx wrangler pages dev .` — serves files and runs Pages
-  Functions (`/api/*`) locally.
-- **Production:** Cloudflare Pages serves the files from its global CDN and runs
-  the proxy as Pages Functions in `functions/api/`.
+- **Local dev:** `npx wrangler pages dev` — serves the `public/` folder and runs
+  Pages Functions (`/api/*`) locally. (`wrangler.toml` sets
+  `pages_build_output_dir = "public"`, so no path argument is needed.)
+- **Production:** Cloudflare Pages serves the `public/` folder from its global CDN
+  and runs the proxy as Pages Functions in `functions/api/`. Only `public/` is
+  published — the repo-root docs (`README.md`, `AGENTS.md`, etc.) are not served.
 
 Every `git push` to the main branch redeploys automatically.
 

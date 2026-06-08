@@ -7,10 +7,12 @@ Static HTML/CSS/JS app served with Cloudflare Pages Functions.
 Run the app locally with the Cloudflare Pages runtime:
 
 ```bash
-npx wrangler pages dev .
+npx wrangler pages dev
 ```
 
-This serves the static files and runs the Pages Functions under `functions/api/`.
+`wrangler.toml` sets `pages_build_output_dir = "public"`, so the static files in
+`public/` are served and the Pages Functions under `functions/api/` run alongside
+them — no path argument needed.
 
 ## Deploy
 

@@ -65,8 +65,13 @@ const syncStatusEl = document.querySelector("#sync-status");
 const viewButtons = document.querySelectorAll("[data-view]");
 const viewPanels = document.querySelectorAll("[data-panel]");
 
+const VIEWS = ["standings", "fixtures", "groups", "knockouts"];
+
 async function init() {
   bindViewTabs();
+  bindFixtureShare();
+  applyHashRoute();
+  window.addEventListener("hashchange", applyHashRoute);
   await loadSelections();
   render();
   await refreshData();
@@ -75,12 +80,72 @@ async function init() {
 function bindViewTabs() {
   viewButtons.forEach((button) => {
     button.addEventListener("click", () => {
-      const view = button.dataset.view;
-      viewButtons.forEach((item) => item.classList.toggle("active", item === button));
-      viewPanels.forEach((panel) => panel.classList.toggle("active", panel.dataset.panel === view));
-      if (view === "fixtures") scrollFixturesToNext();
+      // Drive navigation through the hash so the URL stays shareable and the
+      // hashchange handler remains the single source of truth.
+      location.hash = button.dataset.view;
     });
   });
+}
+
+// One delegated listener for every fixture's share button — survives the
+// innerHTML rebuilds in renderFixtures() because it lives on the parent.
+function bindFixtureShare() {
+  fixturesEl.addEventListener("click", (event) => {
+    const button = event.target.closest(".fixture-share");
+    if (button) shareFixture(button.dataset.share, button);
+  });
+}
+
+// Hand the user a deep link to one match. On phones this opens the native share
+// sheet (Messages/WhatsApp/Copy); elsewhere it copies the link to the clipboard.
+async function shareFixture(id, button) {
+  const url = `${location.origin}${location.pathname}#fixtures/match-${id}`;
+  if (navigator.share) {
+    const game = games.find((entry) => `${entry.id}` === id);
+    const label = game ? `${fixtureTeam(game, "home").name} vs ${fixtureTeam(game, "away").name}` : "this match";
+    try {
+      await navigator.share({ title: "Degenerate Cup 2026", text: label, url });
+    } catch (error) {
+      // User dismissed the share sheet — nothing to do.
+    }
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(url);
+    button.classList.add("copied");
+    setTimeout(() => button.classList.remove("copied"), 1400);
+  } catch (error) {
+    window.prompt("Copy this link to share:", url);
+  }
+}
+
+// Toggle the active button/panel for a view without touching the URL.
+function activateView(view) {
+  viewButtons.forEach((item) => item.classList.toggle("active", item.dataset.view === view));
+  viewPanels.forEach((panel) => panel.classList.toggle("active", panel.dataset.panel === view));
+}
+
+// Split the URL hash into its `[view, anchor]` parts (e.g. `#fixtures/match-1`).
+function parseHash() {
+  return location.hash.replace(/^#/, "").split("/");
+}
+
+// Read `#<view>` or `#<view>/<anchor>` from the URL and reflect it in the UI.
+// Unknown/empty hashes fall back to the first view.
+function applyHashRoute() {
+  const [view] = parseHash();
+  const resolved = VIEWS.includes(view) ? view : VIEWS[0];
+  activateView(resolved);
+  if (resolved === "fixtures") scrollToFixture(hashFixtureTarget());
+}
+
+// The element a `#fixtures/<anchor>` hash points at, or null when the hash isn't
+// a fixtures deep link or the target hasn't rendered yet. Anchor format is
+// `match-<game.id>` (the bare id is also accepted).
+function hashFixtureTarget() {
+  const [view, anchor] = parseHash();
+  if (view !== "fixtures" || !anchor) return null;
+  return document.getElementById(`fixture-${anchor.replace(/^match-/, "")}`);
 }
 
 async function loadSelections() {
@@ -479,10 +544,19 @@ function renderFixtures() {
     return header + fixtureRow(game, game === nextGame);
   }).join("");
 
+  // On (re)render, settle the scroll if Fixtures is showing: honour a deep-linked
+  // match from the hash, otherwise fall back to the next unfinished match. This
+  // also resolves a hash that pointed at a fixture before the data had loaded.
   if (document.querySelector('[data-panel="fixtures"]')?.classList.contains("active")) {
-    scrollFixturesToNext();
+    scrollToFixture(hashFixtureTarget());
   }
 }
+
+// iOS-style share/upload glyph; inherits colour from the button via currentColor.
+const SHARE_ICON =
+  '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false">' +
+  '<path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ' +
+  'd="M12 3v12M8 7l4-4 4 4M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7"/></svg>';
 
 function fixtureRow(game, isNext) {
   const home = fixtureTeam(game, "home");
@@ -497,12 +571,15 @@ function fixtureRow(game, isNext) {
     ? `<span class="fixture-live">${liveLabel(game)}</span>`
     : `<time>${date ? timeLabel(date) : "TBD"}</time>`;
   return `
-    <div class="fixture ${state} ${isNext ? "next" : ""}">
+    <div id="fixture-${game.id}" class="fixture ${state} ${isNext ? "next" : ""}">
       ${fixtureTeamLine(home, started ? number(game.home_score) : "")}
       ${fixtureTeamLine(away, started ? number(game.away_score) : "")}
       <div class="fixture-foot">
         <span class="fixture-stage">${stage}</span>
-        ${meta}
+        <span class="fixture-foot-end">
+          ${meta}
+          <button type="button" class="fixture-share" data-share="${game.id}" aria-label="Share this match" title="Share match">${SHARE_ICON}</button>
+        </span>
       </div>
     </div>
   `;
@@ -568,11 +645,15 @@ function nextFixtureId(ordered) {
   return ordered.find((game) => !isFinished(game)) || ordered[ordered.length - 1];
 }
 
-function scrollFixturesToNext() {
+// Bottom-align a fixture in the viewport. Passing null targets the next
+// unfinished match (or the last one); the router passes a specific element when
+// the hash points at one (e.g. `#fixtures/match-1234`). Runs after a frame so
+// the panel has been shown and laid out before we measure.
+function scrollToFixture(target) {
   requestAnimationFrame(() => {
-    const target = fixturesEl.querySelector(".fixture.next") || fixturesEl.querySelector(".fixture:last-child");
-    if (!target) return;
-    const rect = target.getBoundingClientRect();
+    const el = target || fixturesEl.querySelector(".fixture.next") || fixturesEl.querySelector(".fixture:last-child");
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
     const top = window.scrollY + rect.bottom - window.innerHeight + 16;
     window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
   });

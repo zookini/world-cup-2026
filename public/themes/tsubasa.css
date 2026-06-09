@@ -71,10 +71,8 @@ body {
   align-self: flex-end;
   flex: 0 0 clamp(94px, 15vw, 154px);
   z-index: 1;
-  width: clamp(94px, 15vw, 154px);
   height: clamp(98px, 15vw, 156px);
   max-width: 30%;
-  max-height: 156px;
   object-fit: cover;
   object-position: 78% 30%;
   clip-path: polygon(18% 4%, 92% 0, 100% 82%, 70% 100%, 5% 84%, 0 24%);
@@ -251,24 +249,18 @@ tr.selected {
 
 @media (max-width: 430px) {
   .marquee {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 88px;
     gap: 8px;
     min-height: 112px;
     padding: 8px 10px;
-  }
-  .marquee-copy {
-    width: auto;
   }
   .marquee h1 {
     font-size: clamp(1.9rem, 12vw, 3rem);
     text-shadow: 3px 3px 0 #fff, 5px 5px 0 var(--ink);
   }
   .marquee-art {
-    width: 88px;
+    flex-basis: 88px;
     height: 92px;
     max-width: 88px;
-    max-height: 92px;
   }
 
   /* Keep the manga tab font, but trim the chrome for narrow iPhones. */

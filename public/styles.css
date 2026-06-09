@@ -178,11 +178,6 @@ th:nth-child(3),
   width: 38px;
 }
 
-.group-table th:first-child,
-.group-table td:first-child {
-  width: 72px;
-}
-
 .flag-strip {
   display: flex;
   flex-wrap: wrap;
@@ -205,15 +200,6 @@ th:nth-child(3),
   height: 20px;
   object-fit: cover;
   border: 1px solid var(--line);
-}
-
-.team-flag small {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
 }
 
 .team-flag.eliminated,
@@ -313,10 +299,8 @@ tr.eliminated {
   gap: 9px;
 }
 
+.fixture-day,
 .round-column h3 {
-  position: sticky;
-  top: 0;
-  z-index: 1;
   display: inline-flex;
   align-items: center;
   min-height: 28px;
@@ -333,6 +317,12 @@ tr.eliminated {
   background: var(--soft);
   border: 1px solid var(--line);
   border-radius: 999px;
+}
+
+.round-column h3 {
+  position: sticky;
+  top: 0;
+  z-index: 1;
 }
 
 .match-card {
@@ -397,22 +387,6 @@ tr.eliminated {
 
 .fixture-day {
   grid-column: 1 / -1;
-  display: inline-flex;
-  align-items: center;
-  min-height: 28px;
-  width: fit-content;
-  max-width: 100%;
-  margin: 0 0 2px;
-  padding: 6px 10px;
-  color: var(--muted);
-  font-size: 0.72rem;
-  font-weight: 700;
-  line-height: 1;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  background: var(--soft);
-  border: 1px solid var(--line);
-  border-radius: 999px;
 }
 
 .fixture {

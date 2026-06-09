@@ -1,4 +1,3 @@
-const API_BASE = "https://worldcup26.ir/get";
 const PLAYER_ORDER = ["Boe", "Colm", "Ivan", "T", "Sharon", "Andy", "Joey", "Vinny", "Kachun", "Chun", "Kakei", "Janey"];
 const FLAG_CODES = {
   ALG: "DZ",
@@ -71,13 +70,13 @@ let activeView = "standings";
 
 async function init() {
   bindViewTabs();
-  bindFixtureShare();
-  bindGroupShare();
-  bindKnockoutShare();
+  bindShareButtons(fixturesEl, shareFixture);
+  bindShareButtons(groupsEl, shareGroup);
+  bindShareButtons(knockoutsEl, shareKnockout);
   applyHashRoute();
   window.addEventListener("hashchange", applyHashRoute);
   await loadSelections();
-  render();
+  renderActiveView();
   await refreshData();
 }
 
@@ -91,36 +90,20 @@ function bindViewTabs() {
   });
 }
 
-// One delegated listener for every fixture's share button — survives the
-// innerHTML rebuilds in renderFixtures() because it lives on the parent.
-function bindFixtureShare() {
-  fixturesEl.addEventListener("click", (event) => {
+// One delegated listener per panel for its share buttons — survives the
+// innerHTML rebuilds in the render functions because it lives on the parent.
+function bindShareButtons(container, handler) {
+  container.addEventListener("click", (event) => {
     const button = event.target.closest(".fixture-share");
-    if (button) shareFixture(button.dataset.share, button);
+    if (button) handler(button.dataset.share, button);
   });
 }
 
-function bindGroupShare() {
-  groupsEl.addEventListener("click", (event) => {
-    const button = event.target.closest(".fixture-share");
-    if (button) shareGroup(button.dataset.share, button);
-  });
-}
-
-function bindKnockoutShare() {
-  knockoutsEl.addEventListener("click", (event) => {
-    const button = event.target.closest(".fixture-share");
-    if (button) shareKnockout(button.dataset.share, button);
-  });
-}
-
-// Hand the user a deep link to one match. On phones this opens the native share
-// sheet (Messages/WhatsApp/Copy); elsewhere it copies the link to the clipboard.
-async function shareFixture(id, button) {
-  const url = `${location.origin}${location.pathname}#fixtures/match-${id}`;
+// Hand the user a deep link. On phones this opens the native share sheet
+// (Messages/WhatsApp/Copy); elsewhere it copies the link to the clipboard.
+async function share(anchor, label, button) {
+  const url = `${location.origin}${location.pathname}#${anchor}`;
   if (navigator.share) {
-    const game = games.find((entry) => `${entry.id}` === id);
-    const label = game ? `${fixtureTeam(game, "home").name} vs ${fixtureTeam(game, "away").name}` : "this match";
     try {
       await navigator.share({ title: "Degenerate Cup 2026", text: label, url });
     } catch (error) {
@@ -131,32 +114,21 @@ async function shareFixture(id, button) {
   copyShareLink(url, button);
 }
 
-async function shareGroup(group, button) {
-  const url = `${location.origin}${location.pathname}#groups/${groupSlug(group)}`;
-  if (navigator.share) {
-    try {
-      await navigator.share({ title: "Degenerate Cup 2026", text: `Group ${group}`, url });
-    } catch (error) {
-      // User dismissed the share sheet.
-    }
-    return;
-  }
-  copyShareLink(url, button);
+function matchLabel(id, fallback) {
+  const game = games.find((entry) => `${entry.id}` === id);
+  return game ? `${fixtureTeam(game, "home").name} vs ${fixtureTeam(game, "away").name}` : fallback;
 }
 
-async function shareKnockout(id, button) {
-  const url = `${location.origin}${location.pathname}#knockouts/match-${id}`;
-  if (navigator.share) {
-    const game = games.find((entry) => `${entry.id}` === id);
-    const label = game ? `${fixtureTeam(game, "home").name} vs ${fixtureTeam(game, "away").name}` : "this knockout match";
-    try {
-      await navigator.share({ title: "Degenerate Cup 2026", text: label, url });
-    } catch (error) {
-      // User dismissed the share sheet.
-    }
-    return;
-  }
-  copyShareLink(url, button);
+function shareFixture(id, button) {
+  return share(`fixtures/match-${id}`, matchLabel(id, "this match"), button);
+}
+
+function shareGroup(group, button) {
+  return share(`groups/${groupSlug(group)}`, `Group ${group}`, button);
+}
+
+function shareKnockout(id, button) {
+  return share(`knockouts/match-${id}`, matchLabel(id, "this knockout match"), button);
 }
 
 async function copyShareLink(url, button) {
@@ -193,25 +165,26 @@ function applyHashRoute() {
   if (resolved === "knockouts") scrollToGroup(hashKnockoutTarget());
 }
 
-// The element a `#fixtures/<anchor>` hash points at, or null when the hash isn't
-// a fixtures deep link or the target hasn't rendered yet. Anchor format is
-// `match-<game.id>` (the bare id is also accepted).
+// The element a `#<view>/<anchor>` hash points at, or null when the hash isn't
+// a deep link for that view or the target hasn't rendered yet. The anchor's
+// `<anchorPrefix>-` is optional (the bare id/slug is also accepted).
+function hashTarget(view, elementPrefix, anchorPrefix) {
+  const [hashView, anchor] = parseHash();
+  if (hashView !== view || !anchor) return null;
+  const id = anchor.startsWith(`${anchorPrefix}-`) ? anchor.slice(anchorPrefix.length + 1) : anchor;
+  return document.getElementById(`${elementPrefix}-${id}`);
+}
+
 function hashFixtureTarget() {
-  const [view, anchor] = parseHash();
-  if (view !== "fixtures" || !anchor) return null;
-  return document.getElementById(`fixture-${anchor.replace(/^match-/, "")}`);
+  return hashTarget("fixtures", "fixture", "match");
 }
 
 function hashGroupTarget() {
-  const [view, anchor] = parseHash();
-  if (view !== "groups" || !anchor) return null;
-  return document.getElementById(`group-${anchor.replace(/^group-/, "")}`);
+  return hashTarget("groups", "group", "group");
 }
 
 function hashKnockoutTarget() {
-  const [view, anchor] = parseHash();
-  if (view !== "knockouts" || !anchor) return null;
-  return document.getElementById(`knockout-${anchor.replace(/^match-/, "")}`);
+  return hashTarget("knockouts", "knockout", "match");
 }
 
 function groupSlug(group) {
@@ -244,10 +217,10 @@ async function refreshData() {
     games = dataSet.games;
     dataStatus = dataSet.status;
     indexTeams();
-    render();
-    syncStatusEl.textContent = dataStatus || `Results updated from worldcup26.ir. ${finishedGames().length} finished matches currently reflected.`;
+    renderActiveView();
+    syncStatusEl.textContent = dataStatus;
   } catch (error) {
-    render();
+    renderActiveView();
     syncStatusEl.textContent = `Could not load ${feed.name}: ${error.message}. The board is showing the selected teams from selections.csv only.`;
   }
 }
@@ -264,8 +237,8 @@ function liveFeed() {
     loadingMessage: "Fetching live World Cup groups and matches...",
     async load() {
       const [groupPayload, gamePayload] = await Promise.all([
-        fetchJson(`${API_BASE}/groups`),
-        fetchJson(`${API_BASE}/games`),
+        fetchJson("/api/groups"),
+        fetchJson("/api/games"),
       ]);
       return liveDataSet({
         groups: groupPayload.groups || groupPayload.data || [],
@@ -298,13 +271,12 @@ function loadMockFeed() {
   });
 }
 
-async function fetchJson(url) {
-  // worldcup26.ir sends no CORS header, so we always go through the same-origin
-  // proxy (Pages Functions, served locally via `npx wrangler pages dev`).
-  const proxiedPath = url.endsWith("/groups") ? "/api/groups" : "/api/games";
-  const proxied = await fetch(proxiedPath);
-  if (!proxied.ok) throw new Error(`${proxiedPath} returned HTTP ${proxied.status}`);
-  return proxied.json();
+// worldcup26.ir sends no CORS header, so we always go through the same-origin
+// proxy (Pages Functions, served locally via `npx wrangler pages dev`).
+async function fetchJson(path) {
+  const response = await fetch(path);
+  if (!response.ok) throw new Error(`${path} returned HTTP ${response.status}`);
+  return response.json();
 }
 
 function indexTeams() {
@@ -330,12 +302,13 @@ function addTeam(id, name, group) {
   if (!id || !name || name.toLowerCase().includes("winner") || name.toLowerCase().includes("runner")) return;
   const normalized = normalizeName(name);
   const existing = teamByName.get(normalized) || {};
+  const selection = selectionForName(name);
   const team = {
     id: `${id}`,
     name,
-    code: selectionForName(name)?.code || existing.code || codeFromName(name),
-    owner: selectionForName(name)?.player || existing.owner || "",
-    group: selectionForName(name)?.group || group || existing.group || "",
+    code: selection?.code || existing.code || codeFromName(name),
+    owner: selection?.player || existing.owner || "",
+    group: selection?.group || group || existing.group || "",
   };
   teamById.set(`${id}`, team);
   teamByName.set(normalized, team);
@@ -384,10 +357,6 @@ function teamStatus(selection) {
   return groupStageStatus(selection, teamId);
 }
 
-function groupStageStatus(selection, teamId) {
-  return groupStageStatusThrough(selection, teamId);
-}
-
 function teamEliminatedAt(selection) {
   const apiTeam = teamByName.get(normalizeName(selection.name));
   const teamId = apiTeam?.id;
@@ -408,7 +377,7 @@ function teamEliminatedAt(selection) {
   return groupGames[groupGames.length - 1] || null;
 }
 
-function groupStageStatusThrough(selection, teamId, throughGame = null) {
+function groupStageStatus(selection, teamId, throughGame = null) {
   const group = groups.find((item) => item.name === selection.group);
   if (!group) return "alive";
   const groupComplete = groupGamesComplete(group.name, throughGame);
@@ -426,7 +395,7 @@ function teamStatusAtMatch(selection, game) {
   const teamId = apiTeam?.id;
   if (!teamId) return "alive";
   if (game.type !== "group" && hasKnockoutLoss(teamId, game)) return "eliminated";
-  return groupStageStatusThrough(selection, teamId, game);
+  return groupStageStatus(selection, teamId, game);
 }
 
 function hasKnockoutLoss(teamId, throughGame = null) {
@@ -459,19 +428,11 @@ function isFinished(game) {
   return `${game.finished}`.toUpperCase() === "TRUE" || `${game.time_elapsed}`.toLowerCase() === "finished";
 }
 
-function finishedGames() {
-  return games.filter(isFinished);
-}
-
 function loserId(game) {
   const homeScore = number(game.home_score);
   const awayScore = number(game.away_score);
   if (homeScore === awayScore) return "";
   return homeScore < awayScore ? `${game.home_team_id}` : `${game.away_team_id}`;
-}
-
-function render() {
-  renderActiveView();
 }
 
 function renderActiveView() {
@@ -625,7 +586,7 @@ function flagMarkup(team) {
   return `
     <span class="team-flag ${status}" title="${team.name}">
       ${flagImage(team)}
-      <small>${team.code}</small>
+      <small class="visually-hidden">${team.code}</small>
     </span>
   `;
 }
@@ -738,11 +699,6 @@ function renderMatch(game) {
   const state = matchState(game);
   const started = state !== "upcoming";
   const date = parseMatchDate(game);
-  const meta = state === "finished"
-    ? `<span class="fixture-ft">Full time</span>`
-    : state === "live"
-    ? `<span class="fixture-live">${liveLabel(game)}</span>`
-    : `<time>${date ? timeLabel(date) : "TBD"}</time>`;
   const card = document.createElement("article");
   card.id = `knockout-${game.id}`;
   card.className = `match-card ${state}`;
@@ -750,7 +706,7 @@ function renderMatch(game) {
     <div class="card-context match-context">
       <span class="fixture-stage">${date ? dayHeading(date) : "Date TBD"}</span>
       <span class="fixture-foot-end">
-        ${meta}
+        ${matchMeta(game, state, date)}
         <button type="button" class="fixture-share" data-share="${game.id}" aria-label="Share this knockout match" title="Share match">${SHARE_ICON}</button>
       </span>
     </div>
@@ -810,6 +766,12 @@ const SHARE_ICON =
   '<path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ' +
   'd="M12 3v12M8 7l4-4 4 4M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7"/></svg>';
 
+function matchMeta(game, state, date) {
+  if (state === "finished") return `<span class="fixture-ft">Full time</span>`;
+  if (state === "live") return `<span class="fixture-live">${liveLabel(game)}</span>`;
+  return `<time>${date ? timeLabel(date) : "TBD"}</time>`;
+}
+
 function fixtureRow(game, isNext) {
   const home = fixtureTeam(game, "home", game);
   const away = fixtureTeam(game, "away", game);
@@ -817,17 +779,12 @@ function fixtureRow(game, isNext) {
   const started = state !== "upcoming";
   const stage = game.type === "group" ? `Group ${game.group}` : STAGE_LABELS[game.type] || "Match";
   const date = parseMatchDate(game);
-  const meta = state === "finished"
-    ? `<span class="fixture-ft">Full time</span>`
-    : state === "live"
-    ? `<span class="fixture-live">${liveLabel(game)}</span>`
-    : `<time>${date ? timeLabel(date) : "TBD"}</time>`;
   return `
     <div id="fixture-${game.id}" class="fixture ${state} ${isNext ? "next" : ""}">
       <div class="card-context">
         <h3>${stage}</h3>
         <span class="fixture-foot-end">
-          ${meta}
+          ${matchMeta(game, state, date)}
           <button type="button" class="fixture-share" data-share="${game.id}" aria-label="Share this match" title="Share match">${SHARE_ICON}</button>
         </span>
       </div>

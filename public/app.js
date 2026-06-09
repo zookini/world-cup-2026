@@ -1,56 +1,6 @@
 import { parseMatchDate, isFinished, number } from "./match-utils.js";
 
 const PLAYER_ORDER = ["Boe", "Colm", "Ivan", "T", "Sharon", "Andy", "Joey", "Vinny", "Kachun", "Chun", "Kakei", "Janey"];
-const FLAG_CODES = {
-  ALG: "DZ",
-  ARG: "AR",
-  AUT: "AT",
-  AUS: "AU",
-  BEL: "BE",
-  BIH: "BA",
-  BRA: "BR",
-  CAN: "CA",
-  CIV: "CI",
-  COD: "CD",
-  COL: "CO",
-  CPV: "CV",
-  CRO: "HR",
-  CUW: "CW",
-  CZE: "CZ",
-  ECU: "EC",
-  EGY: "EG",
-  ENG: "GB-ENG",
-  ESP: "ES",
-  FRA: "FR",
-  GER: "DE",
-  GHA: "GH",
-  HAI: "HT",
-  IRN: "IR",
-  IRQ: "IQ",
-  JOR: "JO",
-  JPN: "JP",
-  KOR: "KR",
-  KSA: "SA",
-  MAR: "MA",
-  MEX: "MX",
-  NED: "NL",
-  NOR: "NO",
-  NZL: "NZ",
-  PAN: "PA",
-  PAR: "PY",
-  POR: "PT",
-  QAT: "QA",
-  RSA: "ZA",
-  SCO: "GB-SCT",
-  SEN: "SN",
-  SUI: "CH",
-  SWE: "SE",
-  TUN: "TN",
-  TUR: "TR",
-  URU: "UY",
-  USA: "US",
-  UZB: "UZ",
-};
 
 let selections = [];
 let groups = [];
@@ -577,9 +527,9 @@ function flagMarkup(team) {
   `;
 }
 
+// Flag files are named by the FIFA code used in selections.csv (e.g. arg.png).
 function flagUrl(team) {
-  const code = FLAG_CODES[team.code] || team.code;
-  return `assets/flags/${code.toLowerCase()}.png`;
+  return `assets/flags/${team.code.toLowerCase()}.png`;
 }
 
 function flagImage(team, className = "") {

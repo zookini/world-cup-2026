@@ -487,8 +487,9 @@ function renderActiveView() {
 
 function renderContenders() {
   const players = [...new Set([...PLAYER_ORDER, ...selections.map((team) => team.player)])];
-  const rows = players.map(playerSummary).sort(sortPlayerSummaries);
-  if (knockoutStageActive()) {
+  const showSurvivors = knockoutStageActive();
+  const rows = players.map(playerSummary).sort((a, b) => sortPlayerSummaries(a, b, showSurvivors));
+  if (showSurvivors) {
     renderSurvivors(rows);
     return;
   }
@@ -509,9 +510,10 @@ function renderContenders() {
       </thead>
       <tbody>
         ${rows.map(({ player, owned, played, w, l, d, pts }, index) => {
+          const rank = rankForPlayerSummary(rows, index, false);
           return `
             <tr class="contender-row">
-              <td>${index + 1}</td>
+              <td>${rank}</td>
               <th scope="row">
                 <span class="gambler-name">${player}</span>
               </th>
@@ -558,18 +560,41 @@ function playerSummary(player) {
   return summary;
 }
 
-function sortPlayerSummaries(a, b) {
-  if (survivalSortingActive()) {
-    const aliveDifference = b.alive - a.alive;
-    if (aliveDifference) return aliveDifference;
-    if (a.eliminated !== b.eliminated) return Number(a.eliminated) - Number(b.eliminated);
-    if (a.eliminated && b.eliminated) {
-      const eliminatedDifference = compareGames(b.lastEliminatedGame, a.lastEliminatedGame);
-      if (eliminatedDifference) return eliminatedDifference;
-    }
+function sortPlayerSummaries(a, b, survivalMode = survivalSortingActive()) {
+  if (survivalMode) {
+    const rankDifference = compareSurvivalRank(a, b);
+    if (rankDifference) return rankDifference;
     return PLAYER_ORDER.indexOf(a.player) - PLAYER_ORDER.indexOf(b.player);
   }
-  return b.pts - a.pts || b.w - a.w || a.l - b.l || PLAYER_ORDER.indexOf(a.player) - PLAYER_ORDER.indexOf(b.player);
+  const rankDifference = compareGroupRank(a, b);
+  if (rankDifference) return rankDifference;
+  return PLAYER_ORDER.indexOf(a.player) - PLAYER_ORDER.indexOf(b.player);
+}
+
+function comparePlayerRank(a, b, survivalMode = survivalSortingActive()) {
+  return survivalMode ? compareSurvivalRank(a, b) : compareGroupRank(a, b);
+}
+
+function compareGroupRank(a, b) {
+  return b.pts - a.pts || b.w - a.w || a.l - b.l;
+}
+
+function compareSurvivalRank(a, b) {
+  const aliveDifference = b.alive - a.alive;
+  if (aliveDifference) return aliveDifference;
+  if (a.eliminated !== b.eliminated) return Number(a.eliminated) - Number(b.eliminated);
+  if (a.eliminated && b.eliminated) {
+    const eliminatedDifference = compareGames(b.lastEliminatedGame, a.lastEliminatedGame);
+    if (eliminatedDifference) return eliminatedDifference;
+  }
+  return 0;
+}
+
+function rankForPlayerSummary(rows, index, survivalMode = survivalSortingActive()) {
+  if (index === 0) return 1;
+  return comparePlayerRank(rows[index], rows[index - 1], survivalMode) === 0
+    ? rankForPlayerSummary(rows, index - 1, survivalMode)
+    : index + 1;
 }
 
 function survivalSortingActive() {
@@ -822,9 +847,10 @@ function renderSurvivors(rows) {
       </thead>
       <tbody>
         ${rows.map(({ player, owned, eliminated }, index) => {
+          const rank = rankForPlayerSummary(rows, index, true);
           return `
             <tr class="contender-row ${eliminated ? "eliminated" : ""}">
-              <td>${index + 1}</td>
+              <td>${rank}</td>
               <th scope="row">
                 <span class="gambler-name ${eliminated ? "eliminated" : ""}">${player}</span>
               </th>

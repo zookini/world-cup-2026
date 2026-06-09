@@ -1,0 +1,13 @@
+{
+  "name": "world-cup-2026",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler pages dev",
+    "verify": "node verify.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.60.0",
+    "wrangler": "^4.99.0"
+  }
+}

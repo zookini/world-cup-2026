@@ -1,3 +1,5 @@
+import { parseMatchDate, isFinished, number } from "./match-utils.js";
+
 const PLAYER_ORDER = ["Boe", "Colm", "Ivan", "T", "Sharon", "Andy", "Joey", "Vinny", "Kachun", "Chun", "Kakei", "Janey"];
 const FLAG_CODES = {
   ALG: "DZ",
@@ -227,8 +229,8 @@ async function refreshData() {
 
 async function feedForUrl(search) {
   if (!hasMockParam(search)) return liveFeed();
-  await loadMockFeed();
-  return window.WorldCupMockFeed.feed({ search });
+  const { feed } = await import("./mock-feed.js");
+  return feed({ search });
 }
 
 function liveFeed() {
@@ -257,18 +259,6 @@ function liveDataSet(liveData) {
 
 function hasMockParam(search) {
   return /^match-\d+$/.test(new URLSearchParams(search).get("mock") || "");
-}
-
-function loadMockFeed() {
-  if (window.WorldCupMockFeed) return Promise.resolve();
-  return new Promise((resolve, reject) => {
-    const script = document.createElement("script");
-    script.src = "mock-feed.js";
-    script.async = true;
-    script.onload = resolve;
-    script.onerror = () => reject(new Error("Could not load mock-feed.js"));
-    document.head.append(script);
-  });
 }
 
 // worldcup26.ir sends no CORS header, so we always go through the same-origin
@@ -422,10 +412,6 @@ function groupGamesComplete(groupName, throughGame = null) {
   return games
     .filter((game) => game.type === "group" && game.group === groupName)
     .every((game) => isFinished(game) && (!throughGame || compareGames(game, throughGame) <= 0));
-}
-
-function isFinished(game) {
-  return `${game.finished}`.toUpperCase() === "TRUE" || `${game.time_elapsed}`.toLowerCase() === "finished";
 }
 
 function loserId(game) {
@@ -927,28 +913,6 @@ function markDeepLinkedElement(target) {
   if (target) target.classList.add("deep-linked");
 }
 
-// The feed lists each kickoff in its venue's own local wall-clock, so we resolve
-// the true instant per stadium and then render in the viewer's local timezone.
-// The tournament (Jun 11 - Jul 19, 2026) sits entirely within one DST state, so
-// fixed offsets are exact: US/Canada venues are on summer time, while Mexico has
-// observed no DST since 2022. Offsets are the venue zone's minutes from UTC.
-const STADIUM_UTC_OFFSET_MINUTES = {
-  1: -360, 2: -360, 3: -360, // Mexico City, Guadalajara, Monterrey — UTC-6 (no DST)
-  4: -300, 5: -300, 6: -300, // Dallas, Houston, Kansas City — Central (CDT) UTC-5
-  7: -240, 8: -240, 9: -240, 10: -240, 11: -240, 12: -240, // Atlanta, Miami, Boston, Philadelphia, NY/NJ, Toronto — Eastern (EDT) UTC-4
-  13: -420, 14: -420, 15: -420, 16: -420, // Vancouver, Seattle, SF Bay Area, Los Angeles — Pacific (PDT) UTC-7
-};
-const DEFAULT_UTC_OFFSET_MINUTES = -240; // fall back to Eastern if a stadium is unknown
-
-function parseMatchDate(game) {
-  const match = /^(\d{2})\/(\d{2})\/(\d{4})(?: (\d{2}):(\d{2}))?/.exec(`${game?.local_date || ""}`.trim());
-  if (!match) return null;
-  const [, mm, dd, yyyy, hh = "0", min = "0"] = match;
-  const offset = STADIUM_UTC_OFFSET_MINUTES[Number(game?.stadium_id)] ?? DEFAULT_UTC_OFFSET_MINUTES;
-  const utcMs = Date.UTC(Number(yyyy), Number(mm) - 1, Number(dd), Number(hh), Number(min));
-  return new Date(utcMs - offset * 60000);
-}
-
 function dayHeading(date) {
   if (!date) return "Date TBD";
   return date.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
@@ -1004,10 +968,6 @@ function normalizeName(name) {
     .replace(/czech republic/g, "czechia")
     .replace(/turkey/g, "turkiye")
     .replace(/[^a-z]/g, "");
-}
-
-function number(value) {
-  return Number.parseInt(value, 10) || 0;
 }
 
 init().catch((error) => {

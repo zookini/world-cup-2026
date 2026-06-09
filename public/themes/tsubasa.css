@@ -32,15 +32,13 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: clamp(14px, 3vw, 34px);
-  min-height: 190px;
+  min-height: 148px;
   margin-bottom: 14px;
-  padding: 18px clamp(14px, 3vw, 28px) 16px;
+  padding: 12px clamp(14px, 3vw, 28px) 10px;
   border: 4px solid var(--ink);
-  border-right: 0;
-  border-left: 0;
   border-radius: 4px;
   background: var(--pop);
-  box-shadow: 0 8px 0 var(--ink);
+  box-shadow: 8px 8px 0 var(--ink);
   overflow: visible;
 }
 .marquee::before {
@@ -71,13 +69,15 @@ body {
 .marquee-art {
   position: relative;
   align-self: flex-end;
-  flex: 0 0 clamp(112px, 18vw, 210px);
+  flex: 0 0 clamp(94px, 15vw, 154px);
   z-index: 1;
-  width: clamp(112px, 18vw, 210px);
-  max-width: 32%;
-  max-height: 180px;
-  object-fit: contain;
-  object-position: center bottom;
+  width: clamp(94px, 15vw, 154px);
+  height: clamp(98px, 15vw, 156px);
+  max-width: 30%;
+  max-height: 156px;
+  object-fit: cover;
+  object-position: 78% 30%;
+  clip-path: polygon(18% 4%, 92% 0, 100% 82%, 70% 100%, 5% 84%, 0 24%);
   pointer-events: none;
 }
 
@@ -252,10 +252,10 @@ tr.selected {
 @media (max-width: 430px) {
   .marquee {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 92px;
+    grid-template-columns: minmax(0, 1fr) 88px;
     gap: 8px;
-    min-height: 138px;
-    padding: 12px 10px;
+    min-height: 112px;
+    padding: 8px 10px;
   }
   .marquee-copy {
     width: auto;
@@ -265,9 +265,10 @@ tr.selected {
     text-shadow: 3px 3px 0 #fff, 5px 5px 0 var(--ink);
   }
   .marquee-art {
-    width: 92px;
-    max-width: 92px;
-    max-height: 112px;
+    width: 88px;
+    height: 92px;
+    max-width: 88px;
+    max-height: 92px;
   }
 
   /* Keep the manga tab font, but trim the chrome for narrow iPhones. */

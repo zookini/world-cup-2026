@@ -236,16 +236,10 @@ async function loadSelections() {
 }
 
 async function refreshData() {
-  syncStatusEl.textContent = "Fetching live World Cup groups and matches...";
+  const feed = await feedForUrl(location.search);
+  syncStatusEl.textContent = feed.loadingMessage;
   try {
-    const [groupPayload, gamePayload] = await Promise.all([
-      fetchJson(`${API_BASE}/groups`),
-      fetchJson(`${API_BASE}/games`),
-    ]);
-    const dataSet = await dataSetForUrl({
-      groups: groupPayload.groups || groupPayload.data || [],
-      games: gamePayload.games || gamePayload.data || [],
-    });
+    const dataSet = await feed.load();
     groups = dataSet.groups;
     games = dataSet.games;
     dataStatus = dataSet.status;
@@ -254,23 +248,31 @@ async function refreshData() {
     syncStatusEl.textContent = dataStatus || `Results updated from worldcup26.ir. ${finishedGames().length} finished matches currently reflected.`;
   } catch (error) {
     render();
-    syncStatusEl.textContent = `Could not fetch live results: ${error.message}. The board is showing the selected teams from selections.csv only.`;
+    syncStatusEl.textContent = `Could not load ${feed.name}: ${error.message}. The board is showing the selected teams from selections.csv only.`;
   }
 }
 
-async function dataSetForUrl(liveData) {
-  if (!hasMockParam(location.search)) {
-    return liveDataSet(liveData);
-  }
-
+async function feedForUrl(search) {
+  if (!hasMockParam(search)) return liveFeed();
   await loadMockFeed();
-  const mock = window.WorldCupMockFeed?.fromUrl?.({
-    ...liveData,
-    search: location.search,
-  });
-  if (mock) return mock;
+  return window.WorldCupMockFeed.feed({ search });
+}
 
-  return liveDataSet(liveData);
+function liveFeed() {
+  return {
+    name: "live World Cup feed",
+    loadingMessage: "Fetching live World Cup groups and matches...",
+    async load() {
+      const [groupPayload, gamePayload] = await Promise.all([
+        fetchJson(`${API_BASE}/groups`),
+        fetchJson(`${API_BASE}/games`),
+      ]);
+      return liveDataSet({
+        groups: groupPayload.groups || groupPayload.data || [],
+        games: gamePayload.games || gamePayload.data || [],
+      });
+    },
+  };
 }
 
 function liveDataSet(liveData) {

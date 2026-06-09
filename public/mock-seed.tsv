@@ -1,0 +1,157 @@
+# groups
+group	team_id	team_name_en
+H	29	
+H	30	
+H	31	
+H	32	
+I	33	
+I	34	
+I	35	
+I	36	
+D	13	
+D	14	
+D	15	
+D	16	
+E	17	
+E	18	
+E	19	
+E	20	
+F	21	
+F	22	
+F	23	
+F	24	
+G	25	
+G	26	
+G	27	
+G	28	
+A	1	
+A	2	
+A	3	
+A	4	
+B	5	
+B	6	
+B	7	
+B	8	
+L	45	
+L	46	
+L	47	
+L	48	
+K	41	
+K	42	
+K	43	
+K	44	
+C	9	
+C	10	
+C	11	
+C	12	
+J	37	
+J	38	
+J	39	
+J	40	
+
+# games
+id	home_team_id	away_team_id	group	local_date	stadium_id	type	home_team_name_en	away_team_name_en	home_team_label	away_team_label
+1	1	2	A	06/11/2026 13:00	1	group	Mexico	South Africa		
+2	3	4	A	06/11/2026 20:00	2	group	South Korea	Czech Republic		
+3	5	6	B	06/12/2026 15:00	12	group	Canada	Bosnia and Herzegovina		
+4	13	14	D	06/12/2026 18:00	16	group	United States	Paraguay		
+5	11	12	C	06/13/2026 21:00	9	group	Haiti	Scotland		
+6	15	16	D	06/13/2026 21:00	13	group	Australia	Turkey		
+7	9	10	C	06/13/2026 18:00	11	group	Brazil	Morocco		
+8	7	8	B	06/13/2026 12:00	15	group	Qatar	Switzerland		
+9	19	20	E	06/14/2026 19:00	10	group	Ivory Coast	Ecuador		
+10	17	18	E	06/14/2026 12:00	5	group	Germany	Curaçao		
+11	21	22	F	06/14/2026 15:00	4	group	Netherlands	Japan		
+12	23	24	F	06/14/2026 20:00	3	group	Sweden	Tunisia		
+13	27	28	G	06/15/2026 18:00	16	group	Iran	New Zealand		
+14	29	30	H	06/15/2026 12:00	7	group	Spain	Cape Verde		
+15	25	26	G	06/15/2026 12:00	14	group	Belgium	Egypt		
+16	31	32	H	06/15/2026 18:00	8	group	Saudi Arabia	Uruguay		
+17	33	34	I	06/16/2026 15:00	11	group	France	Senegal		
+18	35	36	I	06/16/2026 18:00	9	group	Iraq	Norway		
+19	37	38	J	06/16/2026 20:00	6	group	Argentina	Algeria		
+20	39	40	J	06/16/2026 21:00	15	group	Austria	Jordan		
+21	41	42	K	06/17/2026 12:00	5	group	Portugal	Democratic Republic of the Congo		
+22	45	46	L	06/17/2026 15:00	4	group	England	Croatia		
+23	43	44	K	06/17/2026 20:00	1	group	Uzbekistan	Colombia		
+24	47	48	L	06/17/2026 19:00	12	group	Ghana	Panama		
+25	1	3	A	06/18/2026 19:00	2	group	Mexico	South Korea		
+26	8	6	B	06/18/2026 12:00	16	group	Switzerland	Bosnia and Herzegovina		
+27	5	7	B	06/18/2026 15:00	13	group	Canada	Qatar		
+28	4	2	A	06/18/2026 12:00	7	group	Czech Republic	South Africa		
+29	9	11	C	06/19/2026 21:00	10	group	Brazil	Haiti		
+30	12	10	C	06/19/2026 18:00	9	group	Scotland	Morocco		
+31	13	15	D	06/19/2026 12:00	14	group	United States	Australia		
+32	16	14	D	06/19/2026 20:00	15	group	Turkey	Paraguay		
+33	17	19	E	06/20/2026 16:00	12	group	Germany	Ivory Coast		
+34	20	18	E	06/20/2026 19:00	6	group	Ecuador	Curaçao		
+35	21	23	F	06/20/2026 12:00	5	group	Netherlands	Sweden		
+36	24	22	F	06/20/2026 22:00	3	group	Tunisia	Japan		
+37	25	27	G	06/21/2026 12:00	16	group	Belgium	Iran		
+38	28	26	G	06/21/2026 18:00	13	group	New Zealand	Egypt		
+39	29	31	H	06/21/2026 12:00	7	group	Spain	Saudi Arabia		
+40	32	30	H	06/21/2026 18:00	8	group	Uruguay	Cape Verde		
+41	33	35	I	06/22/2026 17:00	10	group	France	Iraq		
+42	36	34	I	06/22/2026 20:00	11	group	Norway	Senegal		
+43	37	39	J	06/22/2026 12:00	4	group	Argentina	Austria		
+44	40	38	J	06/22/2026 20:00	15	group	Jordan	Algeria		
+45	41	43	K	06/23/2026 12:00	5	group	Portugal	Uzbekistan		
+46	48	46	L	06/23/2026 19:00	12	group	Panama	Croatia		
+47	44	42	K	06/23/2026 20:00	2	group	Colombia	Democratic Republic of the Congo		
+48	45	47	L	06/23/2026 16:00	9	group	England	Ghana		
+49	12	9	C	06/24/2026 18:00	8	group	Scotland	Brazil		
+50	10	11	C	06/24/2026 18:00	7	group	Morocco	Haiti		
+51	2	3	A	06/24/2026 19:00	3	group	South Africa	South Korea		
+52	4	1	A	06/24/2026 19:00	1	group	Czech Republic	Mexico		
+53	6	7	B	06/24/2026 12:00	14	group	Bosnia and Herzegovina	Qatar		
+54	8	5	B	06/24/2026 12:00	13	group	Switzerland	Canada		
+55	18	19	E	06/25/2026 16:00	10	group	Curaçao	Ivory Coast		
+56	20	17	E	06/25/2026 16:00	11	group	Ecuador	Germany		
+57	14	15	D	06/25/2026 19:00	15	group	Paraguay	Australia		
+58	16	13	D	06/25/2026 19:00	16	group	Turkey	United States		
+59	22	23	F	06/25/2026 18:00	4	group	Japan	Sweden		
+60	24	21	F	06/25/2026 18:00	6	group	Tunisia	Netherlands		
+61	34	35	I	06/26/2026 15:00	12	group	Senegal	Iraq		
+62	36	33	I	06/26/2026 15:00	9	group	Norway	France		
+63	26	27	G	06/26/2026 20:00	14	group	Egypt	Iran		
+64	28	25	G	06/26/2026 20:00	13	group	New Zealand	Belgium		
+65	30	31	H	06/26/2026 19:00	5	group	Cape Verde	Saudi Arabia		
+66	32	29	H	06/26/2026 18:00	2	group	Uruguay	Spain		
+67	48	45	L	06/27/2026 17:00	11	group	Panama	England		
+68	46	47	L	06/27/2026 17:00	10	group	Croatia	Ghana		
+69	38	39	J	06/27/2026 21:00	6	group	Algeria	Austria		
+70	40	37	J	06/27/2026 21:00	4	group	Jordan	Argentina		
+71	44	41	K	06/27/2026 19:30	8	group	Colombia	Portugal		
+72	42	43	K	06/27/2026 19:30	7	group	Democratic Republic of the Congo	Uzbekistan		
+73	0	0	R32	06/28/2026 12:00	16	r32			Runner-up Group A	Runner-up Group B
+74	0	0	R32	06/29/2026 16:30	9	r32			Winner Group E	3rd Group A/B/C/D/F
+75	0	0	R32	06/29/2026 19:00	3	r32			Winner Group F	Runner-up Group C
+76	0	0	R32	06/29/2026 12:00	5	r32			Winner Group C	Runner-up Group F
+77	0	0	R32	06/30/2026 17:00	11	r32			Winner Group I	3rd Group C/D/F/G/H
+78	0	0	R32	06/30/2026 12:00	4	r32			Runner-up Group E	Runner-up Group I
+79	0	0	R32	06/30/2026 19:00	1	r32			Winner Group A	3rd Group C/E/F/H/I
+80	0	0	R32	07/01/2026 12:00	7	r32			Winner Group L	3rd Group E/H/I/J/K
+81	0	0	R32	07/01/2026 17:00	15	r32			Winner Group D	3rd Group B/E/F/I/J
+82	0	0	R32	07/01/2026 13:00	14	r32			Winner Group G	3rd Group A/E/H/I/J
+83	0	0	R32	07/02/2026 19:00	12	r32			Runner-up Group K	Runner-up Group L
+84	0	0	R32	07/02/2026 12:00	16	r32			Winner Group H	Runner-up Group J
+85	0	0	R32	07/02/2026 20:00	13	r32			Winner Group B	3rd Group E/F/G/I/J
+86	0	0	R32	07/03/2026 18:00	8	r32			Winner Group J	Runner-up Group H
+87	0	0	R32	07/03/2026 20:30	6	r32			Winner Group K	3rd Group D/E/I/J/L
+88	0	0	R32	07/03/2026 13:00	4	r32			Runner-up Group D	Runner-up Group G
+89	0	0	R16	07/04/2026 17:00	10	r16			Winner Match 74	Winner Match 77
+90	0	0	R16	07/04/2026 12:00	5	r16			Winner Match 73	Winner Match 75
+91	0	0	R16	07/05/2026 16:00	11	r16			Winner Match 76	Winner Match 78
+92	0	0	R16	07/05/2026 18:00	1	r16			Winner Match 79	Winner Match 80
+93	0	0	R16	07/06/2026 14:00	4	r16			Winner Match 83	Winner Match 84
+94	0	0	R16	07/06/2026 17:00	14	r16			Winner Match 81	Winner Match 82
+95	0	0	R16	07/07/2026 12:00	7	r16			Winner Match 86	Winner Match 88
+96	0	0	R16	07/07/2026 13:00	13	r16			Winner Match 85	Winner Match 87
+97	0	0	QF	07/09/2026 16:00	9	qf			Winner Match 89	Winner Match 90
+98	0	0	QF	07/10/2026 12:00	16	qf			Winner Match 93	Winner Match 94
+99	0	0	QF	07/11/2026 17:00	8	qf			Winner Match 91	Winner Match 92
+100	0	0	QF	07/11/2026 20:00	6	qf			Winner Match 95	Winner Match 96
+101	0	0	SF	07/14/2026 14:00	4	sf			Winner Match 97	Winner Match 98
+102	0	0	SF	07/15/2026 15:00	7	sf			Winner Match 99	Winner Match 100
+103	0	0	3RD	07/18/2026 17:00	8	third			Loser Match 101	Loser Match 102
+104	0	0	FINAL	07/19/2026 15:00	11	final			Winner Match 101	Winner Match 102

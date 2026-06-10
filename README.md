@@ -21,6 +21,24 @@ e.g. `/?mock=match-72` for most of the group stage, `/?mock=match-104` for a
 fully played tournament. Mock data is derived from
 `public/mock-seed.tsv` and never calls the live feed.
 
+## Shootouts (knockout stage, from Jun 28)
+
+The feed's Game schema has **no penalty/shootout fields** — confirmed against
+its OpenAPI spec (<https://worldcup26.ir/api-docs/>) and Mongoose model
+(<https://github.com/rezarahiminia/worldcup2026>). Its score-update process is
+not in that repo, so how a shootout gets encoded is unknown until one happens.
+
+Current handling (`loserId`/`penaltyScore` in `public/app.js`):
+
+- A finished knockout game with level scores eliminates nobody and adds a
+  warning to the visible status line.
+- `home_`/`away_` `penalty|penalties|pen|pens|penalty_score` fields are used
+  if the feed ever grows them, and scores then render as "1 (4)".
+
+When the first shootout happens, inspect that match in the raw `/api/games`
+response and adapt `penaltyScore` — or parse `home_scorers`/`away_scorers` if
+the result lands in those strings.
+
 ## Verifying changes
 
 ```bash

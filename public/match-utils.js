@@ -23,8 +23,11 @@ export function parseMatchDate(game) {
   return new Date(utcMs - offset * 60000);
 }
 
+// The API docs list "FT" as a time_elapsed value, while the 2022 edition used
+// "finished" — accept both in case the finished flag lags.
 export function isFinished(game) {
-  return `${game.finished}`.toUpperCase() === "TRUE" || `${game.time_elapsed}`.toLowerCase() === "finished";
+  const elapsed = `${game.time_elapsed}`.toLowerCase();
+  return `${game.finished}`.toUpperCase() === "TRUE" || elapsed === "finished" || elapsed === "ft";
 }
 
 export function number(value) {

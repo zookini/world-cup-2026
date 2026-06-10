@@ -11,25 +11,39 @@ let dataStatus = "";
 
 const contendersEl = document.querySelector("#contenders");
 const groupsEl = document.querySelector("#groups");
-const knockoutsEl = document.querySelector("#knockouts");
 const fixturesEl = document.querySelector("#fixtures");
 const syncStatusEl = document.querySelector("#sync-status");
 const viewButtons = document.querySelectorAll("[data-view]");
 const viewPanels = document.querySelectorAll("[data-panel]");
 
-const VIEWS = ["standings", "fixtures", "groups", "knockouts"];
+const VIEWS = ["standings", "fixtures", "groups"];
 let activeView = "standings";
 
 async function init() {
   bindViewTabs();
   bindShareButtons(fixturesEl, shareFixture);
   bindShareButtons(groupsEl, shareGroup);
-  bindShareButtons(knockoutsEl, shareKnockout);
   applyHashRoute();
   window.addEventListener("hashchange", applyHashRoute);
   await loadSelections();
   renderActiveView();
   await refreshData();
+  startAutoRefresh();
+}
+
+// Keep scores moving without manual reloads: re-pull the feed once a minute
+// while the tab is visible, and immediately when the user returns to it.
+// Mock data never changes, so mock mode skips this entirely.
+const REFRESH_INTERVAL_MS = 60000;
+
+function startAutoRefresh() {
+  if (hasMockParam(location.search)) return;
+  setInterval(() => {
+    if (!document.hidden) refreshData();
+  }, REFRESH_INTERVAL_MS);
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) refreshData();
+  });
 }
 
 function bindViewTabs() {
@@ -79,10 +93,6 @@ function shareGroup(group, button) {
   return share(`groups/${groupSlug(group)}`, `Group ${group}`, button);
 }
 
-function shareKnockout(id, button) {
-  return share(`knockouts/match-${id}`, matchLabel(id, "this knockout match"), button);
-}
-
 async function copyShareLink(url, button) {
   try {
     await navigator.clipboard.writeText(url);
@@ -114,7 +124,6 @@ function applyHashRoute() {
   renderActiveView();
   if (resolved === "fixtures") scrollToFixture(hashFixtureTarget());
   if (resolved === "groups") scrollToGroup(hashGroupTarget());
-  if (resolved === "knockouts") scrollToGroup(hashKnockoutTarget());
 }
 
 // The element a `#<view>/<anchor>` hash points at, or null when the hash isn't
@@ -133,10 +142,6 @@ function hashFixtureTarget() {
 
 function hashGroupTarget() {
   return hashTarget("groups", "group", "group");
-}
-
-function hashKnockoutTarget() {
-  return hashTarget("knockouts", "knockout", "match");
 }
 
 function groupSlug(group) {
@@ -160,21 +165,46 @@ async function loadSelections() {
   }).filter((team) => team.player && team.code);
 }
 
+let refreshing = false;
+
 async function refreshData() {
+  if (refreshing) return;
+  refreshing = true;
   const feed = await feedForUrl(location.search);
-  syncStatusEl.textContent = feed.loadingMessage;
+  if (!games.length) syncStatusEl.textContent = feed.loadingMessage;
   try {
     const dataSet = await feed.load();
     groups = dataSet.groups;
     games = dataSet.games;
-    dataStatus = dataSet.status;
+    dataStatus = dataSet.status || "";
     indexTeams();
     renderActiveView();
-    syncStatusEl.textContent = dataStatus;
+    syncStatusEl.textContent = statusLine();
   } catch (error) {
     renderActiveView();
-    syncStatusEl.textContent = `Could not load ${feed.name}: ${error.message}. The board is showing the selected teams from selections.csv only.`;
+    // A failed auto-refresh keeps the last good data on screen, so report it
+    // as staleness rather than discarding the board.
+    syncStatusEl.textContent = games.length
+      ? `${statusLine()} Refresh failed: ${error.message}.`
+      : `Could not load ${feed.name}: ${error.message}. The board is showing the selected teams from selections.csv only.`;
+  } finally {
+    refreshing = false;
   }
+}
+
+function statusLine() {
+  return [dataStatus, `Updated ${timeLabel(new Date())}.`, ...unresolvedKnockoutWarnings()].filter(Boolean).join(" ");
+}
+
+// A finished knockout game that is still level means the feed didn't encode
+// the shootout result anywhere we can read, so eliminations would silently
+// stall — say it out loud instead.
+function unresolvedKnockoutWarnings() {
+  return games
+    .filter((game) => game.type !== "group" && isFinished(game) && !loserId(game))
+    .map((game) =>
+      `Match ${game.id} (${fixtureTeam(game, "home").name} vs ${fixtureTeam(game, "away").name}) ` +
+      "ended level with no shootout result in the feed; eliminations may be incomplete.");
 }
 
 async function feedForUrl(search) {
@@ -192,18 +222,11 @@ function liveFeed() {
         fetchJson("/api/groups"),
         fetchJson("/api/games"),
       ]);
-      return liveDataSet({
+      return {
         groups: groupPayload.groups || groupPayload.data || [],
         games: gamePayload.games || gamePayload.data || [],
-      });
+      };
     },
-  };
-}
-
-function liveDataSet(liveData) {
-  return {
-    ...liveData,
-    status: `Results updated from worldcup26.ir. ${liveData.games.filter(isFinished).length} finished matches currently reflected.`,
   };
 }
 
@@ -367,8 +390,30 @@ function groupGamesComplete(groupName, throughGame = null) {
 function loserId(game) {
   const homeScore = number(game.home_score);
   const awayScore = number(game.away_score);
-  if (homeScore === awayScore) return "";
-  return homeScore < awayScore ? `${game.home_team_id}` : `${game.away_team_id}`;
+  if (homeScore !== awayScore) return homeScore < awayScore ? `${game.home_team_id}` : `${game.away_team_id}`;
+  const homePens = penaltyScore(game, "home");
+  const awayPens = penaltyScore(game, "away");
+  if (homePens === null || awayPens === null || homePens === awayPens) return "";
+  return homePens < awayPens ? `${game.home_team_id}` : `${game.away_team_id}`;
+}
+
+// The pre-tournament feed had no penalty fields at all, so we can't know what a
+// shootout will be called — probe the plausible names. Null means the feed gave
+// us nothing (distinct from a real 0).
+function penaltyScore(game, side) {
+  for (const field of ["penalty", "penalties", "pen", "pens", "penalty_score"]) {
+    const value = game[`${side}_${field}`];
+    if (value === undefined || value === null) continue;
+    const text = `${value}`.trim();
+    if (text && text.toLowerCase() !== "null") return number(text);
+  }
+  return null;
+}
+
+function scoreText(game, side) {
+  const pens = penaltyScore(game, side);
+  const score = number(game[`${side}_score`]);
+  return pens === null ? `${score}` : `${score} (${pens})`;
 }
 
 function renderActiveView() {
@@ -377,8 +422,6 @@ function renderActiveView() {
     renderFixtures();
   } else if (activeView === "groups") {
     renderGroups();
-  } else if (activeView === "knockouts") {
-    renderKnockouts();
   } else {
     renderContenders();
   }
@@ -597,61 +640,6 @@ function fallbackGroups() {
   }, {}));
 }
 
-function renderKnockouts() {
-  knockoutsEl.innerHTML = "";
-  const knockoutGames = sortedGames().filter((game) => game.type !== "group");
-  const rounds = ["r32", "r16", "qf", "sf", "third", "final"];
-  const labels = {
-    r32: "Round of 32",
-    r16: "Round of 16",
-    qf: "Quarter-finals",
-    sf: "Semi-finals",
-    third: "Third Place",
-    final: "Final",
-  };
-
-  rounds.forEach((round) => {
-    const matches = knockoutGames.filter((game) => game.type === round);
-    const column = document.createElement("section");
-    column.className = "round-column";
-    column.innerHTML = `<h3>${labels[round]}</h3>`;
-    if (!matches.length) {
-      column.innerHTML += `<article class="match-card empty">Schedule TBD</article>`;
-    }
-    matches.forEach((game) => {
-      column.append(renderMatch(game));
-    });
-    knockoutsEl.append(column);
-  });
-  markDeepLinkedElement(hashKnockoutTarget());
-  if (document.querySelector('[data-panel="knockouts"]')?.classList.contains("active")) {
-    scrollToGroup(hashKnockoutTarget());
-  }
-}
-
-function renderMatch(game) {
-  const home = fixtureTeam(game, "home", game);
-  const away = fixtureTeam(game, "away", game);
-  const state = matchState(game);
-  const started = state !== "upcoming";
-  const date = parseMatchDate(game);
-  const card = document.createElement("article");
-  card.id = `knockout-${game.id}`;
-  card.className = `match-card ${state}`;
-  card.innerHTML = `
-    <div class="card-context match-context">
-      <span class="fixture-stage">${date ? dayHeading(date) : "Date TBD"}</span>
-      <span class="fixture-foot-end">
-        ${matchMeta(game, state, date)}
-        <button type="button" class="fixture-share" data-share="${game.id}" aria-label="Share this knockout match" title="Share match">${SHARE_ICON}</button>
-      </span>
-    </div>
-    ${fixtureTeamLine(home, started ? number(game.home_score) : "")}
-    ${fixtureTeamLine(away, started ? number(game.away_score) : "")}
-  `;
-  return card;
-}
-
 const STAGE_LABELS = {
   group: "Group",
   round_of_32: "Round of 32",
@@ -724,8 +712,8 @@ function fixtureRow(game, isNext) {
           <button type="button" class="fixture-share" data-share="${game.id}" aria-label="Share this match" title="Share match">${SHARE_ICON}</button>
         </span>
       </div>
-      ${fixtureTeamLine(home, started ? number(game.home_score) : "")}
-      ${fixtureTeamLine(away, started ? number(game.away_score) : "")}
+      ${fixtureTeamLine(home, started ? scoreText(game, "home") : "")}
+      ${fixtureTeamLine(away, started ? scoreText(game, "away") : "")}
     </div>
   `;
 }

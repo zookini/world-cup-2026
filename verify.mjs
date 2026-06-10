@@ -86,7 +86,7 @@ try {
   const liveRows = await page.locator("#contenders tbody tr").count();
   check("live mode renders standings", liveRows > 0, `${liveRows} rows`);
 
-  for (const view of ["fixtures", "groups", "knockouts"]) {
+  for (const view of ["fixtures", "groups"]) {
     await page.click(`[data-view="${view}"]`);
     await page.waitForTimeout(400);
     const children = await page.locator(`#${view} > *`).count();
@@ -110,12 +110,6 @@ try {
   await settle(page, `${BASE}/?mock=match-72#groups/c`);
   target = await deepLinkTarget(page, "group-c");
   check("group deep link (bare slug)", target.highlighted && target.inView, JSON.stringify(target));
-
-  await settle(page, `${BASE}/?mock=match-104#knockouts`);
-  const knockoutId = await page.evaluate(() => document.querySelector(".match-card[id^='knockout-']")?.id);
-  await settle(page, `${BASE}/?mock=match-104#knockouts/${knockoutId?.replace("knockout-", "match-")}`);
-  target = await deepLinkTarget(page, knockoutId);
-  check("knockout deep link", target.highlighted && target.inView, JSON.stringify(target));
 
   // Unknown hash falls back to standings.
   await settle(page, `${BASE}/#bogus/whatever`);
@@ -156,6 +150,27 @@ try {
   );
   check("all images decode", brokenImages.length === 0, brokenImages.join(", "));
   check("no failed asset requests", badResponses.length === 0, badResponses.join(", "));
+
+  // The status line is real UI now (not visually-hidden) and shows update time.
+  const statusText = (await page.locator("#sync-status").textContent()).trim();
+  const statusVisible = await page.locator("#sync-status").isVisible();
+  check("status line visible with update time", statusVisible && /Updated .+/.test(statusText), statusText.slice(0, 100));
+
+  // PWA assets resolve.
+  const manifest = await fetch(`${BASE}/manifest.json`).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+  const iconResponses = await Promise.all(
+    ["icon-192.png", "icon-512.png", "icon-180.png"].map((icon) => fetch(`${BASE}/assets/icons/${icon}`))
+  );
+  check("manifest and icons load", Boolean(manifest?.icons?.length) && iconResponses.every((r) => r.ok),
+    `manifest icons=${manifest?.icons?.length}, fetched=${iconResponses.filter((r) => r.ok).length}/3`);
+
+  // Tabs stay pinned while the fixture list scrolls.
+  await settle(page, `${BASE}/?mock=match-72#fixtures`);
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight / 2));
+  await page.waitForTimeout(300);
+  const tabsTop = await page.evaluate(() => document.querySelector(".view-tabs").getBoundingClientRect().top);
+  check("tabs stick while scrolling", tabsTop === 0, `tabs top=${tabsTop}`);
+
   check("no page errors", errors.length === 0, errors.join(" | "));
 } finally {
   await browser.close();

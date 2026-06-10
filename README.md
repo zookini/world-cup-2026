@@ -18,7 +18,7 @@ listen on IPv6 `localhost`.
 The live feed has no results until matches finish. Append `?mock=match-<id>`
 to the URL to simulate the tournament up to and including that match —
 e.g. `/?mock=match-72` for most of the group stage, `/?mock=match-104` for a
-fully populated knockout bracket. Mock data is derived from
+fully played tournament. Mock data is derived from
 `public/mock-seed.tsv` and never calls the live feed.
 
 ## Verifying changes

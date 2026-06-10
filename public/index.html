@@ -4,6 +4,10 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Degenerate Cup 2026</title>
+    <meta name="theme-color" content="#eaf4ff" />
+    <link rel="manifest" href="manifest.json" />
+    <link rel="icon" type="image/png" sizes="192x192" href="assets/icons/icon-192.png" />
+    <link rel="apple-touch-icon" href="assets/icons/icon-180.png" />
     <link rel="stylesheet" href="styles.css" />
     <link rel="stylesheet" href="themes/tsubasa.css" />
   </head>
@@ -26,7 +30,6 @@
         <button class="active" type="button" data-view="standings">Standings</button>
         <button type="button" data-view="fixtures">Fixtures</button>
         <button type="button" data-view="groups">Groups</button>
-        <button type="button" data-view="knockouts">Knockouts</button>
       </nav>
 
       <section class="view-panel money-board active" data-panel="standings" aria-label="Pool standings">
@@ -41,11 +44,8 @@
         <div id="groups" class="group-stage"></div>
       </section>
 
-      <section class="view-panel knockout-board" data-panel="knockouts" aria-label="Knockout stage">
-        <div id="knockouts" class="knockout-grid"></div>
-      </section>
 
-      <p id="sync-status" class="visually-hidden" aria-live="polite"></p>
+      <p id="sync-status" class="sync-status" aria-live="polite"></p>
     </main>
 
     <script type="module" src="app.js"></script>

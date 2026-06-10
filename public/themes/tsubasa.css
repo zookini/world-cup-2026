@@ -5,6 +5,7 @@
 @import url("https://fonts.googleapis.com/css2?family=Anton&family=Mochiy+Pop+One&family=Inter:wght@500;700;800&display=swap");
 
 :root {
+  --tabs-height: 54px; /* taller manga buttons + strip padding */
   --bg: #eaf4ff;
   --text: #0c1b3a;
   --muted: #3f5b86;
@@ -82,6 +83,9 @@ body {
 /* --- Tabs as manga action buttons --- */
 .view-tabs {
   gap: 8px;
+  padding: 8px 0 10px;
+  background: rgba(234, 244, 255, 0.95);
+  backdrop-filter: blur(3px);
   border-bottom: 0;
 }
 .view-tabs button {
@@ -160,8 +164,7 @@ td {
   color: var(--ink);
 }
 .contender-row strong,
-.group-table strong,
-.match-card strong {
+.group-table strong {
   color: var(--accent);
   font-family: Anton, sans-serif;
   font-style: italic;
@@ -181,8 +184,7 @@ tr.selected {
   padding: 8px 10px;
 }
 .group-table .card-context h3,
-.fixture .card-context h3,
-.match-card .card-context h3 {
+.fixture .card-context h3 {
   font-family: Anton, Impact, sans-serif;
   font-weight: 400;
   font-style: italic;
@@ -204,9 +206,8 @@ tr.selected {
   border-radius: 2px;
 }
 
-/* --- Fixtures & knockout cards as manga panels --- */
-.fixture,
-.match-card {
+/* --- Fixture cards as manga panels --- */
+.fixture {
   border: 3px solid var(--ink);
   border-radius: 4px;
   background: #fff;
@@ -223,16 +224,14 @@ tr.selected {
 .fixture-foot {
   border-top: 2px dashed var(--ink);
 }
-.fixture .card-context h3,
-.match-card .card-context h3 {
+.fixture .card-context h3 {
   color: var(--accent);
 }
 .fixture-foot .fixture-live {
   color: var(--accent);
   font-family: "Mochiy Pop One", sans-serif;
 }
-.fixture-day,
-.round-column h3 {
+.fixture-day {
   font-family: "Mochiy Pop One", sans-serif;
   color: #fff;
   background: var(--accent);
@@ -242,7 +241,6 @@ tr.selected {
 }
 
 .fixture.deep-linked,
-.match-card.deep-linked,
 .group-table.deep-linked {
   box-shadow: inset 0 0 0 4px var(--pop), 4px 4px 0 var(--ink);
 }

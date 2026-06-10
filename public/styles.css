@@ -5,6 +5,7 @@
   --line: #e6e6e6;
   --soft: #f7f7f7;
   --accent: #111111;
+  --tabs-height: 44px; /* deep-link scroll targets clear the sticky tab bar */
 }
 
 * {
@@ -58,9 +59,13 @@ h3 {
 }
 
 .view-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 5;
   display: flex;
   gap: 6px;
   margin-bottom: 18px;
+  background: var(--bg);
   border-bottom: 1px solid var(--line);
 }
 
@@ -87,8 +92,7 @@ h3 {
 }
 
 .money-board,
-.world-board,
-.knockout-board {
+.world-board {
   margin-bottom: 22px;
 }
 
@@ -287,20 +291,7 @@ tr.eliminated {
   opacity: 0.45;
 }
 
-.knockout-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 12px;
-}
-
-.round-column {
-  display: grid;
-  align-content: start;
-  gap: 9px;
-}
-
-.fixture-day,
-.round-column h3 {
+.fixture-day {
   display: inline-flex;
   align-items: center;
   min-height: 28px;
@@ -317,65 +308,6 @@ tr.eliminated {
   background: var(--soft);
   border: 1px solid var(--line);
   border-radius: 999px;
-}
-
-.round-column h3 {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-}
-
-.match-card {
-  display: grid;
-  gap: 6px;
-  padding: 10px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--bg);
-}
-
-.match-card.empty {
-  color: var(--muted);
-  text-align: center;
-}
-
-.match-card .fixture-team {
-  display: grid;
-}
-
-.match-card .fixture-gambler:empty,
-.match-card .fixture-team > strong:empty {
-  display: none;
-}
-
-.match-card .fixture-team:has(.fixture-gambler:empty) {
-  grid-template-columns: 30px minmax(0, 1fr) 24px;
-}
-
-.match-card .fixture-team:has(.fixture-gambler:empty):has(strong:empty) {
-  grid-template-columns: 30px minmax(0, 1fr);
-}
-
-.match-card .fixture-team.placeholder .team-name {
-  white-space: normal;
-}
-
-.match-card .fixture-team.eliminated .table-flag,
-.match-card .fixture-team.eliminated .team-name,
-.match-card .fixture-team.eliminated > strong {
-  opacity: 0.42;
-  filter: grayscale(1);
-}
-
-.match-card b,
-.match-card strong {
-  font-weight: 750;
-}
-
-.match-card span,
-.match-card time {
-  color: var(--muted);
-  font-size: 0.82rem;
 }
 
 .fixture-list {
@@ -398,21 +330,13 @@ tr.eliminated {
   background: var(--bg);
 }
 
-.fixture .card-context,
-.match-card .card-context {
+.fixture .card-context {
   padding: 2px 0 4px;
   background: transparent;
   border-bottom: 0;
 }
 
-.match-card .match-context {
-  justify-content: space-between;
-  min-height: 20px;
-  padding-bottom: 0;
-}
-
-.fixture .card-context h3,
-.match-card .card-context h3 {
+.fixture .card-context h3 {
   color: var(--accent);
   font-size: 0.72rem;
   text-transform: uppercase;
@@ -421,7 +345,8 @@ tr.eliminated {
 
 .fixture-team {
   display: grid;
-  grid-template-columns: 72px 30px minmax(0, 1fr) 24px;
+  /* the score column stretches for shootout results like "1 (4)" */
+  grid-template-columns: 72px 30px minmax(0, 1fr) minmax(24px, auto);
   gap: 10px;
   align-items: center;
 }
@@ -581,7 +506,14 @@ tr.eliminated {
 .deep-linked {
   outline: 0;
   box-shadow: inset 0 0 0 4px var(--accent);
-  scroll-margin-top: 14px;
+  scroll-margin-top: calc(var(--tabs-height) + 14px);
+}
+
+.sync-status {
+  margin-top: 18px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.5;
 }
 
 .card-context .fixture-share {
@@ -695,8 +627,7 @@ tr.eliminated {
     display: none;
   }
 
-  .group-stage,
-  .knockout-grid {
+  .group-stage {
     grid-template-columns: 1fr;
     overflow-x: visible;
   }
@@ -743,7 +674,7 @@ tr.eliminated {
   }
 
   .fixture-team {
-    grid-template-columns: 62px 23px minmax(0, 1fr) 22px;
+    grid-template-columns: 62px 23px minmax(0, 1fr) minmax(22px, auto);
     gap: 8px;
   }
 

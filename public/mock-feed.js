@@ -1,4 +1,4 @@
-import { parseMatchDate, isFinished, number } from "./match-utils.js";
+import { parseMatchDate, number } from "./match-utils.js";
 
 const TEAM_STRENGTH = {
   Spain: 96, France: 95, Argentina: 94, England: 93, Brazil: 92, Portugal: 91, Germany: 90,
@@ -104,7 +104,7 @@ function fromUrl({ groups, games, search }) {
 
   return {
     ...mock,
-    status: `Showing mock data up to match ${targetMatch}. ${mock.games.filter(isFinished).length} simulated finished matches are reflected.`,
+    status: `Showing mock data up to match ${targetMatch}.`,
   };
 }
 

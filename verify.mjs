@@ -48,7 +48,7 @@ async function newPage(context, { trackErrors } = {}) {
 
 async function settle(page, url) {
   await page.goto(url, { waitUntil: "networkidle" });
-  await page.waitForTimeout(600); // scroll/highlight runs a frame after render
+  await page.waitForTimeout(1000); // scroll/highlight runs after render and may be smooth
 }
 
 async function deepLinkTarget(page, id) {
@@ -94,6 +94,14 @@ try {
     check(`${view} tab renders and routes`, children > 0 && hash === `#${view}`, `${children} elements, hash=${hash}`);
   }
 
+  await page.click('[data-view="fixtures"]');
+  await page.waitForTimeout(400);
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight / 2));
+  await page.click('[data-view="groups"]');
+  await page.waitForTimeout(100);
+  const groupsScrollY = await page.evaluate(() => window.scrollY);
+  check("plain tab switch resets scroll", groupsScrollY === 0, `scrollY=${groupsScrollY}`);
+
   // Mock mode must not call the live feed.
   const apiRequests = [];
   page.on("request", (request) => { if (request.url().includes("/api/")) apiRequests.push(request.url()); });
@@ -101,6 +109,19 @@ try {
   const mockStatus = (await page.locator("#sync-status").textContent()).trim();
   check("mock mode loads", mockStatus.includes("mock data"), mockStatus.slice(0, 80));
   check("mock mode stays offline", apiRequests.length === 0, `${apiRequests.length} /api calls`);
+
+  await page.click('[data-view="fixtures"]');
+  await page.waitForTimeout(500);
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  await page.click('[data-view="fixtures"]');
+  await page.waitForTimeout(500);
+  const nextFixtureVisible = await page.evaluate(() => {
+    const el = document.querySelector(".fixture.next");
+    if (!el) return false;
+    const rect = el.getBoundingClientRect();
+    return rect.top < innerHeight && rect.bottom > 0;
+  });
+  check("fixtures tab returns to next match", nextFixtureVisible);
 
   // Deep links highlight and scroll, including the bare-slug anchor form.
   await settle(page, `${BASE}/?mock=match-72#fixtures/match-5`);

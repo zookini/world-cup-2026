@@ -51,7 +51,12 @@ function bindViewTabs() {
     button.addEventListener("click", () => {
       // Drive navigation through the hash so the URL stays shareable and the
       // hashchange handler remains the single source of truth.
-      location.hash = button.dataset.view;
+      const hash = `#${button.dataset.view}`;
+      if (location.hash === hash) {
+        applyHashRoute();
+      } else {
+        location.hash = button.dataset.view;
+      }
     });
   });
 }
@@ -118,10 +123,18 @@ function parseHash() {
 // Read `#<view>` or `#<view>/<anchor>` from the URL and reflect it in the UI.
 // Unknown/empty hashes fall back to the first view.
 function applyHashRoute() {
-  const [view] = parseHash();
+  const [view, anchor] = parseHash();
   const resolved = VIEWS.includes(view) ? view : VIEWS[0];
   activateView(resolved);
   renderActiveView();
+  if (!anchor) {
+    if (resolved === "fixtures") {
+      scrollToFixture(null);
+      return;
+    }
+    scrollToTop();
+    return;
+  }
   if (resolved === "fixtures") scrollToFixture(hashFixtureTarget());
   if (resolved === "groups") scrollToGroup(hashGroupTarget());
 }
@@ -142,6 +155,12 @@ function hashFixtureTarget() {
 
 function hashGroupTarget() {
   return hashTarget("groups", "group", "group");
+}
+
+function scrollToTop() {
+  requestAnimationFrame(() => {
+    window.scrollTo({ top: 0, behavior: "auto" });
+  });
 }
 
 function groupSlug(group) {
@@ -675,9 +694,7 @@ function renderFixtures() {
     return header + fixtureRow(game, game === nextGame);
   }).join("");
 
-  // On (re)render, settle the scroll if Fixtures is showing: honour a deep-linked
-  // match from the hash, otherwise fall back to the next unfinished match. This
-  // also resolves a hash that pointed at a fixture before the data had loaded.
+  // On (re)render, settle the fixture scroll after the data has loaded.
   if (document.querySelector('[data-panel="fixtures"]')?.classList.contains("active")) {
     scrollToFixture(hashFixtureTarget());
   }

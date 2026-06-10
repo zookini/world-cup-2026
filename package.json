@@ -4,10 +4,10 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler pages dev",
-    "verify": "node verify.mjs"
+    "verify": "playwright test"
   },
   "devDependencies": {
-    "playwright": "^1.60.0",
+    "@playwright/test": "^1.60.0",
     "wrangler": "^4.99.0"
   }
 }

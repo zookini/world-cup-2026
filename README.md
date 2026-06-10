@@ -46,5 +46,7 @@ npx playwright install chromium   # once
 npm run verify
 ```
 
-Starts the app and drives it in headless Chromium at iPhone viewport size;
-each check it runs is printed as it passes or fails.
+Runs the Playwright Test suite in `e2e/`: it starts the app (`webServer` in
+`playwright.config.js`) and drives it in headless Chromium at iPhone viewport
+size. Each test is printed as it passes or fails; failures leave a trace in
+`test-results/` — open it with `npx playwright show-trace <path-to-trace.zip>`.

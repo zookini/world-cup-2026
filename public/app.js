@@ -212,11 +212,9 @@ async function refreshData() {
 }
 
 function statusLine() {
-  const finishedCount = games.filter(isFinished).length;
   return [
     dataStatus,
     `Updated ${timeLabel(new Date())}.`,
-    games.length ? `${finishedCount}/${games.length} matches finished.` : "",
     ...unresolvedKnockoutWarnings(),
   ].filter(Boolean).join(" ");
 }

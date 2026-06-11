@@ -18,6 +18,7 @@ const viewPanels = document.querySelectorAll("[data-panel]");
 
 const VIEWS = ["standings", "fixtures", "groups"];
 let activeView = "standings";
+const APP_VERSION = "2026-06-11.2";
 
 async function init() {
   bindViewTabs();
@@ -29,6 +30,7 @@ async function init() {
   renderActiveView();
   await refreshData();
   startAutoRefresh();
+  startVersionCheck();
 }
 
 // Keep scores moving without manual reloads: re-pull the feed once a minute
@@ -59,6 +61,24 @@ function bindViewTabs() {
       }
     });
   });
+}
+
+function startVersionCheck() {
+  if (hasMockParam(location.search)) return;
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) checkForNewVersion();
+  });
+}
+
+async function checkForNewVersion() {
+  try {
+    const response = await fetch(`version.json?ts=${Date.now()}`, { cache: "no-store" });
+    if (!response.ok) return;
+    const { version } = await response.json();
+    if (version && version !== APP_VERSION) location.reload();
+  } catch (error) {
+    // A version check is only an upgrade hint; data refresh handles feed errors.
+  }
 }
 
 // One delegated listener per panel for its share buttons — survives the

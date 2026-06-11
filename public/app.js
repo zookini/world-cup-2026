@@ -474,7 +474,7 @@ function renderContenders() {
           const rank = rankForPlayerSummary(rows, index, false);
           return `
             <tr class="contender-row">
-              <td>${rank}</td>
+              <td>${rankBadge(rank)}</td>
               <th scope="row">
                 <span class="gambler-name">${player}</span>
               </th>
@@ -556,6 +556,22 @@ function rankForPlayerSummary(rows, index, survivalMode = survivalSortingActive(
   return comparePlayerRank(rows[index], rows[index - 1], survivalMode) === 0
     ? rankForPlayerSummary(rows, index - 1, survivalMode)
     : index + 1;
+}
+
+function rankBadge(rank) {
+  const medalClass = medalClassForRank(rank);
+  return `<span class="rank-number${medalClass ? ` rank-badge ${medalClass}` : ""}">${rank}</span>`;
+}
+
+function medalClassForRank(rank) {
+  if (rank === 1 && stageComplete("final")) return "rank-1";
+  if (rank === 2 && stageComplete("final")) return "rank-2";
+  if (rank === 3 && stageComplete("third", "third_place")) return "rank-3";
+  return "";
+}
+
+function stageComplete(...types) {
+  return games.some((game) => types.includes(game.type) && isFinished(game));
 }
 
 function survivalSortingActive() {
@@ -750,7 +766,7 @@ function renderSurvivors(rows) {
           const rank = rankForPlayerSummary(rows, index, true);
           return `
             <tr class="contender-row ${eliminated ? "eliminated" : ""}">
-              <td>${rank}</td>
+              <td>${rankBadge(rank)}</td>
               <th scope="row">
                 <span class="gambler-name ${eliminated ? "eliminated" : ""}">${player}</span>
               </th>

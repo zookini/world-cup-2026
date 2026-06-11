@@ -172,6 +172,45 @@ th:nth-child(3),
   font-variant-numeric: tabular-nums;
 }
 
+.rank-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  font-size: 0.76rem;
+  font-weight: 850;
+  line-height: 1;
+}
+
+.rank-badge {
+  padding: 0 4px;
+  color: var(--muted);
+  border: 1px solid transparent;
+  border-radius: 999px;
+}
+
+.rank-1 {
+  color: #4d3400;
+  background: linear-gradient(135deg, #fff4a3 0%, #ffd22e 52%, #c98500 100%);
+  border-color: #d69a00;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.85) inset;
+}
+
+.rank-2 {
+  color: #34383d;
+  background: linear-gradient(135deg, #ffffff 0%, #dce3eb 52%, #9faab6 100%);
+  border-color: #a9b3bf;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset;
+}
+
+.rank-3 {
+  color: #4a2a12;
+  background: linear-gradient(135deg, #ffd6a3 0%, #c97935 52%, #8f461f 100%);
+  border-color: #ad622d;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.75) inset;
+}
+
 .contender-table th:nth-child(2),
 .contender-table td:nth-child(2) {
   width: 110px;

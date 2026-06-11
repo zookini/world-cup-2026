@@ -73,6 +73,20 @@ test("mock mode loads and stays offline", async ({ page }) => {
   expect(apiRequests).toEqual([]);
 });
 
+test("medal badges appear only when each podium place is settled", async ({ page }) => {
+  await page.goto("/?mock=match-102");
+  await expect(page.locator(".rank-badge")).toHaveCount(0);
+
+  await page.goto("/?mock=match-103");
+  await expect(page.locator(".rank-3")).toHaveCount(1);
+  await expect(page.locator(".rank-1, .rank-2")).toHaveCount(0);
+
+  await page.goto("/?mock=match-104");
+  await expect(page.locator(".rank-1")).toHaveCount(1);
+  await expect(page.locator(".rank-2")).toHaveCount(1);
+  await expect(page.locator(".rank-3")).toHaveCount(1);
+});
+
 test("fixtures tab returns to next match", async ({ page }) => {
   await page.goto(MOCK);
   await page.click('[data-view="fixtures"]');

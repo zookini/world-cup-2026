@@ -208,6 +208,70 @@ test("stale proxy responses trigger a quick fresh sync", async ({ page }) => {
   await expect(mexicoOwner.locator("td").nth(6)).toHaveText("3", { timeout: 6000 });
 });
 
+test("fixture refresh does not steal manual scroll", async ({ page }) => {
+  const groups = {
+    groups: [{
+      name: "A",
+      teams: [
+        { team_id: "1", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0 },
+        { team_id: "2", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0 },
+      ],
+    }],
+  };
+  const fixtureGames = Array.from({ length: 40 }, (_, index) => {
+    const id = index + 1;
+    return {
+      id: `${id}`,
+      home_team_id: "1",
+      away_team_id: "2",
+      group: "A",
+      local_date: `06/12/2026 ${String(8 + Math.floor(index / 2)).padStart(2, "0")}:${index % 2 ? "30" : "00"}`,
+      stadium_id: "1",
+      type: "group",
+      home_team_name_en: "Mexico",
+      away_team_name_en: "South Africa",
+      home_score: id <= 5 ? "1" : "0",
+      away_score: "0",
+      finished: id <= 5 ? "TRUE" : "FALSE",
+      time_elapsed: id <= 5 ? "finished" : "notstarted",
+    };
+  });
+  let gameRequests = 0;
+
+  await page.route("**/api/groups**", (route) => route.fulfill({
+    json: groups,
+    headers: gameRequests === 0 ? { "X-Cache": "stale-refreshing" } : {},
+  }));
+  await page.route("**/api/games**", (route) => {
+    gameRequests += 1;
+    route.fulfill({
+      json: { games: fixtureGames },
+      headers: gameRequests === 1 ? { "X-Cache": "stale-refreshing" } : {},
+    });
+  });
+
+  await page.goto("/#fixtures");
+  await rendered(page, "fixtures");
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const el = document.querySelector(".fixture.next");
+        if (!el) return false;
+        const rect = el.getBoundingClientRect();
+        return rect.top < innerHeight && rect.bottom > 0;
+      })
+    )
+    .toBe(true);
+  await page.waitForTimeout(300);
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  const manualScroll = await page.evaluate(() => window.scrollY);
+
+  await expect.poll(() => gameRequests, { timeout: 6000 }).toBeGreaterThanOrEqual(2);
+  await page.waitForTimeout(200);
+
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(manualScroll - 50);
+});
+
 test("live mode does not show zero standings before feed data loads", async ({ page }) => {
   let releaseGames;
   const gamesReady = new Promise((resolve) => {

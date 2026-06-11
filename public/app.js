@@ -12,6 +12,7 @@ let initialDataLoaded = false;
 let loadingMessage = "";
 let staleRefreshTimer = null;
 let staleRefreshAttempts = 0;
+let pendingFixtureScroll = false;
 
 const contendersEl = document.querySelector("#contenders");
 const groupsEl = document.querySelector("#groups");
@@ -134,13 +135,13 @@ function applyHashRoute() {
   renderActiveView();
   if (!anchor) {
     if (resolved === "fixtures") {
-      scrollToFixture(null);
+      requestFixtureScroll();
       return;
     }
     scrollToTop();
     return;
   }
-  if (resolved === "fixtures") scrollToFixture(hashFixtureTarget());
+  if (resolved === "fixtures") requestFixtureScroll();
   if (resolved === "groups") scrollToGroup(hashGroupTarget());
 }
 
@@ -835,11 +836,8 @@ function renderFixtures() {
     return header + fixtureRow(game, game === nextGame);
   }).join("");
 
-  // On (re)render, settle the fixture scroll after the data has loaded.
-  if (document.querySelector('[data-panel="fixtures"]')?.classList.contains("active")) {
-    scrollToFixture(hashFixtureTarget());
-  }
   markDeepLinkedElement(hashFixtureTarget());
+  settleFixtureScroll();
 }
 
 // iOS-style share/upload glyph; inherits colour from the button via currentColor.
@@ -1001,6 +999,17 @@ function compareGames(a, b) {
 
 function nextFixtureId(ordered) {
   return ordered.find((game) => !isFinished(game)) || ordered[ordered.length - 1];
+}
+
+function requestFixtureScroll() {
+  pendingFixtureScroll = true;
+  settleFixtureScroll();
+}
+
+function settleFixtureScroll() {
+  if (!pendingFixtureScroll || activeView !== "fixtures" || !fixturesEl.children.length) return;
+  pendingFixtureScroll = false;
+  scrollToFixture(hashFixtureTarget());
 }
 
 // Bottom-align a fixture in the viewport. Passing null targets the next

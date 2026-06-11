@@ -555,6 +555,10 @@ tr.eliminated {
   line-height: 1.5;
 }
 
+.sync-status.loading {
+  animation: loading-text-pulse 1.4s ease-in-out infinite;
+}
+
 .card-context .fixture-share {
   order: 3;
 }
@@ -719,5 +723,20 @@ tr.eliminated {
 
   .fixture-team .team-name {
     font-size: 0.86rem;
+  }
+}
+
+@keyframes loading-text-pulse {
+  0% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sync-status.loading {
+    animation: none;
   }
 }

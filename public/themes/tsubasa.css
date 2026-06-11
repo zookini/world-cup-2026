@@ -137,6 +137,11 @@ h2::before {
   box-shadow: 5px 5px 0 var(--ink);
   overflow: hidden;
 }
+.contender-table:empty {
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+}
 .contender-table thead th,
 .group-table thead th {
   background: var(--ink);

@@ -101,6 +101,74 @@ test("live standings update from finished games when group tables lag", async ({
   await expect(mexicoOwner.locator("td").nth(6)).toHaveText("3");
 });
 
+test("stale proxy responses trigger a quick fresh sync", async ({ page }) => {
+  const groups = {
+    groups: [{
+      name: "A",
+      teams: [
+        { team_id: "1", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0 },
+        { team_id: "2", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0 },
+      ],
+    }],
+  };
+  const staleGames = {
+    games: [{
+      id: "1",
+      home_team_id: "1",
+      away_team_id: "2",
+      group: "A",
+      local_date: "06/11/2026 13:00",
+      stadium_id: "1",
+      type: "group",
+      home_team_name_en: "Mexico",
+      away_team_name_en: "South Africa",
+      home_score: "0",
+      away_score: "0",
+      time_elapsed: "notstarted",
+    }, {
+      id: "2",
+      home_team_id: "3",
+      away_team_id: "4",
+      group: "A",
+      local_date: "06/11/2026 20:00",
+      stadium_id: "2",
+      type: "group",
+      home_team_name_en: "South Korea",
+      away_team_name_en: "Czech Republic",
+      home_score: "0",
+      away_score: "0",
+      time_elapsed: "notstarted",
+    }],
+  };
+  const freshGames = {
+    games: staleGames.games.map((game) => game.id === "1"
+      ? { ...game, home_score: "2", away_score: "0", finished: "TRUE", time_elapsed: "finished" }
+      : game),
+  };
+  let groupRequests = 0;
+  let gameRequests = 0;
+  await page.route("**/api/groups**", (route) => {
+    groupRequests += 1;
+    route.fulfill({
+      json: groups,
+      headers: groupRequests === 1 ? { "X-Cache": "stale-refreshing" } : {},
+    });
+  });
+  await page.route("**/api/games**", (route) => {
+    gameRequests += 1;
+    route.fulfill({
+      json: gameRequests === 1 ? staleGames : freshGames,
+      headers: gameRequests === 1 ? { "X-Cache": "stale-refreshing" } : {},
+    });
+  });
+
+  await page.goto("/");
+  const mexicoOwner = page.locator("#contenders tbody tr", { hasText: "T" }).first();
+  await expect(mexicoOwner.locator("td").nth(6)).toHaveText("0");
+  await expect.poll(() => gameRequests, { timeout: 6000 }).toBeGreaterThanOrEqual(2);
+  await expect(mexicoOwner.locator("td").nth(6)).toHaveText("3", { timeout: 6000 });
+});
+
 test("live mode does not show zero standings before feed data loads", async ({ page }) => {
   let releaseGames;
   const gamesReady = new Promise((resolve) => {
@@ -156,12 +224,48 @@ test("live mode does not show zero standings before feed data loads", async ({ p
 
   const loading = page.goto("/");
   await expect(page.locator("#sync-status")).toContainText("Fetching live World Cup groups and matches");
+  await expect(page.locator("#sync-status")).toHaveClass(/loading/);
   await expect(page.locator("#contenders tbody tr")).toHaveCount(0);
   releaseGames();
   await loading;
 
   await expect(page.locator("#contenders tbody tr").first()).toContainText("T");
   await expect(page.locator("#contenders tbody tr").first().locator("td").nth(6)).toHaveText("3");
+});
+
+test("loading state is consistent across tabs while feed data loads", async ({ page }) => {
+  let releaseFeed;
+  const feedReady = new Promise((resolve) => {
+    releaseFeed = resolve;
+  });
+  await page.route("**/api/groups**", async (route) => {
+    await feedReady;
+    await route.fulfill({ json: { groups: [] } });
+  });
+  await page.route("**/api/games**", async (route) => {
+    await feedReady;
+    await route.fulfill({ json: { games: [] } });
+  });
+
+  const loading = page.goto("/");
+  await expect(page.locator("#sync-status")).toContainText("Fetching live World Cup groups and matches");
+  await expect(page.locator("#sync-status")).toHaveClass(/loading/);
+  await expect(page.locator("#contenders table")).toHaveCount(0);
+  await expect.poll(() => page.locator("#contenders").evaluate((el) => getComputedStyle(el).boxShadow)).toBe("none");
+
+  await page.click('[data-view="fixtures"]');
+  await expect(page.locator('[data-panel="fixtures"]')).toHaveClass(/active/);
+  await expect(page.locator("#fixtures > *")).toHaveCount(0);
+  await expect(page.locator("#sync-status")).toContainText("Fetching live World Cup groups and matches");
+
+  await page.click('[data-view="groups"]');
+  await expect(page.locator('[data-panel="groups"]')).toHaveClass(/active/);
+  await expect(page.locator("#groups > *")).toHaveCount(0);
+  await expect(page.locator("#sync-status")).toContainText("Fetching live World Cup groups and matches");
+
+  releaseFeed();
+  await loading;
+  await expect(page.locator("#sync-status")).not.toHaveClass(/loading/);
 });
 
 test("tabs render and route", async ({ page }) => {

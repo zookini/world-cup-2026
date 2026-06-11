@@ -8,6 +8,10 @@ let games = [];
 let teamById = new Map();
 let teamByName = new Map();
 let dataStatus = "";
+let initialDataLoaded = false;
+let loadingMessage = "";
+let staleRefreshTimer = null;
+let staleRefreshAttempts = 0;
 
 const contendersEl = document.querySelector("#contenders");
 const groupsEl = document.querySelector("#groups");
@@ -18,7 +22,8 @@ const viewPanels = document.querySelectorAll("[data-panel]");
 
 const VIEWS = ["standings", "fixtures", "groups"];
 let activeView = "standings";
-const API_CACHE_BUCKET_MS = 45000;
+const STALE_REFRESH_RETRY_MS = 3500;
+const STALE_REFRESH_MAX_ATTEMPTS = 3;
 
 async function init() {
   bindViewTabs();
@@ -190,15 +195,27 @@ async function refreshData() {
   if (refreshing) return;
   refreshing = true;
   const feed = await feedForUrl(location.search);
-  if (!games.length) syncStatusEl.textContent = feed.loadingMessage;
+  if (!initialDataLoaded) {
+    loadingMessage = feed.loadingMessage;
+    renderLoadingState();
+    syncStatusEl.textContent = feed.loadingMessage;
+    syncStatusEl.classList.add("loading");
+  }
   try {
     const dataSet = await feed.load();
     groups = dataSet.groups;
     games = dataSet.games;
     dataStatus = dataSet.status || "";
+    initialDataLoaded = true;
     indexTeams();
     renderActiveView();
     syncStatusEl.textContent = statusLine();
+    syncStatusEl.classList.remove("loading");
+    if (dataSet.staleRefreshing) {
+      scheduleStaleRefresh();
+    } else {
+      staleRefreshAttempts = 0;
+    }
   } catch (error) {
     renderActiveView();
     // A failed auto-refresh keeps the last good data on screen, so report it
@@ -206,6 +223,7 @@ async function refreshData() {
     syncStatusEl.textContent = games.length
       ? `${statusLine()} Refresh failed: ${error.message}.`
       : `Could not load ${feed.name}: ${error.message}. The board is showing the selected teams from selections.csv only.`;
+    syncStatusEl.classList.remove("loading");
   } finally {
     refreshing = false;
   }
@@ -217,6 +235,22 @@ function statusLine() {
     `Updated ${timeLabel(new Date())}.`,
     ...unresolvedKnockoutWarnings(),
   ].filter(Boolean).join(" ");
+}
+
+function scheduleStaleRefresh() {
+  if (staleRefreshTimer || hasMockParam(location.search)) return;
+  if (staleRefreshAttempts >= STALE_REFRESH_MAX_ATTEMPTS) return;
+  staleRefreshAttempts += 1;
+  staleRefreshTimer = setTimeout(() => {
+    staleRefreshTimer = null;
+    refreshData();
+  }, STALE_REFRESH_RETRY_MS);
+}
+
+function renderLoadingState() {
+  contendersEl.innerHTML = "";
+  fixturesEl.innerHTML = "";
+  groupsEl.innerHTML = "";
 }
 
 // A finished knockout game that is still level means the feed didn't encode
@@ -246,8 +280,9 @@ function liveFeed() {
         fetchJson("/api/games"),
       ]);
       return {
-        groups: groupPayload.groups || groupPayload.data || [],
-        games: gamePayload.games || gamePayload.data || [],
+        groups: groupPayload.json.groups || groupPayload.json.data || [],
+        games: gamePayload.json.games || gamePayload.json.data || [],
+        staleRefreshing: groupPayload.staleRefreshing || gamePayload.staleRefreshing,
       };
     },
   };
@@ -260,15 +295,12 @@ function hasMockParam(search) {
 // worldcup26.ir sends no CORS header, so we always go through the same-origin
 // proxy (Pages Functions, served locally via `npx wrangler pages dev`).
 async function fetchJson(path) {
-  const response = await fetch(cacheBucketUrl(path), { cache: "no-store" });
+  const response = await fetch(path, { cache: "no-store" });
   if (!response.ok) throw new Error(`${path} returned HTTP ${response.status}`);
-  return response.json();
-}
-
-function cacheBucketUrl(path) {
-  const url = new URL(path, location.href);
-  url.searchParams.set("_fresh", `${Math.floor(Date.now() / API_CACHE_BUCKET_MS)}`);
-  return `${url.pathname}${url.search}`;
+  return {
+    json: await response.json(),
+    staleRefreshing: response.headers.get("X-Cache") === "stale-refreshing",
+  };
 }
 
 function indexTeams() {
@@ -526,6 +558,10 @@ function scoreText(game, side) {
 
 function renderActiveView() {
   if (!selections.length) return;
+  if (!initialDataLoaded && loadingMessage) {
+    renderLoadingState();
+    return;
+  }
   if (activeView === "fixtures") {
     renderFixtures();
   } else if (activeView === "groups") {

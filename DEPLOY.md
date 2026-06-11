@@ -14,8 +14,12 @@ to the main branch redeploys automatically.
 - **Fresh** — served for a short TTL so all visitors share one cached copy
   instead of each hitting the `.ir` box (protects against its rate limit and
   flakiness).
-- **Last-known-good** — refreshed on every success; if the upstream errors, the
-  proxy serves the most recent good payload (response carries an `X-Cache:
-  stale-last-known-good` header) instead of a blank board.
+- **Last-known-good** — refreshed on every success. If the fresh cache has
+  expired, the proxy serves the most recent good payload immediately (response
+  carries an `X-Cache: stale-refreshing` header) and refreshes the edge cache in
+  the background instead of making visitors wait on the live feed. It is also
+  kept as the fallback payload if the upstream errors. Cache keys ignore the
+  browser's old `_fresh` cache-busting parameter so stale data remains available
+  across page refreshes.
 
 Tune `FRESH_TTL` in `_proxy.js` to make scores refresh faster or slower.

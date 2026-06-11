@@ -5,44 +5,50 @@
 // Two cache tiers, both at Cloudflare's edge:
 //   - "fresh": served for FRESH_TTL seconds so friends share one cached copy
 //     instead of each hitting (and rate-limiting) the .ir box.
-//   - "last-known-good": refreshed on every success, served if the upstream
-//     errors so a brief outage shows recent scores instead of a blank board.
+//   - "last-known-good": refreshed on every success. When the fresh cache has
+//     expired, it is served immediately while the edge refreshes in the
+//     background; it is also served if the upstream errors.
 const FRESH_TTL = 45; // seconds
 const LKG_TTL = 60 * 60 * 24; // 1 day
 
 export async function proxyUpstream(context, upstream) {
   const cache = caches.default;
   const url = new URL(context.request.url);
+  url.searchParams.delete("_fresh");
   const freshKey = new Request(url.toString());
-  const lkgKey = new Request(`${url.toString()}${url.search ? "&" : "?"}_lkg=1`);
+  url.searchParams.set("_lkg", "1");
+  const lkgKey = new Request(url.toString());
 
   const fresh = await cache.match(freshKey);
   if (fresh) return fresh;
 
-  try {
-    const upstreamResponse = await fetch(upstream);
-    const body = await upstreamResponse.text();
-    if (!upstreamResponse.ok) throw new Error(`upstream HTTP ${upstreamResponse.status}`);
+  const stale = await cache.match(lkgKey);
+  if (stale) {
+    context.waitUntil(refreshCache(cache, freshKey, lkgKey, upstream));
+    const headers = new Headers(stale.headers);
+    headers.set("X-Cache", "stale-refreshing");
+    return new Response(stale.body, { status: 200, headers });
+  }
 
-    const freshResponse = jsonResponse(body, `public, max-age=${FRESH_TTL}`);
-    const lkgResponse = jsonResponse(body, `public, max-age=${LKG_TTL}`);
-    context.waitUntil(
-      Promise.all([cache.put(freshKey, freshResponse.clone()), cache.put(lkgKey, lkgResponse)])
-    );
-    return freshResponse;
+  try {
+    return await refreshCache(cache, freshKey, lkgKey, upstream);
   } catch (error) {
-    const stale = await cache.match(lkgKey);
-    if (stale) {
-      const headers = new Headers(stale.headers);
-      headers.set("X-Cache", "stale-last-known-good");
-      headers.set("X-Upstream-Error", `${error.message}`.slice(0, 120));
-      return new Response(stale.body, { status: 200, headers });
-    }
     return new Response(JSON.stringify({ error: error.message }), {
       status: 502,
       headers: { "Content-Type": "application/json; charset=utf-8" },
     });
   }
+}
+
+async function refreshCache(cache, freshKey, lkgKey, upstream) {
+  const upstreamResponse = await fetch(upstream);
+  const body = await upstreamResponse.text();
+  if (!upstreamResponse.ok) throw new Error(`upstream HTTP ${upstreamResponse.status}`);
+
+  const freshResponse = jsonResponse(body, `public, max-age=${FRESH_TTL}`);
+  const lkgResponse = jsonResponse(body, `public, max-age=${LKG_TTL}`);
+  await Promise.all([cache.put(freshKey, freshResponse.clone()), cache.put(lkgKey, lkgResponse)]);
+  return freshResponse;
 }
 
 function jsonResponse(body, cacheControl) {

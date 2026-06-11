@@ -101,6 +101,45 @@ test("live standings update from finished games when group tables lag", async ({
   await expect(mexicoOwner.locator("td").nth(6)).toHaveText("3");
 });
 
+test("fixture cards show scorers from live game data", async ({ page }) => {
+  await page.route("**/api/groups", (route) => route.fulfill({
+    json: {
+      groups: [{
+        name: "A",
+        teams: [
+          { team_id: "1", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0 },
+          { team_id: "2", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0 },
+        ],
+      }],
+    },
+  }));
+  await page.route("**/api/games", (route) => route.fulfill({
+    json: {
+      games: [{
+        id: "1",
+        home_team_id: "1",
+        away_team_id: "2",
+        group: "A",
+        local_date: "06/11/2026 13:00",
+        stadium_id: "1",
+        type: "group",
+        home_team_name_en: "Mexico",
+        away_team_name_en: "South Africa",
+        home_score: "2",
+        away_score: "0",
+        home_scorers: "{“J. Quiñones 9'”,”R. Jiménez 67'”}",
+        away_scorers: "null",
+        finished: "TRUE",
+        time_elapsed: "finished",
+      }],
+    },
+  }));
+
+  await page.goto("/#fixtures");
+
+  await expect(page.locator("#fixture-1 .fixture-scorers")).toHaveText("J. Quiñones 9', R. Jiménez 67'");
+});
+
 test("stale proxy responses trigger a quick fresh sync", async ({ page }) => {
   const groups = {
     groups: [{

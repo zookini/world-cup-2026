@@ -387,7 +387,7 @@ tr.eliminated {
   /* the score column stretches for shootout results like "1 (4)" */
   grid-template-columns: 72px 30px minmax(0, 1fr) minmax(24px, auto);
   gap: 10px;
-  align-items: center;
+  align-items: start;
 }
 
 .fixture-gambler {
@@ -397,17 +397,34 @@ tr.eliminated {
 .fixture-team .gambler-name {
   display: block;
   font-size: 0.84rem;
+  line-height: 1.2;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .fixture-team .team-name {
+  display: block;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--text);
   font-size: 0.9rem;
+}
+
+.fixture-team-copy {
+  min-width: 0;
+}
+
+.fixture-scorers {
+  display: block;
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+  font-size: 0.74rem;
+  line-height: 1.2;
 }
 
 .fixture-team.placeholder .team-name {
@@ -423,6 +440,7 @@ tr.eliminated {
 
 .fixture-team.eliminated .table-flag,
 .fixture-team.eliminated .team-name,
+.fixture-team.eliminated .fixture-scorers,
 .fixture-team.eliminated > strong {
   opacity: 0.4;
   filter: grayscale(1);

@@ -913,10 +913,29 @@ function fixtureTeamLine(team, score) {
     <div class="fixture-team ${team.status} ${team.selected ? "selected" : ""} ${team.placeholder ? "placeholder" : ""}">
       <span class="fixture-gambler">${ownerBadge(team.owner, team.ownerStatus)}</span>
       ${fixtureFlag(team)}
-      <span class="team-name" title="${team.name}">${team.name}</span>
+      <span class="fixture-team-copy">
+        <span class="team-name" title="${team.name}">${team.name}</span>
+        ${scorerMarkup(team.scorers)}
+      </span>
       <strong>${score}</strong>
     </div>
   `;
+}
+
+function scorerMarkup(scorers) {
+  const names = scorerList(scorers);
+  if (!names.length) return "";
+  return `<span class="fixture-scorers">${names.join(", ")}</span>`;
+}
+
+function scorerList(value) {
+  const raw = `${value || ""}`.trim();
+  if (!raw || raw.toLowerCase() === "null") return [];
+  return raw
+    .replace(/^[{[]|[}\]]$/g, "")
+    .split(/[,،]/)
+    .map((item) => item.trim().replace(/^["“”]+|["“”]+$/g, ""))
+    .filter(Boolean);
 }
 
 function matchState(game) {
@@ -947,6 +966,7 @@ function fixtureTeam(game, side, statusGame = null) {
     status,
     ownerStatus: selection && playerEliminatedAtMatch(selection.player, statusGame || game) ? "eliminated" : "alive",
     placeholder,
+    scorers: game[`${side}_scorers`],
   };
 }
 

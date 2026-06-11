@@ -18,7 +18,6 @@ const viewPanels = document.querySelectorAll("[data-panel]");
 
 const VIEWS = ["standings", "fixtures", "groups"];
 let activeView = "standings";
-const APP_VERSION = "2026-06-11.4";
 const API_CACHE_BUCKET_MS = 45000;
 
 async function init() {
@@ -29,9 +28,7 @@ async function init() {
   window.addEventListener("hashchange", applyHashRoute);
   await loadSelections();
   await refreshData();
-  await checkForNewVersion();
   startAutoRefresh();
-  startVersionCheck();
 }
 
 // Keep scores moving without manual reloads: re-pull the feed once a minute
@@ -62,24 +59,6 @@ function bindViewTabs() {
       }
     });
   });
-}
-
-function startVersionCheck() {
-  if (hasMockParam(location.search)) return;
-  document.addEventListener("visibilitychange", () => {
-    if (!document.hidden) checkForNewVersion();
-  });
-}
-
-async function checkForNewVersion() {
-  try {
-    const response = await fetch(`version.json?ts=${Date.now()}`, { cache: "no-store" });
-    if (!response.ok) return;
-    const { version } = await response.json();
-    if (version && version !== APP_VERSION) location.reload();
-  } catch (error) {
-    // A version check is only an upgrade hint; data refresh handles feed errors.
-  }
 }
 
 // One delegated listener per panel for its share buttons — survives the
@@ -237,7 +216,6 @@ function statusLine() {
   return [
     dataStatus,
     `Updated ${timeLabel(new Date())}.`,
-    `Build ${APP_VERSION}.`,
     games.length ? `${finishedCount}/${games.length} matches finished.` : "",
     ...unresolvedKnockoutWarnings(),
   ].filter(Boolean).join(" ");

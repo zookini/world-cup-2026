@@ -18,7 +18,8 @@ const viewPanels = document.querySelectorAll("[data-panel]");
 
 const VIEWS = ["standings", "fixtures", "groups"];
 let activeView = "standings";
-const APP_VERSION = "2026-06-11.2";
+const APP_VERSION = "2026-06-11.3";
+const API_CACHE_BUCKET_MS = 45000;
 
 async function init() {
   bindViewTabs();
@@ -29,6 +30,7 @@ async function init() {
   await loadSelections();
   renderActiveView();
   await refreshData();
+  await checkForNewVersion();
   startAutoRefresh();
   startVersionCheck();
 }
@@ -232,7 +234,14 @@ async function refreshData() {
 }
 
 function statusLine() {
-  return [dataStatus, `Updated ${timeLabel(new Date())}.`, ...unresolvedKnockoutWarnings()].filter(Boolean).join(" ");
+  const finishedCount = games.filter(isFinished).length;
+  return [
+    dataStatus,
+    `Updated ${timeLabel(new Date())}.`,
+    `Build ${APP_VERSION}.`,
+    games.length ? `${finishedCount}/${games.length} matches finished.` : "",
+    ...unresolvedKnockoutWarnings(),
+  ].filter(Boolean).join(" ");
 }
 
 // A finished knockout game that is still level means the feed didn't encode
@@ -276,9 +285,15 @@ function hasMockParam(search) {
 // worldcup26.ir sends no CORS header, so we always go through the same-origin
 // proxy (Pages Functions, served locally via `npx wrangler pages dev`).
 async function fetchJson(path) {
-  const response = await fetch(path);
+  const response = await fetch(cacheBucketUrl(path), { cache: "no-store" });
   if (!response.ok) throw new Error(`${path} returned HTTP ${response.status}`);
   return response.json();
+}
+
+function cacheBucketUrl(path) {
+  const url = new URL(path, location.href);
+  url.searchParams.set("_fresh", `${Math.floor(Date.now() / API_CACHE_BUCKET_MS)}`);
+  return `${url.pathname}${url.search}`;
 }
 
 function indexTeams() {

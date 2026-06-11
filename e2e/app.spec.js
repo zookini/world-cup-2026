@@ -45,6 +45,62 @@ test("live mode renders standings", async ({ page }) => {
   await expect(page.locator("#contenders tbody tr").first()).toBeVisible();
 });
 
+test("live standings update from finished games when group tables lag", async ({ page }) => {
+  const groups = {
+    groups: [{
+      name: "A",
+      teams: [
+        { team_id: "1", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0 },
+        { team_id: "2", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0 },
+        { team_id: "3", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0 },
+        { team_id: "4", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0 },
+      ],
+    }],
+  };
+  const games = {
+    games: [{
+      id: "1",
+      home_team_id: "1",
+      away_team_id: "2",
+      group: "A",
+      local_date: "06/11/2026 13:00",
+      stadium_id: "1",
+      type: "group",
+      home_team_name_en: "Mexico",
+      away_team_name_en: "South Africa",
+      home_score: "2",
+      away_score: "0",
+      time_elapsed: "FT",
+    }, {
+      id: "2",
+      home_team_id: "3",
+      away_team_id: "4",
+      group: "A",
+      local_date: "06/11/2026 20:00",
+      stadium_id: "2",
+      type: "group",
+      home_team_name_en: "South Korea",
+      away_team_name_en: "Czech Republic",
+      home_score: "0",
+      away_score: "0",
+      time_elapsed: "notstarted",
+    }],
+  };
+
+  await page.route("**/api/groups", (route) => route.fulfill({ json: groups }));
+  await page.route("**/api/games", (route) => route.fulfill({ json: games }));
+  await page.goto("/#groups");
+
+  await expect(page.locator("#group-a tbody tr").first()).toContainText("Mexico");
+  await expect(page.locator("#group-a tbody tr").first().locator("td").nth(2)).toHaveText("1");
+  await expect(page.locator("#group-a tbody tr").first().locator("td").nth(7)).toHaveText("3");
+
+  await page.goto("/");
+  const mexicoOwner = page.locator("#contenders tbody tr", { hasText: "T" }).first();
+  await expect(mexicoOwner.locator("td").nth(2)).toHaveText("1");
+  await expect(mexicoOwner.locator("td").nth(6)).toHaveText("3");
+});
+
 test("tabs render and route", async ({ page }) => {
   await page.goto("/");
   for (const view of ["fixtures", "groups"]) {

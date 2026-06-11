@@ -306,12 +306,14 @@ function codeFromName(name) {
 }
 
 function standingsForGroup(group) {
-  return group.teams.map((row) => {
-    const team = teamById.get(`${row.team_id}`) || {};
+  const rows = groupRowsWithResults(group);
+  return rows.map((row) => {
+    const id = rowTeamId(row);
+    const team = teamById.get(id) || {};
     return {
-      id: `${row.team_id}`,
-      name: team.name || `Team ${row.team_id}`,
-      code: team.code || `T${row.team_id}`,
+      id,
+      name: team.name || row.team_name_en || row.name || `Team ${id}`,
+      code: team.code || `T${id}`,
       owner: team.owner || selectionForName(team.name)?.player || "",
       group: group.name,
       mp: number(row.mp),
@@ -324,6 +326,72 @@ function standingsForGroup(group) {
       pts: number(row.pts),
     };
   }).sort(sortStandings);
+}
+
+function groupRowsWithResults(group) {
+  const groupGames = games.filter((game) => game.type === "group" && game.group === group.name);
+  const finishedGames = groupGames.filter(isFinished);
+  if (!finishedGames.length) return group.teams;
+
+  const rows = new Map();
+  group.teams.forEach((row) => {
+    const id = rowTeamId(row);
+    rows.set(id, {
+      ...row,
+      team_id: id,
+      mp: 0,
+      w: 0,
+      d: 0,
+      l: 0,
+      gf: 0,
+      ga: 0,
+      gd: 0,
+      pts: 0,
+    });
+  });
+  finishedGames.forEach((game) => applyGroupGame(rows, game));
+  return [...rows.values()];
+}
+
+function rowTeamId(row) {
+  return `${row.team_id ?? row.id ?? row._id ?? ""}`;
+}
+
+function applyGroupGame(rows, game) {
+  const home = ensureGroupRow(rows, game.home_team_id, game.home_team_name_en);
+  const away = ensureGroupRow(rows, game.away_team_id, game.away_team_name_en);
+  const homeScore = number(game.home_score);
+  const awayScore = number(game.away_score);
+
+  home.mp += 1;
+  away.mp += 1;
+  home.gf += homeScore;
+  home.ga += awayScore;
+  away.gf += awayScore;
+  away.ga += homeScore;
+  home.gd = home.gf - home.ga;
+  away.gd = away.gf - away.ga;
+
+  if (homeScore > awayScore) {
+    home.w += 1;
+    home.pts += 3;
+    away.l += 1;
+  } else if (awayScore > homeScore) {
+    away.w += 1;
+    away.pts += 3;
+    home.l += 1;
+  } else {
+    home.d += 1;
+    away.d += 1;
+    home.pts += 1;
+    away.pts += 1;
+  }
+}
+
+function ensureGroupRow(rows, id, name) {
+  const key = `${id}`;
+  if (!rows.has(key)) rows.set(key, { team_id: key, team_name_en: name, mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0 });
+  return rows.get(key);
 }
 
 function sortStandings(a, b) {

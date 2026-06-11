@@ -376,8 +376,19 @@ function teamStatusAtMatch(selection, game) {
   const apiTeam = teamByName.get(normalizeName(selection.name));
   const teamId = apiTeam?.id;
   if (!teamId) return "alive";
+  if (isThirdPlaceGame(game) && teamInGame(teamId, game)) {
+    return isFinished(game) && loserId(game) === teamId ? "eliminated" : "alive";
+  }
   if (game.type !== "group" && hasKnockoutLoss(teamId, game)) return "eliminated";
   return groupStageStatus(selection, teamId, game);
+}
+
+function isThirdPlaceGame(game) {
+  return game?.type === "third" || game?.type === "third_place";
+}
+
+function teamInGame(teamId, game) {
+  return `${game.home_team_id}` === teamId || `${game.away_team_id}` === teamId;
 }
 
 function hasKnockoutLoss(teamId, throughGame = null) {

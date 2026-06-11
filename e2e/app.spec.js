@@ -87,6 +87,14 @@ test("medal badges appear only when each podium place is settled", async ({ page
   await expect(page.locator(".rank-3")).toHaveCount(1);
 });
 
+test("third-place fixture teams stay active until the match is settled", async ({ page }) => {
+  await page.goto("/?mock=match-102#fixtures/match-103");
+  await expect(page.locator("#fixture-103 .fixture-team.eliminated")).toHaveCount(0);
+
+  await page.goto("/?mock=match-103#fixtures/match-103");
+  await expect(page.locator("#fixture-103 .fixture-team.eliminated")).toHaveCount(1);
+});
+
 test("fixtures tab returns to next match", async ({ page }) => {
   await page.goto(MOCK);
   await page.click('[data-view="fixtures"]');

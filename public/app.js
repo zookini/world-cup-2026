@@ -18,7 +18,7 @@ const viewPanels = document.querySelectorAll("[data-panel]");
 
 const VIEWS = ["standings", "fixtures", "groups"];
 let activeView = "standings";
-const APP_VERSION = "2026-06-11.3";
+const APP_VERSION = "2026-06-11.4";
 const API_CACHE_BUCKET_MS = 45000;
 
 async function init() {
@@ -28,7 +28,6 @@ async function init() {
   applyHashRoute();
   window.addEventListener("hashchange", applyHashRoute);
   await loadSelections();
-  renderActiveView();
   await refreshData();
   await checkForNewVersion();
   startAutoRefresh();

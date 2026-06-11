@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler pages dev",
+    "verify:smoke": "playwright test --grep \"mock mode loads and stays offline|tabs render and route|all images decode and no asset request fails\"",
     "verify": "playwright test"
   },
   "devDependencies": {

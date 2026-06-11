@@ -22,7 +22,7 @@ const viewPanels = document.querySelectorAll("[data-panel]");
 
 const VIEWS = ["standings", "fixtures", "groups"];
 let activeView = "standings";
-const STALE_REFRESH_RETRY_MS = 3500;
+const STALE_REFRESH_RETRY_MS = globalThis.__STALE_REFRESH_RETRY_MS ?? 3500;
 const STALE_REFRESH_MAX_ATTEMPTS = 3;
 
 async function init() {

@@ -141,6 +141,9 @@ test("fixture cards show scorers from live game data", async ({ page }) => {
 });
 
 test("stale proxy responses trigger a quick fresh sync", async ({ page }) => {
+  await page.addInitScript(() => {
+    window.__STALE_REFRESH_RETRY_MS = 500;
+  });
   const groups = {
     groups: [{
       name: "A",

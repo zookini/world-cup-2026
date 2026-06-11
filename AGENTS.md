@@ -1,3 +1,3 @@
 - Read `README.md` before making changes.
-- UI must render well on mobile (iPhone form factor).
-- Run `npm run verify` after UI or behavior changes.
+- UI changes must be visually inspected in a browser at a 390x844 iPhone-sized viewport and render well there.
+- Run `npm run verify` before committing UI or behavior changes.

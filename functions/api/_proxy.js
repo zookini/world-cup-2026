@@ -14,6 +14,8 @@ const LKG_TTL = 60 * 60 * 24; // 1 day
 export async function proxyUpstream(context, upstream) {
   const cache = caches.default;
   const url = new URL(context.request.url);
+  // Old clients appended _fresh as a cache-buster; strip it so every request
+  // shares the same cache keys and stale data survives page refreshes.
   url.searchParams.delete("_fresh");
   const freshKey = new Request(url.toString());
   url.searchParams.set("_lkg", "1");

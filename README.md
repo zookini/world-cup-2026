@@ -1,7 +1,8 @@
 # World Cup 2026
 
 Static HTML/CSS/JS app (in `public/`) served with Cloudflare Pages Functions
-(in `functions/api/`). See `DEPLOY.md` for deployment and caching.
+(in `functions/api/`). Deployment and caching are covered in
+[Hosting and caching](#hosting-and-caching-cloudflare-pages) below.
 
 ## Local development
 
@@ -17,8 +18,8 @@ listen on IPv6 `localhost`.
 
 The live feed has no results until matches finish. Append `?mock=match-<id>`
 to the URL to simulate the tournament up to and including that match —
-e.g. `/?mock=match-72` for most of the group stage, `/?mock=match-104` for a
-fully played tournament. Mock data is derived from
+e.g. `/?mock=match-40` for a partial group stage, `/?mock=match-72` for the
+complete group stage, `/?mock=match-104` for a fully played tournament. Mock data is derived from
 `public/mock-seed.tsv` and never calls the live feed.
 
 ## Shootouts (knockout stage, from Jun 28)
@@ -42,7 +43,7 @@ the result lands in those strings.
 ## Verifying changes
 
 ```bash
-npx playwright install chromium   # once
+npx playwright install chromium   # first run, and again after Playwright upgrades
 npm run verify
 ```
 
@@ -53,3 +54,18 @@ size. Each test is printed as it passes or fails; failures leave a trace in
 
 For quicker UI iteration, `npm run verify:smoke` runs a small render/assets
 subset. Use the full `npm run verify` before committing UI or behavior changes.
+
+## Hosting and caching (Cloudflare Pages)
+
+The proxy in `functions/api/` exists because the `worldcup26.ir` feed sends no
+CORS header, so the browser can't call it directly.
+
+Cloudflare Pages publishes the output directory set in `wrangler.toml` to its
+global CDN and runs the proxy as Pages Functions from `functions/`. Every push
+to the main branch redeploys automatically; `npx wrangler pages deploy`
+deploys by hand.
+
+The proxy caches at Cloudflare's edge in two tiers: a short fresh TTL so all
+visitors share one cached copy of the feed, plus a day-long last-known-good
+copy that masks upstream errors and slow refreshes. The header comment in
+`functions/api/_proxy.js` documents the exact behavior and TTLs.

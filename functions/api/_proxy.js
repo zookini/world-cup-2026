@@ -1,10 +1,9 @@
-// Shared proxy for the worldcup26.ir feed, used by the Cloudflare Pages
-// Functions at /api/groups and /api/games. The upstream sends no CORS header,
-// so the browser cannot call it directly — every deploy target must proxy it.
+// Shared proxy for external feeds. Upstreams may omit CORS headers, so the
+// browser calls same-origin Pages Functions instead.
 //
 // Two cache tiers, both at Cloudflare's edge:
 //   - "fresh": served for FRESH_TTL seconds so friends share one cached copy
-//     instead of each hitting (and rate-limiting) the .ir box.
+//     instead of each hitting (and rate-limiting) the upstream.
 //   - "last-known-good": refreshed on every success. When the fresh cache has
 //     expired, it is served immediately while the edge refreshes in the
 //     background; it is also served if the upstream errors.

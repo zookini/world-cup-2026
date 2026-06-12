@@ -39,56 +39,57 @@ function deepLinkTarget(page, id) {
   }, id);
 }
 
+function espnEvent({ id, date, home, away, homeScore = "0", awayScore = "0", status = "notstarted", details = [] }) {
+  const completed = status === "FT";
+  return {
+    id,
+    date,
+    season: { slug: "group-stage" },
+    competitions: [{
+      status: {
+        displayClock: status,
+        type: {
+          state: completed ? "post" : status === "notstarted" ? "pre" : "in",
+          completed,
+          shortDetail: status,
+        },
+      },
+      competitors: [{
+        id: home.id,
+        homeAway: "home",
+        score: homeScore,
+        team: { id: home.id, displayName: home.name },
+      }, {
+        id: away.id,
+        homeAway: "away",
+        score: awayScore,
+        team: { id: away.id, displayName: away.name },
+      }],
+      details,
+    }],
+  };
+}
+
+const ESPN_MEX_RSA_FT = espnEvent({
+  id: "760415",
+  date: "2026-06-11T19:00Z",
+  home: { id: "203", name: "Mexico" },
+  away: { id: "467", name: "South Africa" },
+  homeScore: "2",
+  awayScore: "0",
+  status: "FT",
+});
+
 // Live mode: module graph loads and the board renders even if the feed is down.
 test("live mode renders standings", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator("#contenders tbody tr").first()).toBeVisible();
 });
 
-test("live standings update from finished games when group tables lag", async ({ page }) => {
-  const groups = {
-    groups: [{
-      name: "A",
-      teams: [
-        { team_id: "1", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0 },
-        { team_id: "2", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0 },
-        { team_id: "3", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0 },
-        { team_id: "4", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0 },
-      ],
-    }],
-  };
-  const games = {
-    games: [{
-      id: "1",
-      home_team_id: "1",
-      away_team_id: "2",
-      group: "A",
-      local_date: "06/11/2026 13:00",
-      stadium_id: "1",
-      type: "group",
-      home_team_name_en: "Mexico",
-      away_team_name_en: "South Africa",
-      home_score: "2",
-      away_score: "0",
-      time_elapsed: "FT",
-    }, {
-      id: "2",
-      home_team_id: "3",
-      away_team_id: "4",
-      group: "A",
-      local_date: "06/11/2026 20:00",
-      stadium_id: "2",
-      type: "group",
-      home_team_name_en: "South Korea",
-      away_team_name_en: "Czech Republic",
-      home_score: "0",
-      away_score: "0",
-      time_elapsed: "notstarted",
-    }],
-  };
-
-  await page.route("**/api/groups", (route) => route.fulfill({ json: groups }));
-  await page.route("**/api/games", (route) => route.fulfill({ json: games }));
+test("live standings update from finished ESPN games", async ({ page }) => {
+  await page.route("**/api/espn-games", (route) => route.fulfill({
+    json: { events: [ESPN_MEX_RSA_FT] },
+  }));
   await page.goto("/#groups");
 
   await expect(page.locator("#group-a tbody tr").first()).toContainText("Mexico");
@@ -101,37 +102,31 @@ test("live standings update from finished games when group tables lag", async ({
   await expect(mexicoOwner.locator("td").nth(6)).toHaveText("3");
 });
 
-test("fixture cards show scorers from live game data", async ({ page }) => {
-  await page.route("**/api/groups", (route) => route.fulfill({
+test("fixture cards show scorers from ESPN game data", async ({ page }) => {
+  await page.route("**/api/espn-games", (route) => route.fulfill({
     json: {
-      groups: [{
-        name: "A",
-        teams: [
-          { team_id: "1", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0 },
-          { team_id: "2", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0 },
-        ],
-      }],
-    },
-  }));
-  await page.route("**/api/games", (route) => route.fulfill({
-    json: {
-      games: [{
-        id: "1",
-        home_team_id: "1",
-        away_team_id: "2",
-        group: "A",
-        local_date: "06/11/2026 13:00",
-        stadium_id: "1",
-        type: "group",
-        home_team_name_en: "Mexico",
-        away_team_name_en: "South Africa",
-        home_score: "2",
-        away_score: "0",
-        home_scorers: "{“J. Quiñones 9'”,”R. Jiménez 67'”}",
-        away_scorers: "null",
-        finished: "TRUE",
-        time_elapsed: "finished",
-      }],
+      events: [espnEvent({
+        id: "760415",
+        date: "2026-06-11T19:00Z",
+        home: { id: "203", name: "Mexico" },
+        away: { id: "467", name: "South Africa" },
+        homeScore: "2",
+        awayScore: "0",
+        status: "FT",
+        details: [{
+            scoringPlay: true,
+            shootout: false,
+            team: { id: "203" },
+            clock: { displayValue: "9'" },
+            athletesInvolved: [{ shortName: "J. Quiñones" }],
+          }, {
+            scoringPlay: true,
+            shootout: false,
+            team: { id: "203" },
+            clock: { displayValue: "67'" },
+            athletesInvolved: [{ shortName: "R. Jiménez" }],
+          }],
+      })],
     },
   }));
 
@@ -140,116 +135,98 @@ test("fixture cards show scorers from live game data", async ({ page }) => {
   await expect(page.locator("#fixture-1 .fixture-scorers")).toHaveText("J. Quiñones 9', R. Jiménez 67'");
 });
 
+test("live fixtures use ESPN status with local schedule metadata", async ({ page }) => {
+  await page.route("**/api/espn-games", (route) => route.fulfill({
+    json: {
+      events: [{
+        id: "760415",
+        date: "2026-06-11T19:00Z",
+        season: { slug: "group-stage" },
+        competitions: [{
+          status: {
+            displayClock: "FT",
+            type: { state: "post", completed: true, shortDetail: "FT" },
+          },
+          competitors: [{
+            id: "203",
+            homeAway: "home",
+            score: "2",
+            team: { id: "203", displayName: "Mexico" },
+          }, {
+            id: "467",
+            homeAway: "away",
+            score: "0",
+            team: { id: "467", displayName: "South Africa" },
+          }],
+        }],
+      }, {
+        id: "760414",
+        date: "2026-06-12T02:00Z",
+        season: { slug: "group-stage" },
+        competitions: [{
+          status: {
+            displayClock: "37'",
+            type: { state: "in", completed: false, shortDetail: "37'" },
+          },
+          competitors: [{
+            id: "451",
+            homeAway: "home",
+            score: "1",
+            team: { id: "451", displayName: "South Korea" },
+          }, {
+            id: "450",
+            homeAway: "away",
+            score: "0",
+            team: { id: "450", displayName: "Czechia" },
+          }],
+          details: [{
+            scoringPlay: true,
+            shootout: false,
+            team: { id: "451" },
+            clock: { displayValue: "12'" },
+            athletesInvolved: [{ shortName: "S. Son" }],
+          }],
+        }],
+      }],
+    },
+  }));
+
+  await page.goto("/#fixtures");
+
+  await expect(page.locator("#sync-status")).toContainText(/Updated .+/);
+  await expect(page.locator("#fixture-2")).toHaveClass(/live/);
+  await expect(page.locator("#fixture-2 .fixture-live")).toHaveText("37'");
+  await expect(page.locator("#fixture-2 .fixture-team strong")).toHaveText(["1", "0"]);
+  await expect(page.locator("#fixture-2 .fixture-scorers")).toHaveText("S. Son 12'");
+});
+
 test("stale proxy responses trigger a quick fresh sync", async ({ page }) => {
   await page.addInitScript(() => {
     window.__STALE_REFRESH_RETRY_MS = 500;
   });
-  const groups = {
-    groups: [{
-      name: "A",
-      teams: [
-        { team_id: "1", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0 },
-        { team_id: "2", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0 },
-      ],
-    }],
-  };
-  const staleGames = {
-    games: [{
-      id: "1",
-      home_team_id: "1",
-      away_team_id: "2",
-      group: "A",
-      local_date: "06/11/2026 13:00",
-      stadium_id: "1",
-      type: "group",
-      home_team_name_en: "Mexico",
-      away_team_name_en: "South Africa",
-      home_score: "0",
-      away_score: "0",
-      time_elapsed: "notstarted",
-    }, {
-      id: "2",
-      home_team_id: "3",
-      away_team_id: "4",
-      group: "A",
-      local_date: "06/11/2026 20:00",
-      stadium_id: "2",
-      type: "group",
-      home_team_name_en: "South Korea",
-      away_team_name_en: "Czech Republic",
-      home_score: "0",
-      away_score: "0",
-      time_elapsed: "notstarted",
-    }],
-  };
-  const freshGames = {
-    games: staleGames.games.map((game) => game.id === "1"
-      ? { ...game, home_score: "2", away_score: "0", finished: "TRUE", time_elapsed: "finished" }
-      : game),
-  };
-  let groupRequests = 0;
-  let gameRequests = 0;
-  await page.route("**/api/groups**", (route) => {
-    groupRequests += 1;
+  let espnRequests = 0;
+  await page.route("**/api/espn-games**", (route) => {
+    espnRequests += 1;
     route.fulfill({
-      json: groups,
-      headers: groupRequests === 1 ? { "X-Cache": "stale-refreshing" } : {},
-    });
-  });
-  await page.route("**/api/games**", (route) => {
-    gameRequests += 1;
-    route.fulfill({
-      json: gameRequests === 1 ? staleGames : freshGames,
-      headers: gameRequests === 1 ? { "X-Cache": "stale-refreshing" } : {},
+      json: { events: espnRequests === 1 ? [] : [ESPN_MEX_RSA_FT] },
+      headers: espnRequests === 1 ? { "X-Cache": "stale-refreshing" } : {},
     });
   });
 
   await page.goto("/");
   const mexicoOwner = page.locator("#contenders tbody tr", { hasText: "T" }).first();
   await expect(mexicoOwner.locator("td").nth(6)).toHaveText("0");
-  await expect.poll(() => gameRequests, { timeout: 6000 }).toBeGreaterThanOrEqual(2);
+  await expect.poll(() => espnRequests, { timeout: 6000 }).toBeGreaterThanOrEqual(2);
   await expect(mexicoOwner.locator("td").nth(6)).toHaveText("3", { timeout: 6000 });
 });
 
 test("fixture refresh does not steal manual scroll", async ({ page }) => {
-  const groups = {
-    groups: [{
-      name: "A",
-      teams: [
-        { team_id: "1", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0 },
-        { team_id: "2", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0 },
-      ],
-    }],
-  };
-  const fixtureGames = Array.from({ length: 40 }, (_, index) => {
-    const id = index + 1;
-    return {
-      id: `${id}`,
-      home_team_id: "1",
-      away_team_id: "2",
-      group: "A",
-      local_date: `06/12/2026 ${String(8 + Math.floor(index / 2)).padStart(2, "0")}:${index % 2 ? "30" : "00"}`,
-      stadium_id: "1",
-      type: "group",
-      home_team_name_en: "Mexico",
-      away_team_name_en: "South Africa",
-      home_score: id <= 5 ? "1" : "0",
-      away_score: "0",
-      finished: id <= 5 ? "TRUE" : "FALSE",
-      time_elapsed: id <= 5 ? "finished" : "notstarted",
-    };
-  });
-  let gameRequests = 0;
-
-  await page.route("**/api/groups**", (route) => route.fulfill({
-    json: groups,
-    headers: gameRequests === 0 ? { "X-Cache": "stale-refreshing" } : {},
-  }));
-  await page.route("**/api/games**", (route) => {
-    gameRequests += 1;
+  let espnRequests = 0;
+  await page.route("**/api/espn-games**", (route) => {
+    espnRequests += 1;
     route.fulfill({
-      json: { games: fixtureGames },
-      headers: gameRequests === 1 ? { "X-Cache": "stale-refreshing" } : {},
+      json: { events: [] },
+      headers: espnRequests === 1 ? { "X-Cache": "stale-refreshing" } : {},
     });
   });
 
@@ -269,62 +246,21 @@ test("fixture refresh does not steal manual scroll", async ({ page }) => {
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
   const manualScroll = await page.evaluate(() => window.scrollY);
 
-  await expect.poll(() => gameRequests, { timeout: 6000 }).toBeGreaterThanOrEqual(2);
+  await expect.poll(() => espnRequests, { timeout: 6000 }).toBeGreaterThanOrEqual(2);
   await page.waitForTimeout(200);
 
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(manualScroll - 50);
 });
 
 test("live mode does not show zero standings before feed data loads", async ({ page }) => {
-  let releaseGames;
-  const gamesReady = new Promise((resolve) => {
-    releaseGames = resolve;
+  let releaseEspn;
+  const espnReady = new Promise((resolve) => {
+    releaseEspn = resolve;
   });
-  await page.route("**/api/groups**", (route) => route.fulfill({
-    json: {
-      groups: [{
-        name: "A",
-        teams: [
-          { team_id: "1", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0 },
-          { team_id: "2", mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0 },
-        ],
-      }],
-    },
-  }));
-  await page.route("**/api/games**", async (route) => {
-    await gamesReady;
+  await page.route("**/api/espn-games**", async (route) => {
+    await espnReady;
     await route.fulfill({
-      json: {
-        games: [{
-          id: "1",
-          home_team_id: "1",
-          away_team_id: "2",
-          group: "A",
-          local_date: "06/11/2026 13:00",
-          stadium_id: "1",
-          type: "group",
-          home_team_name_en: "Mexico",
-          away_team_name_en: "South Africa",
-          home_score: "2",
-          away_score: "0",
-          finished: "TRUE",
-          time_elapsed: "finished",
-        }, {
-          id: "2",
-          home_team_id: "3",
-          away_team_id: "4",
-          group: "A",
-          local_date: "06/11/2026 20:00",
-          stadium_id: "2",
-          type: "group",
-          home_team_name_en: "South Korea",
-          away_team_name_en: "Czech Republic",
-          home_score: "0",
-          away_score: "0",
-          finished: "FALSE",
-          time_elapsed: "notstarted",
-        }],
-      },
+      json: { events: [ESPN_MEX_RSA_FT] },
     });
   });
 
@@ -332,7 +268,7 @@ test("live mode does not show zero standings before feed data loads", async ({ p
   await expect(page.locator("#sync-status")).toContainText("Fetching live World Cup groups and matches");
   await expect(page.locator("#sync-status")).toHaveClass(/loading/);
   await expect(page.locator("#contenders tbody tr")).toHaveCount(0);
-  releaseGames();
+  releaseEspn();
   await loading;
 
   await expect(page.locator("#contenders tbody tr").first()).toContainText("T");
@@ -344,13 +280,9 @@ test("loading state is consistent across tabs while feed data loads", async ({ p
   const feedReady = new Promise((resolve) => {
     releaseFeed = resolve;
   });
-  await page.route("**/api/groups**", async (route) => {
+  await page.route("**/api/espn-games**", async (route) => {
     await feedReady;
-    await route.fulfill({ json: { groups: [] } });
-  });
-  await page.route("**/api/games**", async (route) => {
-    await feedReady;
-    await route.fulfill({ json: { games: [] } });
+    await route.fulfill({ json: { events: [] } });
   });
 
   const loading = page.goto("/");

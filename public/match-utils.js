@@ -1,5 +1,4 @@
-// Match helpers shared by the live app (app.js) and the mock feed
-// (mock-feed.js), which both consume the same worldcup26.ir game shape.
+// Match helpers shared by the live app (app.js), local seed data, and mock feed.
 
 // The feed lists each kickoff in its venue's own local wall-clock, so we resolve
 // the true instant per stadium and then render in the viewer's local timezone.
@@ -15,6 +14,10 @@ const STADIUM_UTC_OFFSET_MINUTES = {
 const DEFAULT_UTC_OFFSET_MINUTES = -240; // fall back to Eastern if a stadium is unknown
 
 export function parseMatchDate(game) {
+  if (game?.utc_date) {
+    const date = new Date(game.utc_date);
+    if (!Number.isNaN(date.getTime())) return date;
+  }
   const match = /^(\d{2})\/(\d{2})\/(\d{4})(?: (\d{2}):(\d{2}))?/.exec(`${game?.local_date || ""}`.trim());
   if (!match) return null;
   const [, mm, dd, yyyy, hh = "0", min = "0"] = match;

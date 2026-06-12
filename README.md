@@ -16,29 +16,27 @@ listen on IPv6 `localhost`.
 
 ### Mock mode
 
-The live feed has no results until matches finish. Append `?mock=match-<id>`
-to the URL to simulate the tournament up to and including that match —
+Append `?mock=match-<id>` to the URL to simulate the tournament up to and including that match —
 e.g. `/?mock=match-40` for a partial group stage, `/?mock=match-72` for the
 complete group stage, `/?mock=match-104` for a fully played tournament. Mock data is derived from
-`public/mock-seed.tsv` and never calls the live feed.
+`public/mock-seed.tsv` and never calls ESPN.
 
-## Shootouts (knockout stage, from Jun 28)
+## Live data and shootouts
 
-The feed's Game schema has **no penalty/shootout fields** — confirmed against
-its OpenAPI spec (<https://worldcup26.ir/api-docs/>) and Mongoose model
-(<https://github.com/rezarahiminia/worldcup2026>). Its score-update process is
-not in that repo, so how a shootout gets encoded is unknown until one happens.
+Live mode uses `public/mock-seed.tsv` as the canonical schedule, group, stage,
+team, and match-number source. ESPN's FIFA World Cup scoreboard is overlaid for
+live status, scores, and scorers via `/api/espn-games`.
 
 Current handling (`loserId`/`penaltyScore` in `public/app.js`):
 
 - A finished knockout game with level scores eliminates nobody and adds a
   warning to the visible status line.
 - `home_`/`away_` `penalty|penalties|pen|pens|penalty_score` fields are used
-  if the feed ever grows them, and scores then render as "1 (4)".
+  if a feed exposes them, and scores then render as "1 (4)".
 
-When the first shootout happens, inspect that match in the raw `/api/games`
-response and adapt `penaltyScore` — or parse `home_scorers`/`away_scorers` if
-the result lands in those strings.
+When the first shootout happens, inspect that ESPN event in the raw
+`/api/espn-games` response and adapt `penaltyScore` if ESPN encodes it under a
+new field.
 
 ## Verifying changes
 
@@ -57,8 +55,8 @@ subset. Use the full `npm run verify` before committing UI or behavior changes.
 
 ## Hosting and caching (Cloudflare Pages)
 
-The proxy in `functions/api/` exists because the `worldcup26.ir` feed sends no
-CORS header, so the browser can't call it directly.
+The proxy in `functions/api/` exists so the browser can call ESPN through the
+same origin and all visitors can share one cached response.
 
 Cloudflare Pages publishes the output directory set in `wrangler.toml` to its
 global CDN and runs the proxy as Pages Functions from `functions/`. Every push

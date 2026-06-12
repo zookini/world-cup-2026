@@ -1,4 +1,5 @@
 import { parseMatchDate, isFinished, number } from "./match-utils.js";
+import { parseSeedTsv } from "./seed-data.js";
 
 const PLAYER_ORDER = ["Boe", "Colm", "Ivan", "T", "Sharon", "Andy", "Joey", "Vinny", "Kachun", "Chun", "Kakei", "Janey"];
 
@@ -276,14 +277,16 @@ function liveFeed() {
     name: "live World Cup feed",
     loadingMessage: "Fetching live World Cup groups and matches...",
     async load() {
-      const [groupPayload, gamePayload] = await Promise.all([
-        fetchJson("/api/groups"),
-        fetchJson("/api/games"),
+      const [seed, espnPayload] = await Promise.all([
+        loadSeedData(),
+        optionalFetchJson("/api/espn-games"),
       ]);
+      const games = espnPayload ? mergeEspnGames(seed.games, espnPayload.json) : seed.games;
       return {
-        groups: groupPayload.json.groups || groupPayload.json.data || [],
-        games: gamePayload.json.games || gamePayload.json.data || [],
-        staleRefreshing: groupPayload.staleRefreshing || gamePayload.staleRefreshing,
+        groups: seed.groups,
+        games,
+        status: espnPayload ? "" : "ESPN live scores unavailable; showing local schedule only.",
+        staleRefreshing: espnPayload?.staleRefreshing,
       };
     },
   };
@@ -293,8 +296,8 @@ function hasMockParam(search) {
   return /^match-\d+$/.test(new URLSearchParams(search).get("mock") || "");
 }
 
-// worldcup26.ir sends no CORS header, so we always go through the same-origin
-// proxy (Pages Functions, served locally via `npx wrangler pages dev`).
+// External feeds may omit CORS headers, so we go through same-origin Pages
+// Functions (served locally via `npx wrangler pages dev`).
 async function fetchJson(path) {
   const response = await fetch(path, { cache: "no-store" });
   if (!response.ok) throw new Error(`${path} returned HTTP ${response.status}`);
@@ -302,6 +305,93 @@ async function fetchJson(path) {
     json: await response.json(),
     staleRefreshing: response.headers.get("X-Cache") === "stale-refreshing",
   };
+}
+
+async function loadSeedData() {
+  const response = await fetch("mock-seed.tsv");
+  if (!response.ok) throw new Error(`mock-seed.tsv returned HTTP ${response.status}`);
+  return parseSeedTsv(await response.text());
+}
+
+async function optionalFetchJson(path) {
+  try {
+    return await fetchJson(path);
+  } catch (error) {
+    console.warn(`${path} unavailable: ${error.message}`);
+    return null;
+  }
+}
+
+function mergeEspnGames(seedGames, payload) {
+  const espnGames = (payload.events || [])
+    .map(mapEspnEvent)
+    .filter(Boolean)
+    .sort(compareGames)
+    .map((game, index) => ({ ...game, id: `${index + 1}` }));
+  const espnById = new Map(espnGames.map((game) => [game.id, game]));
+  return seedGames.map((game) => {
+    const espnGame = espnById.get(`${game.id}`);
+    return espnGame ? {
+      ...game,
+      espn_id: espnGame.espn_id,
+      home_score: espnGame.home_score,
+      away_score: espnGame.away_score,
+      home_scorers: espnGame.home_scorers,
+      away_scorers: espnGame.away_scorers,
+      finished: espnGame.finished,
+      time_elapsed: espnGame.time_elapsed,
+    } : game;
+  });
+}
+
+function mapEspnEvent(event) {
+  const competition = event.competitions?.[0];
+  const home = competition?.competitors?.find((team) => team.homeAway === "home");
+  const away = competition?.competitors?.find((team) => team.homeAway === "away");
+  if (!competition || !home || !away) return null;
+  const status = competition.status || event.status || {};
+  const statusType = status.type || {};
+  const base = {
+    espn_id: event.id,
+    home_team_id: home.team?.id || home.id,
+    away_team_id: away.team?.id || away.id,
+    home_team_name_en: espnTeamName(home),
+    away_team_name_en: espnTeamName(away),
+    utc_date: event.date || competition.date || "",
+  };
+  return {
+    ...base,
+    home_score: `${home.score ?? 0}`,
+    away_score: `${away.score ?? 0}`,
+    home_scorers: espnScorers(competition, home),
+    away_scorers: espnScorers(competition, away),
+    finished: statusType.completed ? "TRUE" : "FALSE",
+    time_elapsed: espnElapsed(status),
+  };
+}
+
+function espnTeamName(competitor) {
+  return competitor.team?.displayName || competitor.team?.name || competitor.team?.location || "";
+}
+
+function espnScorers(competition, competitor) {
+  const teamId = `${competitor.team?.id || competitor.id}`;
+  const scorers = (competition.details || [])
+    .filter((detail) => detail.scoringPlay && !detail.shootout && `${detail.team?.id}` === teamId)
+    .map((detail) => {
+      const athlete = detail.athletesInvolved?.[0];
+      const name = athlete?.shortName || athlete?.displayName || "Goal";
+      const minute = detail.clock?.displayValue || "";
+      return `${name}${minute ? ` ${minute}` : ""}`;
+    });
+  return scorers.length ? `{${scorers.join(",")}}` : "null";
+}
+
+function espnElapsed(status) {
+  const type = status.type || {};
+  if (type.completed) return type.shortDetail || type.detail || "FT";
+  if (type.state === "in") return status.displayClock || type.shortDetail || type.detail || "Live";
+  return "notstarted";
 }
 
 function indexTeams() {

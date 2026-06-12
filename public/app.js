@@ -994,13 +994,13 @@ function scorerMarkup(scorers) {
 
 function matchState(game) {
   if (isFinished(game)) return "finished";
-  const elapsed = `${game.time_elapsed}`.trim().toLowerCase();
+  const elapsed = game.time_elapsed.trim().toLowerCase();
   if (elapsed && elapsed !== "notstarted") return "live";
   return "upcoming";
 }
 
 function liveLabel(game) {
-  const elapsed = `${game.time_elapsed}`.trim();
+  const elapsed = game.time_elapsed.trim();
   if (!elapsed || elapsed.toLowerCase() === "notstarted") return "Live";
   return /^\d+$/.test(elapsed) ? `${elapsed}'` : elapsed;
 }

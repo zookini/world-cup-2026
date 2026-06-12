@@ -18,15 +18,15 @@ export function feed({ search }) {
     name: "mock World Cup feed",
     loadingMessage: "Loading mock World Cup groups and matches...",
     async load() {
-      const response = await fetch("mock-seed.tsv");
-      if (!response.ok) throw new Error(`mock-seed.tsv returned HTTP ${response.status}`);
+      const response = await fetch("tournament-seed.tsv");
+      if (!response.ok) throw new Error(`tournament-seed.tsv returned HTTP ${response.status}`);
       const seed = parseSeedTsv(await response.text());
       const mock = fromUrl({
         groups: seed.groups || [],
         games: seed.games || [],
         search,
       });
-      if (!mock) throw new Error("mock target was not found in mock-seed.tsv");
+      if (!mock) throw new Error("mock target was not found in tournament-seed.tsv");
       return mock;
     },
   };

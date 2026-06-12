@@ -18,11 +18,11 @@ listen on IPv6 `localhost`.
 Append `?mock=match-<id>` to the URL to simulate the tournament up to and including that match —
 e.g. `/?mock=match-40` for a partial group stage, `/?mock=match-72` for the
 complete group stage, `/?mock=match-104` for a fully played tournament. Mock data is derived from
-`public/mock-seed.tsv` and never calls ESPN.
+`public/tournament-seed.tsv` and never calls ESPN.
 
 ## Live data and shootouts
 
-Live mode uses `public/mock-seed.tsv` as the canonical schedule, group, stage,
+Live mode uses `public/tournament-seed.tsv` as the canonical schedule, group, stage,
 team, and match-number source. ESPN's FIFA World Cup scoreboard is overlaid for
 live status, scores, and scorers, fetched directly from `site.api.espn.com` in
 the browser (the API sends `Access-Control-Allow-Origin: *`, so no proxy is

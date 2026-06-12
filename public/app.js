@@ -288,8 +288,8 @@ async function fetchJson(path) {
 }
 
 async function loadSeedData() {
-  const response = await fetch("mock-seed.tsv");
-  if (!response.ok) throw new Error(`mock-seed.tsv returned HTTP ${response.status}`);
+  const response = await fetch("tournament-seed.tsv");
+  if (!response.ok) throw new Error(`tournament-seed.tsv returned HTTP ${response.status}`);
   return parseSeedTsv(await response.text());
 }
 

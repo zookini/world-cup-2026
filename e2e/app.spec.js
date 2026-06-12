@@ -39,7 +39,7 @@ function deepLinkTarget(page, id) {
   }, id);
 }
 
-function espnEvent({ id, date, home, away, homeScore = "0", awayScore = "0", status = "notstarted", details = [] }) {
+function espnEvent({ id, date, home, away, homeScore = "0", awayScore = "0", homeShootout, awayShootout, status = "notstarted", details = [] }) {
   const completed = status === "FT";
   return {
     id,
@@ -58,11 +58,13 @@ function espnEvent({ id, date, home, away, homeScore = "0", awayScore = "0", sta
         id: home.id,
         homeAway: "home",
         score: homeScore,
+        ...(homeShootout === undefined ? {} : { shootoutScore: homeShootout }),
         team: { id: home.id, displayName: home.name },
       }, {
         id: away.id,
         homeAway: "away",
         score: awayScore,
+        ...(awayShootout === undefined ? {} : { shootoutScore: awayShootout }),
         team: { id: away.id, displayName: away.name },
       }],
       details,
@@ -133,6 +135,28 @@ test("fixture cards show scorers from ESPN game data", async ({ page }) => {
   await page.goto("/#fixtures");
 
   await expect(page.locator("#fixture-1 .fixture-scorers")).toHaveText("J. Quiñones 9', R. Jiménez 67'");
+});
+
+test("ESPN shootout scores render as a bracketed penalty tally", async ({ page }) => {
+  await page.route("**/site.api.espn.com/**", (route) => route.fulfill({
+    json: {
+      events: [espnEvent({
+        id: "760415",
+        date: "2026-06-11T19:00Z",
+        home: { id: "203", name: "Mexico" },
+        away: { id: "467", name: "South Africa" },
+        homeScore: "1",
+        awayScore: "1",
+        homeShootout: 4,
+        awayShootout: 2,
+        status: "FT",
+      })],
+    },
+  }));
+
+  await page.goto("/#fixtures");
+
+  await expect(page.locator("#fixture-1 .fixture-team strong")).toHaveText(["1 (4)", "1 (2)"]);
 });
 
 test("live fixtures use ESPN status with local schedule metadata", async ({ page }) => {

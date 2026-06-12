@@ -28,16 +28,11 @@ live status, scores, and scorers, fetched directly from `site.api.espn.com` in
 the browser (the API sends `Access-Control-Allow-Origin: *`, so no proxy is
 needed).
 
-Current handling (`loserId`/`penaltyScore` in `public/app.js`):
-
-- A finished knockout game with level scores eliminates nobody and adds a
-  warning to the visible status line.
-- `home_`/`away_` `penalty|penalties|pen|pens|penalty_score` fields are used
-  if a feed exposes them, and scores then render as "1 (4)".
-
-When the first shootout happens, inspect that ESPN event in the raw scoreboard
-response (`ESPN_SCOREBOARD_URL` in `public/app.js`) and adapt `penaltyScore`
-if ESPN encodes it under a new field.
+Shootouts: ESPN puts a numeric `shootoutScore` on each competitor (verified
+against the 2022 final, ESPN event 633850), which is mapped to
+`home_`/`away_penalty` and rendered as "1 (4)". A finished knockout game that
+is still level with no shootout data eliminates nobody and adds a warning to
+the visible status line (`unresolvedKnockoutWarnings` in `public/app.js`).
 
 ## Verifying changes
 

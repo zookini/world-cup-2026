@@ -316,6 +316,8 @@ function mergeEspnGames(seedGames, payload) {
       espn_id: espnGame.espn_id,
       home_score: espnGame.home_score,
       away_score: espnGame.away_score,
+      home_penalty: espnGame.home_penalty,
+      away_penalty: espnGame.away_penalty,
       home_scorers: espnGame.home_scorers,
       away_scorers: espnGame.away_scorers,
       finished: espnGame.finished,
@@ -343,6 +345,8 @@ function mapEspnEvent(event) {
     ...base,
     home_score: `${home.score ?? 0}`,
     away_score: `${away.score ?? 0}`,
+    home_penalty: home.shootoutScore ?? null,
+    away_penalty: away.shootoutScore ?? null,
     home_scorers: espnScorers(competition, home),
     away_scorers: espnScorers(competition, away),
     finished: statusType.completed ? "TRUE" : "FALSE",
@@ -608,17 +612,12 @@ function loserId(game) {
   return homePens < awayPens ? `${game.home_team_id}` : `${game.away_team_id}`;
 }
 
-// The pre-tournament feed had no penalty fields at all, so we can't know what a
-// shootout will be called — probe the plausible names. Null means the feed gave
-// us nothing (distinct from a real 0).
+// ESPN reports shootouts as a numeric shootoutScore per competitor (verified
+// against the 2022 final); mapEspnEvent copies it into home_/away_penalty.
+// Null means no shootout data (distinct from a real 0 — a side can lose 3-0).
 function penaltyScore(game, side) {
-  for (const field of ["penalty", "penalties", "pen", "pens", "penalty_score"]) {
-    const value = game[`${side}_${field}`];
-    if (value === undefined || value === null) continue;
-    const text = `${value}`.trim();
-    if (text && text.toLowerCase() !== "null") return number(text);
-  }
-  return null;
+  const value = game[`${side}_penalty`];
+  return value === undefined || value === null ? null : number(`${value}`);
 }
 
 function scoreText(game, side) {

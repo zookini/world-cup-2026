@@ -11,8 +11,6 @@ let teamByName = new Map();
 let dataStatus = "";
 let initialDataLoaded = false;
 let loadingMessage = "";
-let staleRefreshTimer = null;
-let staleRefreshAttempts = 0;
 let pendingFixtureScroll = false;
 
 const contendersEl = document.querySelector("#contenders");
@@ -24,8 +22,11 @@ const viewPanels = document.querySelectorAll("[data-panel]");
 
 const VIEWS = ["standings", "fixtures", "groups"];
 let activeView = "standings";
-const STALE_REFRESH_RETRY_MS = globalThis.__STALE_REFRESH_RETRY_MS ?? 3500;
-const STALE_REFRESH_MAX_ATTEMPTS = 3;
+
+// ESPN's scoreboard API sends Access-Control-Allow-Origin: *, so the browser
+// can call it directly without a same-origin proxy.
+const ESPN_SCOREBOARD_URL =
+  "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?limit=200&dates=20260611-20260719";
 
 async function init() {
   bindViewTabs();
@@ -41,7 +42,7 @@ async function init() {
 // Keep scores moving without manual reloads: re-pull the feed once a minute
 // while the tab is visible, and immediately when the user returns to it.
 // Mock data never changes, so mock mode skips this entirely.
-const REFRESH_INTERVAL_MS = 60000;
+const REFRESH_INTERVAL_MS = globalThis.__REFRESH_INTERVAL_MS ?? 60000;
 
 function startAutoRefresh() {
   if (hasMockParam(location.search)) return;
@@ -213,11 +214,6 @@ async function refreshData() {
     renderActiveView();
     syncStatusEl.textContent = statusLine();
     syncStatusEl.classList.remove("loading");
-    if (dataSet.staleRefreshing) {
-      scheduleStaleRefresh();
-    } else {
-      staleRefreshAttempts = 0;
-    }
   } catch (error) {
     renderActiveView();
     // A failed auto-refresh keeps the last good data on screen, so report it
@@ -237,16 +233,6 @@ function statusLine() {
     `Updated ${timeLabel(new Date())}.`,
     ...unresolvedKnockoutWarnings(),
   ].filter(Boolean).join(" ");
-}
-
-function scheduleStaleRefresh() {
-  if (staleRefreshTimer || hasMockParam(location.search)) return;
-  if (staleRefreshAttempts >= STALE_REFRESH_MAX_ATTEMPTS) return;
-  staleRefreshAttempts += 1;
-  staleRefreshTimer = setTimeout(() => {
-    staleRefreshTimer = null;
-    refreshData();
-  }, STALE_REFRESH_RETRY_MS);
 }
 
 function renderLoadingState() {
@@ -279,14 +265,13 @@ function liveFeed() {
     async load() {
       const [seed, espnPayload] = await Promise.all([
         loadSeedData(),
-        optionalFetchJson("/api/espn-games"),
+        optionalFetchJson(ESPN_SCOREBOARD_URL),
       ]);
-      const games = espnPayload ? mergeEspnGames(seed.games, espnPayload.json) : seed.games;
+      const games = espnPayload ? mergeEspnGames(seed.games, espnPayload) : seed.games;
       return {
         groups: seed.groups,
         games,
         status: espnPayload ? "" : "ESPN live scores unavailable; showing local schedule only.",
-        staleRefreshing: espnPayload?.staleRefreshing,
       };
     },
   };
@@ -296,15 +281,10 @@ function hasMockParam(search) {
   return /^match-\d+$/.test(new URLSearchParams(search).get("mock") || "");
 }
 
-// External feeds may omit CORS headers, so we go through same-origin Pages
-// Functions (served locally via `npx wrangler pages dev`).
 async function fetchJson(path) {
   const response = await fetch(path, { cache: "no-store" });
   if (!response.ok) throw new Error(`${path} returned HTTP ${response.status}`);
-  return {
-    json: await response.json(),
-    staleRefreshing: response.headers.get("X-Cache") === "stale-refreshing",
-  };
+  return response.json();
 }
 
 async function loadSeedData() {

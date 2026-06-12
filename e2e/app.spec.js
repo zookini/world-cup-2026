@@ -87,7 +87,7 @@ test("live mode renders standings", async ({ page }) => {
 });
 
 test("live standings update from finished ESPN games", async ({ page }) => {
-  await page.route("**/api/espn-games", (route) => route.fulfill({
+  await page.route("**/site.api.espn.com/**", (route) => route.fulfill({
     json: { events: [ESPN_MEX_RSA_FT] },
   }));
   await page.goto("/#groups");
@@ -103,7 +103,7 @@ test("live standings update from finished ESPN games", async ({ page }) => {
 });
 
 test("fixture cards show scorers from ESPN game data", async ({ page }) => {
-  await page.route("**/api/espn-games", (route) => route.fulfill({
+  await page.route("**/site.api.espn.com/**", (route) => route.fulfill({
     json: {
       events: [espnEvent({
         id: "760415",
@@ -136,7 +136,7 @@ test("fixture cards show scorers from ESPN game data", async ({ page }) => {
 });
 
 test("live fixtures use ESPN status with local schedule metadata", async ({ page }) => {
-  await page.route("**/api/espn-games", (route) => route.fulfill({
+  await page.route("**/site.api.espn.com/**", (route) => route.fulfill({
     json: {
       events: [{
         id: "760415",
@@ -200,16 +200,15 @@ test("live fixtures use ESPN status with local schedule metadata", async ({ page
   await expect(page.locator("#fixture-2 .fixture-scorers")).toHaveText("S. Son 12'");
 });
 
-test("stale proxy responses trigger a quick fresh sync", async ({ page }) => {
+test("auto refresh picks up newly finished games", async ({ page }) => {
   await page.addInitScript(() => {
-    window.__STALE_REFRESH_RETRY_MS = 500;
+    window.__REFRESH_INTERVAL_MS = 500;
   });
   let espnRequests = 0;
-  await page.route("**/api/espn-games**", (route) => {
+  await page.route("**/site.api.espn.com/**", (route) => {
     espnRequests += 1;
     route.fulfill({
       json: { events: espnRequests === 1 ? [] : [ESPN_MEX_RSA_FT] },
-      headers: espnRequests === 1 ? { "X-Cache": "stale-refreshing" } : {},
     });
   });
 
@@ -221,13 +220,13 @@ test("stale proxy responses trigger a quick fresh sync", async ({ page }) => {
 });
 
 test("fixture refresh does not steal manual scroll", async ({ page }) => {
+  await page.addInitScript(() => {
+    window.__REFRESH_INTERVAL_MS = 500;
+  });
   let espnRequests = 0;
-  await page.route("**/api/espn-games**", (route) => {
+  await page.route("**/site.api.espn.com/**", (route) => {
     espnRequests += 1;
-    route.fulfill({
-      json: { events: [] },
-      headers: espnRequests === 1 ? { "X-Cache": "stale-refreshing" } : {},
-    });
+    route.fulfill({ json: { events: [] } });
   });
 
   await page.goto("/#fixtures");
@@ -257,7 +256,7 @@ test("live mode does not show zero standings before feed data loads", async ({ p
   const espnReady = new Promise((resolve) => {
     releaseEspn = resolve;
   });
-  await page.route("**/api/espn-games**", async (route) => {
+  await page.route("**/site.api.espn.com/**", async (route) => {
     await espnReady;
     await route.fulfill({
       json: { events: [ESPN_MEX_RSA_FT] },
@@ -280,7 +279,7 @@ test("loading state is consistent across tabs while feed data loads", async ({ p
   const feedReady = new Promise((resolve) => {
     releaseFeed = resolve;
   });
-  await page.route("**/api/espn-games**", async (route) => {
+  await page.route("**/site.api.espn.com/**", async (route) => {
     await feedReady;
     await route.fulfill({ json: { events: [] } });
   });
@@ -325,13 +324,13 @@ test("plain tab switch resets scroll", async ({ page }) => {
 });
 
 test("mock mode loads and stays offline", async ({ page }) => {
-  const apiRequests = [];
+  const feedRequests = [];
   page.on("request", (request) => {
-    if (request.url().includes("/api/")) apiRequests.push(request.url());
+    if (request.url().includes("espn.com")) feedRequests.push(request.url());
   });
   await page.goto(MOCK, { waitUntil: "networkidle" });
   await expect(page.locator("#sync-status")).toContainText("mock data");
-  expect(apiRequests).toEqual([]);
+  expect(feedRequests).toEqual([]);
 });
 
 test("medal badges appear only when each podium place is settled", async ({ page }) => {
@@ -432,7 +431,7 @@ test("all images decode and no asset request fails", async ({ page }) => {
   const badResponses = [];
   page.on("response", (response) => {
     // Ignore the live feed (offline-friendly); any other 4xx/5xx is a broken asset.
-    if (response.status() >= 400 && !response.url().includes("/api/")) {
+    if (response.status() >= 400 && !response.url().includes("espn.com")) {
       badResponses.push(`${response.status()} ${response.url()}`);
     }
   });

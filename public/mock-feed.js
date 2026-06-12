@@ -189,26 +189,26 @@ function applyPredictedScore(game, teamById, { allowDraw }) {
   const diff = teamStrength(home.name) - teamStrength(away.name);
   const homeScore = diff >= 18 ? 3 : diff >= 6 ? 2 : diff >= -4 ? 1 : 0;
   const awayScore = diff <= -18 ? 3 : diff <= -6 ? 2 : diff <= 4 ? 1 : 0;
-  game.home_score = `${homeScore}`;
-  game.away_score = `${awayScore}`;
+  game.home_score = homeScore;
+  game.away_score = awayScore;
   if (!allowDraw && homeScore === awayScore) {
-    if (diff >= 0) game.home_score = `${homeScore + 1}`;
-    else game.away_score = `${awayScore + 1}`;
+    if (diff >= 0) game.home_score = homeScore + 1;
+    else game.away_score = awayScore + 1;
   }
-  game.finished = "TRUE";
+  game.finished = true;
   game.time_elapsed = "finished";
 }
 
 function resetGame(game) {
-  game.finished = "FALSE";
+  game.finished = false;
   game.time_elapsed = "notstarted";
-  game.home_score = "0";
-  game.away_score = "0";
+  game.home_score = 0;
+  game.away_score = 0;
 }
 
 function applyGroupResult(home, away, game) {
-  const homeScore = number(game.home_score);
-  const awayScore = number(game.away_score);
+  const homeScore = game.home_score;
+  const awayScore = game.away_score;
   home.mp += 1; away.mp += 1;
   home.gf += homeScore; home.ga += awayScore; home.gd = home.gf - home.ga;
   away.gf += awayScore; away.ga += homeScore; away.gd = away.gf - away.ga;
@@ -222,13 +222,13 @@ function applyGroupResult(home, away, game) {
 }
 
 function winnerTeam(game, teamById) {
-  return number(game.home_score) > number(game.away_score)
+  return game.home_score > game.away_score
     ? teamById.get(`${game.home_team_id}`)
     : teamById.get(`${game.away_team_id}`);
 }
 
 function loserTeam(game, teamById) {
-  return number(game.home_score) < number(game.away_score)
+  return game.home_score < game.away_score
     ? teamById.get(`${game.home_team_id}`)
     : teamById.get(`${game.away_team_id}`);
 }

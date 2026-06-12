@@ -343,13 +343,13 @@ function mapEspnEvent(event) {
   };
   return {
     ...base,
-    home_score: `${home.score ?? 0}`,
-    away_score: `${away.score ?? 0}`,
+    home_score: Number(home.score) || 0,
+    away_score: Number(away.score) || 0,
     home_penalty: home.shootoutScore ?? null,
     away_penalty: away.shootoutScore ?? null,
     home_scorers: espnScorers(competition, home),
     away_scorers: espnScorers(competition, away),
-    finished: statusType.completed ? "TRUE" : "FALSE",
+    finished: statusType.completed === true,
     time_elapsed: espnElapsed(status),
   };
 }
@@ -360,7 +360,7 @@ function espnTeamName(competitor) {
 
 function espnScorers(competition, competitor) {
   const teamId = `${competitor.team?.id || competitor.id}`;
-  const scorers = (competition.details || [])
+  return (competition.details || [])
     .filter((detail) => detail.scoringPlay && !detail.shootout && `${detail.team?.id}` === teamId)
     .map((detail) => {
       const athlete = detail.athletesInvolved?.[0];
@@ -368,7 +368,6 @@ function espnScorers(competition, competitor) {
       const minute = detail.clock?.displayValue || "";
       return `${name}${minute ? ` ${minute}` : ""}`;
     });
-  return scorers.length ? `{${scorers.join(",")}}` : "null";
 }
 
 function espnElapsed(status) {
@@ -477,8 +476,8 @@ function rowTeamId(row) {
 function applyGroupGame(rows, game) {
   const home = ensureGroupRow(rows, game.home_team_id, game.home_team_name_en);
   const away = ensureGroupRow(rows, game.away_team_id, game.away_team_name_en);
-  const homeScore = number(game.home_score);
-  const awayScore = number(game.away_score);
+  const homeScore = game.home_score;
+  const awayScore = game.away_score;
 
   home.mp += 1;
   away.mp += 1;
@@ -603,8 +602,8 @@ function groupGamesComplete(groupName, throughGame = null) {
 }
 
 function loserId(game) {
-  const homeScore = number(game.home_score);
-  const awayScore = number(game.away_score);
+  const homeScore = game.home_score;
+  const awayScore = game.away_score;
   if (homeScore !== awayScore) return homeScore < awayScore ? `${game.home_team_id}` : `${game.away_team_id}`;
   const homePens = penaltyScore(game, "home");
   const awayPens = penaltyScore(game, "away");
@@ -616,13 +615,12 @@ function loserId(game) {
 // against the 2022 final); mapEspnEvent copies it into home_/away_penalty.
 // Null means no shootout data (distinct from a real 0 — a side can lose 3-0).
 function penaltyScore(game, side) {
-  const value = game[`${side}_penalty`];
-  return value === undefined || value === null ? null : number(`${value}`);
+  return game[`${side}_penalty`] ?? null;
 }
 
 function scoreText(game, side) {
   const pens = penaltyScore(game, side);
-  const score = number(game[`${side}_score`]);
+  const score = game[`${side}_score`];
   return pens === null ? `${score}` : `${score} (${pens})`;
 }
 
@@ -990,25 +988,14 @@ function fixtureTeamLine(team, score) {
 }
 
 function scorerMarkup(scorers) {
-  const names = scorerList(scorers);
-  if (!names.length) return "";
-  return `<span class="fixture-scorers">${names.join(", ")}</span>`;
-}
-
-function scorerList(value) {
-  const raw = `${value || ""}`.trim();
-  if (!raw || raw.toLowerCase() === "null") return [];
-  return raw
-    .replace(/^[{[]|[}\]]$/g, "")
-    .split(/[,،]/)
-    .map((item) => item.trim().replace(/^["“”]+|["“”]+$/g, ""))
-    .filter(Boolean);
+  if (!scorers?.length) return "";
+  return `<span class="fixture-scorers">${scorers.join(", ")}</span>`;
 }
 
 function matchState(game) {
   if (isFinished(game)) return "finished";
   const elapsed = `${game.time_elapsed}`.trim().toLowerCase();
-  if (elapsed && elapsed !== "notstarted" && elapsed !== "null") return "live";
+  if (elapsed && elapsed !== "notstarted") return "live";
   return "upcoming";
 }
 

@@ -57,9 +57,9 @@ function seedGroups(rows) {
 function seedGame(row) {
   return {
     ...row,
-    home_score: "0",
-    away_score: "0",
-    finished: "FALSE",
+    home_score: 0,
+    away_score: 0,
+    finished: false,
     time_elapsed: "notstarted",
   };
 }

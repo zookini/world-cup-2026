@@ -460,14 +460,47 @@ tr.eliminated {
 }
 
 .fixture-scorers {
-  display: block;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 7px;
   margin-top: 2px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
   color: var(--muted);
   font-size: 0.74rem;
-  line-height: 1.2;
+  line-height: 1.3;
+}
+
+.fixture-incident {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.fixture-incident-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  line-height: 1;
+}
+
+.fixture-incident.goal .fixture-incident-icon {
+  width: 1em;
+  height: 1em;
+  font-size: 0.82em;
+}
+
+.fixture-incident.goal .fixture-incident-icon::before {
+  content: "⚽";
+}
+
+.fixture-incident.red-card .fixture-incident-icon {
+  width: 0.54em;
+  height: 0.82em;
+  border-radius: 1px;
+  background: #d71920;
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 12%);
+  transform: translateY(-0.03em);
 }
 
 .fixture-team.placeholder .team-name {

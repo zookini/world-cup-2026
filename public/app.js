@@ -352,8 +352,8 @@ function mapEspnEvent(event) {
     away_score: Number(away.score) || 0,
     home_penalty: home.shootoutScore ?? null,
     away_penalty: away.shootoutScore ?? null,
-    home_scorers: espnScorers(competition, home),
-    away_scorers: espnScorers(competition, away),
+    home_scorers: espnIncidents(competition, home),
+    away_scorers: espnIncidents(competition, away),
     finished: statusType.completed === true,
     time_elapsed: espnElapsed(status),
   };
@@ -363,16 +363,24 @@ function espnTeamName(competitor) {
   return competitor.team?.displayName || competitor.team?.name || competitor.team?.location || "";
 }
 
-function espnScorers(competition, competitor) {
+function espnIncidents(competition, competitor) {
   const teamId = `${competitor.team?.id || competitor.id}`;
   return (competition.details || [])
-    .filter((detail) => detail.scoringPlay && !detail.shootout && `${detail.team?.id}` === teamId)
+    .filter((detail) => !detail.shootout && `${detail.team?.id}` === teamId && (detail.scoringPlay || isRedCard(detail)))
     .map((detail) => {
       const athlete = detail.athletesInvolved?.[0];
-      const name = athlete?.shortName || athlete?.displayName || "Goal";
+      const kind = isRedCard(detail) ? "red-card" : "goal";
+      const name = athlete?.shortName || athlete?.displayName || (kind === "goal" ? "Goal" : "Red card");
       const minute = detail.clock?.displayValue || "";
-      return `${name}${minute ? ` ${minute}` : ""}`;
+      return { kind, name, minute };
     });
+}
+
+function isRedCard(detail) {
+  if (detail.redCard === true) return true;
+  const cardType = `${detail.cardType || detail.card?.type || ""}`.toLowerCase();
+  const typeText = `${detail.type?.id || detail.type?.text || detail.type?.description || detail.type || ""}`.toLowerCase();
+  return cardType === "red" || cardType === "red-card" || typeText.includes("red card");
 }
 
 function espnElapsed(status) {
@@ -1020,7 +1028,14 @@ function fixtureTeamLine(team, score) {
 
 function scorerMarkup(scorers) {
   if (!scorers?.length) return "";
-  return `<span class="fixture-scorers">${scorers.join(", ")}</span>`;
+  const incidents = scorers.map((scorer) => {
+    const incident = typeof scorer === "string" ? { kind: "goal", label: scorer } : scorer;
+    const kind = incident.kind === "red-card" ? "red-card" : "goal";
+    const label = incident.label || `${incident.name}${incident.minute ? ` ${incident.minute}` : ""}`;
+    const iconLabel = kind === "red-card" ? "Red card" : "Goal";
+    return `<span class="fixture-incident ${kind}"><span class="fixture-incident-icon" aria-hidden="true" title="${iconLabel}"></span><span>${label}</span></span>`;
+  }).join(" ");
+  return `<span class="fixture-scorers">${incidents}</span>`;
 }
 
 function matchState(game) {

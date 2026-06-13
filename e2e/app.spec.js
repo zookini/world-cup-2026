@@ -104,7 +104,7 @@ test("live standings update from finished ESPN games", async ({ page }) => {
   await expect(mexicoOwner.locator("td").nth(6)).toHaveText("3");
 });
 
-test("fixture cards show scorers from ESPN game data", async ({ page }) => {
+test("fixture cards show goals and red cards from ESPN game data", async ({ page }) => {
   await page.route("**/site.api.espn.com/**", (route) => route.fulfill({
     json: {
       events: [espnEvent({
@@ -127,6 +127,13 @@ test("fixture cards show scorers from ESPN game data", async ({ page }) => {
             team: { id: "203" },
             clock: { displayValue: "67'" },
             athletesInvolved: [{ shortName: "R. Jiménez" }],
+          }, {
+            scoringPlay: false,
+            shootout: false,
+            team: { id: "467" },
+            clock: { displayValue: "84'" },
+            type: { text: "Red Card" },
+            athletesInvolved: [{ shortName: "T. Mokoena" }],
           }],
       })],
     },
@@ -134,7 +141,10 @@ test("fixture cards show scorers from ESPN game data", async ({ page }) => {
 
   await page.goto("/#fixtures");
 
-  await expect(page.locator("#fixture-1 .fixture-scorers")).toHaveText("J. Quiñones 9', R. Jiménez 67'");
+  await expect(page.locator("#fixture-1 .fixture-scorers").first()).toHaveText("J. Quiñones 9' R. Jiménez 67'");
+  await expect(page.locator("#fixture-1 .fixture-scorers").last()).toHaveText("T. Mokoena 84'");
+  await expect(page.locator("#fixture-1 .fixture-incident.goal")).toHaveCount(2);
+  await expect(page.locator("#fixture-1 .fixture-incident.red-card")).toHaveCount(1);
 });
 
 test("ESPN shootout scores render as a bracketed penalty tally", async ({ page }) => {

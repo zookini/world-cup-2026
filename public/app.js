@@ -307,28 +307,72 @@ async function optionalFetchJson(path) {
   }
 }
 
+// Overlay ESPN status/scores onto the seed fixtures by the teams playing, not
+// by feed order: the seed's match numbers are the canonical schedule but are
+// not strictly chronological, so aligning ESPN's date-sorted events to seed ids
+// by position drops live data onto the wrong fixture (e.g. an early kickoff's
+// score landing on a later same-day match). Matching on the team pair keeps each
+// overlay on its own row regardless of kickoff order.
 function mergeEspnGames(seedGames, payload) {
-  const espnGames = (payload.events || [])
-    .map(mapEspnEvent)
-    .filter(Boolean)
-    .sort(compareGames)
-    .map((game, index) => ({ ...game, id: `${index + 1}` }));
-  const espnById = new Map(espnGames.map((game) => [game.id, game]));
-  return seedGames.map((game) => {
-    const espnGame = espnById.get(`${game.id}`);
-    return espnGame ? {
-      ...game,
-      espn_id: espnGame.espn_id,
-      home_score: espnGame.home_score,
-      away_score: espnGame.away_score,
-      home_penalty: espnGame.home_penalty,
-      away_penalty: espnGame.away_penalty,
-      home_scorers: espnGame.home_scorers,
-      away_scorers: espnGame.away_scorers,
-      finished: espnGame.finished,
-      time_elapsed: espnGame.time_elapsed,
-    } : game;
+  const espnByPair = new Map();
+  (payload.events || []).forEach((event) => {
+    const espnGame = mapEspnEvent(event);
+    if (!espnGame) return;
+    const key = teamPairKey(espnGame.home_team_name_en, espnGame.away_team_name_en);
+    if (!key) return;
+    if (!espnByPair.has(key)) espnByPair.set(key, []);
+    espnByPair.get(key).push(espnGame);
   });
+  return seedGames.map((game) => {
+    const key = teamPairKey(game.home_team_name_en, game.away_team_name_en);
+    const candidates = key ? espnByPair.get(key) : null;
+    const espnGame = candidates ? closestByDate(game, candidates) : null;
+    return espnGame ? overlayEspnGame(game, espnGame) : game;
+  });
+}
+
+// Unordered, normalized key for the two teams in a game so a seed fixture and
+// its ESPN event match regardless of which side the feed lists as home.
+function teamPairKey(homeName, awayName) {
+  const home = normalizeName(homeName || "");
+  const away = normalizeName(awayName || "");
+  if (!home || !away) return "";
+  return [home, away].sort().join("|");
+}
+
+// The same pairing can recur (a group fixture and a later knockout rematch), so
+// pick the ESPN event whose kickoff sits closest to the seed fixture's.
+function closestByDate(seedGame, candidates) {
+  if (candidates.length === 1) return candidates[0];
+  const seedDate = parseMatchDate(seedGame);
+  if (!seedDate) return candidates[0];
+  return candidates.reduce((best, candidate) => {
+    const bestDate = parseMatchDate(best);
+    const candidateDate = parseMatchDate(candidate);
+    if (!candidateDate) return best;
+    if (!bestDate) return candidate;
+    return Math.abs(candidateDate - seedDate) < Math.abs(bestDate - seedDate) ? candidate : best;
+  });
+}
+
+// The seed is canonical for which team is home, so flip ESPN's per-side fields
+// when the feed lists the teams in the opposite order.
+function overlayEspnGame(seedGame, espnGame) {
+  const flipped = normalizeName(seedGame.home_team_name_en) !== normalizeName(espnGame.home_team_name_en);
+  const home = flipped ? "away" : "home";
+  const away = flipped ? "home" : "away";
+  return {
+    ...seedGame,
+    espn_id: espnGame.espn_id,
+    home_score: espnGame[`${home}_score`],
+    away_score: espnGame[`${away}_score`],
+    home_penalty: espnGame[`${home}_penalty`],
+    away_penalty: espnGame[`${away}_penalty`],
+    home_scorers: espnGame[`${home}_scorers`],
+    away_scorers: espnGame[`${away}_scorers`],
+    finished: espnGame.finished,
+    time_elapsed: espnGame.time_elapsed,
+  };
 }
 
 function mapEspnEvent(event) {

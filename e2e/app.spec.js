@@ -124,6 +124,42 @@ test("live standings update from finished ESPN games", async ({ page }) => {
   await expect(mexicoOwner.locator("td").nth(6)).toHaveText("3");
 });
 
+// The seed schedule is not strictly chronological (match 8, Qatar vs
+// Switzerland, kicks off before match 5, Haiti vs Scotland), so ESPN data must
+// land on the fixture for the teams playing rather than by feed/kickoff order.
+test("live ESPN data lands on the seed fixture for the right teams", async ({ page }) => {
+  await page.route("**/site.api.espn.com/**", (route) => route.fulfill({
+    json: {
+      events: [
+        espnEvent({
+          id: "900",
+          date: "2026-06-13T16:00Z",
+          home: { id: "QAT", name: "Qatar" },
+          away: { id: "SUI", name: "Switzerland" },
+          homeScore: "1",
+          awayScore: "0",
+          status: "62'",
+        }),
+        espnEvent({
+          id: "901",
+          date: "2026-06-14T01:00Z",
+          home: { id: "HAI", name: "Haiti" },
+          away: { id: "SCO", name: "Scotland" },
+          status: "notstarted",
+        }),
+      ],
+    },
+  }));
+
+  await page.goto("/#fixtures");
+
+  // Seed match 8 is Qatar vs Switzerland: it owns the live state and score.
+  await expect(page.locator("#fixture-8")).toHaveClass(/live/);
+  await expect(page.locator("#fixture-8 .fixture-team strong")).toHaveText(["1", "0"]);
+  // Seed match 5 (Haiti vs Scotland) must not inherit the earlier match's state.
+  await expect(page.locator("#fixture-5")).not.toHaveClass(/live/);
+});
+
 test("fixture cards show goals and red cards from ESPN game data", async ({ page }) => {
   await page.route("**/site.api.espn.com/**", (route) => route.fulfill({
     json: {

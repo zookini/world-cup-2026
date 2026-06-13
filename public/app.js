@@ -1134,25 +1134,45 @@ function settleGroupScroll() {
   else scrollToTop();
 }
 
-// Bottom-align a fixture in the viewport. Passing null targets the next
-// unfinished match (or the last one); the router passes a specific element when
-// the hash points at one (e.g. `#fixtures/match-1234`). Runs after a frame so
-// the panel has been shown and laid out before we measure.
+// Center a fixture in the usable viewport below the sticky tabs. Passing null
+// targets the next unfinished match (or the last one); the router passes a
+// specific element when the hash points at one (e.g. `#fixtures/match-1234`).
+// Runs after a frame so the panel has been shown and laid out before we measure.
 function scrollToFixture(target) {
   requestAnimationFrame(() => {
-    const el = target || fixturesEl.querySelector(".fixture.next") || fixturesEl.querySelector(".fixture:last-child");
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    const top = window.scrollY + rect.bottom - window.innerHeight + 16;
-    window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+    requestAnimationFrame(() => {
+      const scrollTarget = () => {
+        const el = target || fixturesEl.querySelector(".fixture.next") || fixturesEl.querySelector(".fixture:last-child");
+        if (!el) return;
+        scrollElementToUsableCenter(el);
+      };
+      setTimeout(scrollTarget, 80);
+      setTimeout(scrollTarget, 450);
+    });
   });
 }
 
 function scrollToGroup(target) {
   requestAnimationFrame(() => {
     if (!target) return;
-    target.scrollIntoView({ behavior: "smooth", block: "start" });
+    const scrollTarget = () => scrollElementToUsableCenter(target);
+    scrollTarget();
+    setTimeout(scrollTarget, 450);
   });
+}
+
+function scrollElementToUsableCenter(target) {
+  const rect = target.getBoundingClientRect();
+  const usableTop = stickyTabsBottom() + 14;
+  const usableHeight = Math.max(0, window.innerHeight - usableTop - 16);
+  const centerOffset = Math.max(0, (usableHeight - rect.height) / 2);
+  const top = window.scrollY + rect.top - usableTop - centerOffset;
+  window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+}
+
+function stickyTabsBottom() {
+  const tabs = document.querySelector(".view-tabs");
+  return tabs?.getBoundingClientRect().bottom || parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--tabs-height")) || 44;
 }
 
 function activeGroupTarget() {

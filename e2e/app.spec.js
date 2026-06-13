@@ -39,6 +39,26 @@ function deepLinkTarget(page, id) {
   }, id);
 }
 
+function fixturePosition(page, selector = ".fixture.next") {
+  return page.evaluate((fixtureSelector) => {
+    const el = document.querySelector(fixtureSelector);
+    const tabs = document.querySelector(".view-tabs");
+    if (!el) return { exists: false };
+    const rect = el.getBoundingClientRect();
+    const tabsBottom = tabs?.getBoundingClientRect().bottom || 0;
+    const usableTop = tabsBottom + 14;
+    const usableBottom = innerHeight - 16;
+    const usableCenter = usableTop + (usableBottom - usableTop) / 2;
+    const elementCenter = rect.top + rect.height / 2;
+    return {
+      exists: true,
+      topClearsTabs: rect.top >= tabsBottom,
+      bottomInView: rect.bottom <= innerHeight,
+      centered: Math.abs(elementCenter - usableCenter) < 40,
+    };
+  }, selector);
+}
+
 function espnEvent({ id, date, home, away, homeScore = "0", awayScore = "0", homeShootout, awayShootout, status = "notstarted", details = [] }) {
   const completed = status === "FT";
   return {
@@ -266,14 +286,10 @@ test("fixture refresh does not steal manual scroll", async ({ page }) => {
   await page.goto("/#fixtures");
   await rendered(page, "fixtures");
   await expect
-    .poll(() =>
-      page.evaluate(() => {
-        const el = document.querySelector(".fixture.next");
-        if (!el) return false;
-        const rect = el.getBoundingClientRect();
-        return rect.top < innerHeight && rect.bottom > 0;
-      })
-    )
+    .poll(async () => {
+      const position = await fixturePosition(page);
+      return position.topClearsTabs && position.bottomInView;
+    })
     .toBe(true);
   await page.waitForTimeout(300);
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
@@ -421,14 +437,10 @@ test("fixtures tab returns to next match", async ({ page }) => {
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
   await page.click('[data-view="fixtures"]');
   await expect
-    .poll(() =>
-      page.evaluate(() => {
-        const el = document.querySelector(".fixture.next");
-        if (!el) return false;
-        const rect = el.getBoundingClientRect();
-        return rect.top < innerHeight && rect.bottom > 0;
-      })
-    )
+    .poll(async () => {
+      const position = await fixturePosition(page);
+      return position.centered && position.bottomInView;
+    })
     .toBe(true);
 });
 
@@ -446,7 +458,11 @@ test("groups tab returns to active group", async ({ page }) => {
         if (!el) return false;
         const rect = el.getBoundingClientRect();
         const tabsBottom = tabs?.getBoundingClientRect().bottom || 0;
-        return rect.top >= tabsBottom && rect.top < innerHeight && rect.bottom > 0;
+        const usableTop = tabsBottom + 14;
+        const usableBottom = innerHeight - 16;
+        const usableCenter = usableTop + (usableBottom - usableTop) / 2;
+        const elementCenter = rect.top + rect.height / 2;
+        return Math.abs(elementCenter - usableCenter) < 40 && rect.bottom > 0;
       })
     )
     .toBe(true);

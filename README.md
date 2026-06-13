@@ -46,8 +46,10 @@ Runs the Playwright Test suite in `e2e/`: it starts the app (`webServer` in
 size. Each test is printed as it passes or fails; failures leave a trace in
 `test-results/` — open it with `npx playwright show-trace <path-to-trace.zip>`.
 
-For quicker UI iteration, `npm run verify:smoke` runs a small render/assets
-subset. Use the full `npm run verify` before committing UI or behavior changes.
+During UI iteration, prefer targeted browser checks and/or `npm run verify:smoke`
+so small visual tweaks do not trigger the full suite every time. Treat
+`npm run verify` like a pre-commit check: run it once before committing or
+handing off completed UI or behavior changes.
 
 ## Hosting (Cloudflare Pages)
 

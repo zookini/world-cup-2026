@@ -33,15 +33,17 @@ export function feed({ search }) {
 }
 
 function fromUrl({ groups, games, search }) {
-  const targetMatch = mockTargetMatch(new URLSearchParams(search).get("mock") || "");
+  const params = new URLSearchParams(search);
+  const targetMatch = mockTargetMatch(params.get("mock") || "");
   if (!targetMatch) return null;
 
-  const mock = buildMatchDayData({ groups, games, targetMatch });
+  const mock = buildMatchDayData({ groups, games, targetMatch, mockState: params.get("state") || "" });
   if (!mock) return null;
 
+  const stateLabel = params.get("state") === "live" ? " with target match live" : "";
   return {
     ...mock,
-    status: `Showing mock data up to match ${targetMatch}.`,
+    status: `Showing mock data up to match ${targetMatch}${stateLabel}.`,
   };
 }
 
@@ -50,12 +52,13 @@ function mockTargetMatch(value) {
   return match ? number(match[1]) : 0;
 }
 
-function buildMatchDayData({ groups, games, targetMatch }) {
+function buildMatchDayData({ groups, games, targetMatch, mockState }) {
   if (!games.length || !groups.length) return null;
 
   const projectedGames = games.map((game) => ({ ...game }));
   const targetGame = projectedGames.find((game) => number(game.id) === targetMatch);
   if (!targetGame) return null;
+  const targetIsLive = mockState === "live";
 
   const teamById = indexTeams(projectedGames);
   const projectedGroups = groups.map((group) => ({
@@ -66,7 +69,9 @@ function buildMatchDayData({ groups, games, targetMatch }) {
   projectedGroups.forEach((group) => group.teams.forEach((team) => groupRows.set(`${team.team_id}`, team)));
 
   projectedGames.filter((game) => game.type === "group").forEach((game) => {
-    if (shouldFinishMockGame(game, targetGame)) {
+    if (targetIsLive && game === targetGame) {
+      applyLivePredictedScore(game, teamById);
+    } else if (shouldFinishMockGame(game, targetGame, { excludeTarget: targetIsLive })) {
       applyPredictedScore(game, teamById, { allowDraw: true });
       applyGroupResult(groupRows.get(`${game.home_team_id}`), groupRows.get(`${game.away_team_id}`), game);
     } else {
@@ -96,7 +101,9 @@ function buildMatchDayData({ groups, games, targetMatch }) {
     assignBracketTeam(game, "home", home);
     assignBracketTeam(game, "away", away);
 
-    if (shouldFinishMockGame(game, targetGame)) {
+    if (targetIsLive && game === targetGame) {
+      applyLivePredictedScore(game, teamById);
+    } else if (shouldFinishMockGame(game, targetGame, { excludeTarget: targetIsLive })) {
       applyPredictedScore(game, teamById, { allowDraw: false });
       winners.set(`${game.id}`, winnerTeam(game, teamById));
       losers.set(`${game.id}`, loserTeam(game, teamById));
@@ -122,12 +129,12 @@ function addTeam(teamById, id, name) {
   teamById.set(`${id}`, { id: `${id}`, name });
 }
 
-function shouldFinishMockGame(game, targetGame) {
+function shouldFinishMockGame(game, targetGame, { excludeTarget = false } = {}) {
   const gameDate = parseMatchDate(game);
   const targetDate = parseMatchDate(targetGame);
   if (!gameDate || !targetDate) return number(game.id) < number(targetGame.id);
   if (gameDate.getTime() !== targetDate.getTime()) return gameDate < targetDate;
-  return number(game.id) <= number(targetGame.id);
+  return excludeTarget ? number(game.id) < number(targetGame.id) : number(game.id) <= number(targetGame.id);
 }
 
 function bracketSeeds(projectedGroups, teamById) {
@@ -204,6 +211,12 @@ function resetGame(game) {
   game.time_elapsed = "notstarted";
   game.home_score = 0;
   game.away_score = 0;
+}
+
+function applyLivePredictedScore(game, teamById) {
+  applyPredictedScore(game, teamById, { allowDraw: game.type === "group" });
+  game.finished = false;
+  game.time_elapsed = "62";
 }
 
 function applyGroupResult(home, away, game) {

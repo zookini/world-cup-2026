@@ -357,6 +357,31 @@ test("mock mode loads and stays offline", async ({ page }) => {
   expect(feedRequests).toEqual([]);
 });
 
+test("mock live state updates group tables as the score stands", async ({ page }) => {
+  await page.goto("/?mock=match-40&state=live#groups/h");
+
+  await expect(page.locator("#sync-status")).toContainText("with target match live");
+  await expect(page.locator("#group-h")).toHaveClass(/active-group/);
+  await expect(page.locator("#group-h tbody tr.playing")).toHaveCount(2);
+  await expect(page.locator("#group-h tbody tr.playing .score-badge")).toHaveText(["3", "0"]);
+
+  const uruguay = page.locator("#group-h tbody tr", { hasText: "Uruguay" });
+  await expect(uruguay.locator("td").nth(2)).toHaveText("2");
+  await expect(uruguay.locator("td").nth(7)).toHaveText("6");
+});
+
+test("pool standings mark the active owned team flag", async ({ page }) => {
+  await page.goto("/?mock=match-40&state=live");
+
+  const chun = page.locator("#contenders tbody tr", { hasText: "Chun" });
+  await expect(chun.locator(".team-flag.playing")).toHaveCount(1);
+  await expect(chun.locator(".team-flag.playing .flag-live-points")).toHaveText("+3");
+
+  const sharon = page.locator("#contenders tbody tr", { hasText: "Sharon" });
+  await expect(sharon.locator(".team-flag.playing")).toHaveCount(1);
+  await expect(sharon.locator(".team-flag.playing .flag-live-points")).toHaveText("+0");
+});
+
 test("medal badges appear only when each podium place is settled", async ({ page }) => {
   await page.goto("/?mock=match-102");
   await expect(page.locator(".rank-badge")).toHaveCount(0);
@@ -392,6 +417,26 @@ test("fixtures tab returns to next match", async ({ page }) => {
         if (!el) return false;
         const rect = el.getBoundingClientRect();
         return rect.top < innerHeight && rect.bottom > 0;
+      })
+    )
+    .toBe(true);
+});
+
+test("groups tab returns to active group", async ({ page }) => {
+  await page.goto("/?mock=match-40&state=live");
+  await page.click('[data-view="groups"]');
+  await rendered(page, "groups");
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  await page.click('[data-view="groups"]');
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const el = document.querySelector(".group-table.active-group");
+        const tabs = document.querySelector(".view-tabs");
+        if (!el) return false;
+        const rect = el.getBoundingClientRect();
+        const tabsBottom = tabs?.getBoundingClientRect().bottom || 0;
+        return rect.top >= tabsBottom && rect.top < innerHeight && rect.bottom > 0;
       })
     )
     .toBe(true);

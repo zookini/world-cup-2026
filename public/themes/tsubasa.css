@@ -182,11 +182,11 @@ tr.selected {
 
 .group-table .card-context {
   font-family: Anton, Impact, sans-serif;
-  background: var(--accent);
-  color: #fff;
-  border-bottom: 3px solid var(--ink);
-  min-height: 42px;
-  padding: 8px 10px;
+  background: #fff;
+  color: var(--ink);
+  border-bottom: 2px solid rgba(12, 27, 58, 0.18);
+  min-height: 32px;
+  padding: 5px 8px;
 }
 .group-table .card-context h3,
 .fixture .card-context h3 {
@@ -198,10 +198,20 @@ tr.selected {
   line-height: 1.28;
 }
 .group-table .card-context h3 {
-  color: #fff;
+  color: var(--ink);
+  font-size: 0.78rem;
 }
-.group-table .fixture-share {
-  color: #fff;
+.group-table.active-group {
+  border-color: var(--accent);
+  box-shadow: 5px 5px 0 var(--accent);
+}
+.group-table.active-group .card-context {
+  background: var(--pop);
+  color: var(--ink);
+  border-bottom-color: var(--ink);
+}
+.group-table.active-group .card-context h3 {
+  color: var(--ink);
 }
 
 /* --- Flags get a thick ink frame --- */
@@ -238,11 +248,11 @@ tr.selected {
 }
 .fixture-day {
   font-family: "Mochiy Pop One", sans-serif;
-  color: #fff;
-  background: var(--accent);
-  border: 3px solid var(--ink);
+  color: var(--muted);
+  background: #fff;
+  border: 2px solid rgba(12, 27, 58, 0.2);
   border-radius: 4px;
-  box-shadow: 3px 3px 0 var(--ink);
+  box-shadow: 2px 2px 0 rgba(12, 27, 58, 0.18);
 }
 
 .fixture.deep-linked,

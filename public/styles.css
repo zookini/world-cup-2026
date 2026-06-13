@@ -228,12 +228,35 @@ th:nth-child(3),
 }
 
 .team-flag {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 30px;
   color: var(--muted);
   line-height: 1;
+}
+
+.team-flag.playing img {
+  border-color: var(--accent);
+}
+
+.flag-live-points {
+  position: absolute;
+  right: -4px;
+  bottom: -7px;
+  min-width: 18px;
+  padding: 1px 3px;
+  color: var(--bg);
+  background: var(--accent);
+  border: 1px solid var(--bg);
+  border-radius: 999px;
+  font-size: 0.58rem;
+  font-weight: 850;
+  line-height: 1;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  animation: points-pulse 1.8s ease-in-out infinite;
 }
 
 .team-flag img,
@@ -261,6 +284,7 @@ tr.eliminated .table-flag {
   border: 0;
   border-radius: 0;
   overflow: hidden;
+  scroll-margin-top: calc(var(--tabs-height) + 14px);
 }
 
 .card-context {
@@ -280,6 +304,10 @@ tr.eliminated .table-flag {
   text-overflow: ellipsis;
   line-height: 1.35;
   white-space: nowrap;
+}
+
+.group-table tr.playing .team-name {
+  color: var(--accent);
 }
 
 .group-table table {
@@ -303,6 +331,18 @@ tr.eliminated .table-flag {
   gap: 8px;
   align-items: center;
   min-height: 28px;
+}
+
+.score-badge {
+  display: inline-block;
+  min-width: 14px;
+  color: var(--accent);
+  font-size: inherit;
+  font-weight: 850;
+  line-height: inherit;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  animation: active-pulse 1.8s ease-in-out infinite;
 }
 
 .team-cell > span {
@@ -720,8 +760,12 @@ tr.eliminated {
   }
 
   .team-cell {
-    grid-template-columns: 23px minmax(0, 1fr);
+    grid-template-columns: 23px minmax(0, 1fr) auto;
     gap: 5px;
+  }
+
+  .score-badge {
+    min-width: 12px;
   }
 
   .table-flag {
@@ -753,8 +797,35 @@ tr.eliminated {
   }
 }
 
+@keyframes active-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(0.96);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes points-pulse {
+  0%,
+  100% {
+    transform: scale(0.94);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .sync-status.loading {
+    animation: none;
+  }
+
+  .flag-live-points,
+  .score-badge {
     animation: none;
   }
 }

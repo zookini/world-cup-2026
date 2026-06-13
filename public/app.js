@@ -12,6 +12,7 @@ let dataStatus = "";
 let initialDataLoaded = false;
 let loadingMessage = "";
 let pendingFixtureScroll = false;
+let pendingGroupScroll = false;
 
 const contendersEl = document.querySelector("#contenders");
 const groupsEl = document.querySelector("#groups");
@@ -138,6 +139,10 @@ function applyHashRoute() {
   if (!anchor) {
     if (resolved === "fixtures") {
       requestFixtureScroll();
+      return;
+    }
+    if (resolved === "groups") {
+      requestGroupScroll();
       return;
     }
     scrollToTop();
@@ -446,8 +451,8 @@ function standingsForGroup(group) {
 
 function groupRowsWithResults(group) {
   const groupGames = games.filter((game) => game.type === "group" && game.group === group.name);
-  const finishedGames = groupGames.filter(isFinished);
-  if (!finishedGames.length) return group.teams;
+  const resultGames = groupGames.filter(countsInGroupTable);
+  if (!resultGames.length) return group.teams;
 
   const rows = new Map();
   group.teams.forEach((row) => {
@@ -465,7 +470,7 @@ function groupRowsWithResults(group) {
       pts: 0,
     });
   });
-  finishedGames.forEach((game) => applyGroupGame(rows, game));
+  resultGames.forEach((game) => applyGroupGame(rows, game));
   return [...rows.values()];
 }
 
@@ -622,6 +627,38 @@ function scoreText(game, side) {
   const pens = penaltyScore(game, side);
   const score = game[`${side}_score`];
   return pens === null ? `${score}` : `${score} (${pens})`;
+}
+
+function liveGame() {
+  return games.find((game) => matchState(game) === "live") || null;
+}
+
+function countsInGroupTable(game) {
+  return isFinished(game) || matchState(game) === "live";
+}
+
+function liveTeamSide(teamId) {
+  const game = liveGame();
+  if (!game) return "";
+  if (`${game.home_team_id}` === `${teamId}`) return "home";
+  if (`${game.away_team_id}` === `${teamId}`) return "away";
+  return "";
+}
+
+function liveTeamScore(teamId) {
+  const side = liveTeamSide(teamId);
+  return side ? scoreText(liveGame(), side) : "";
+}
+
+function liveTeamPoints(teamId) {
+  const game = liveGame();
+  const side = liveTeamSide(teamId);
+  if (!game || !side) return null;
+  const ownScore = number(game[`${side}_score`]);
+  const otherScore = number(game[`${side === "home" ? "away" : "home"}_score`]);
+  if (ownScore > otherScore) return 3;
+  if (ownScore < otherScore) return 0;
+  return 1;
 }
 
 function renderActiveView() {
@@ -790,9 +827,12 @@ function teamGroupRecord(selection) {
 
 function flagMarkup(team) {
   const status = teamStatus(team);
+  const apiTeam = teamByName.get(normalizeName(team.name));
+  const livePoints = apiTeam ? liveTeamPoints(apiTeam.id) : null;
   return `
-    <span class="team-flag ${status}" title="${team.name}">
+    <span class="team-flag ${status} ${livePoints === null ? "" : "playing"}" title="${team.name}">
       ${flagImage(team)}
+      ${livePoints === null ? "" : `<span class="flag-live-points">+${livePoints}</span>`}
       <small class="visually-hidden">${team.code}</small>
     </span>
   `;
@@ -813,17 +853,20 @@ function renderGroups() {
   const sourceGroups = groups.length ? groups : fallbackGroups();
   sourceGroups.slice().sort((a, b) => a.name.localeCompare(b.name)).forEach((group) => {
     const table = document.createElement("article");
-    table.className = "group-table";
+    const live = liveGame();
+    const activeGroup = live?.type === "group" && live.group === group.name;
+    table.className = `group-table${activeGroup ? " active-group" : ""}`;
     table.id = `group-${groupSlug(group.name)}`;
     const standings = groups.length ? standingsForGroup(group) : group.teams;
     const rows = standings.map((team) => {
       const selected = selections.find((item) => normalizeName(item.name) === normalizeName(team.name));
       const status = selected ? groupStageStatus(selected, team.id) : "neutral";
       const displayName = teamDisplayName(team);
+      const liveScore = liveTeamScore(team.id);
       return `
-        <tr class="${status} ${selected ? "selected" : ""}">
+        <tr class="${status} ${selected ? "selected" : ""} ${liveScore ? "playing" : ""}">
           <td>${ownerBadge(team.owner, status)}</td>
-          <td><div class="team-cell">${tableFlagMarkup(team)}<span class="team-name" title="${team.name}">${displayName}</span></div></td>
+          <td><div class="team-cell">${tableFlagMarkup(team)}<span class="team-name" title="${team.name}">${displayName}</span>${liveScore ? `<span class="score-badge">${liveScore}</span>` : ""}</div></td>
           <td>${team.mp}</td>
           <td>${team.w}</td>
           <td>${team.l}</td>
@@ -836,7 +879,6 @@ function renderGroups() {
     table.innerHTML = `
       <div class="card-context">
         <h3>Group ${group.name}</h3>
-        <button type="button" class="fixture-share" data-share="${group.name}" aria-label="Share Group ${group.name}" title="Share group">${SHARE_ICON}</button>
       </div>
       <table>
         <thead><tr><th>Gambler</th><th>Team</th><th>P</th><th>W</th><th>L</th><th>D</th><th>GD</th><th>Pts</th></tr></thead>
@@ -847,7 +889,7 @@ function renderGroups() {
   });
   markDeepLinkedElement(hashGroupTarget());
   if (document.querySelector('[data-panel="groups"]')?.classList.contains("active")) {
-    scrollToGroup(hashGroupTarget());
+    settleGroupScroll();
   }
 }
 
@@ -1062,10 +1104,23 @@ function requestFixtureScroll() {
   settleFixtureScroll();
 }
 
+function requestGroupScroll() {
+  pendingGroupScroll = true;
+  settleGroupScroll();
+}
+
 function settleFixtureScroll() {
   if (!pendingFixtureScroll || activeView !== "fixtures" || !fixturesEl.children.length) return;
   pendingFixtureScroll = false;
   scrollToFixture(hashFixtureTarget());
+}
+
+function settleGroupScroll() {
+  if (!pendingGroupScroll || activeView !== "groups" || !groupsEl.children.length) return;
+  pendingGroupScroll = false;
+  const target = hashGroupTarget() || activeGroupTarget();
+  if (target) scrollToGroup(target);
+  else scrollToTop();
 }
 
 // Bottom-align a fixture in the viewport. Passing null targets the next
@@ -1087,6 +1142,10 @@ function scrollToGroup(target) {
     if (!target) return;
     target.scrollIntoView({ behavior: "smooth", block: "start" });
   });
+}
+
+function activeGroupTarget() {
+  return groupsEl.querySelector(".group-table.active-group");
 }
 
 function markDeepLinkedElement(target) {

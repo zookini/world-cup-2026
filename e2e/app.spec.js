@@ -160,9 +160,9 @@ test("live ESPN data lands on the seed fixture for the right teams", async ({ pa
   await expect(page.locator("#fixture-5")).not.toHaveClass(/live/);
 });
 
-// A match already underway is shown as live, not as the upcoming "next" match;
-// the next highlight belongs on the following fixture still to kick off.
-test("a live match is not highlighted as the next upcoming fixture", async ({ page }) => {
+// While a match is in progress it carries the highlight; matches still to kick
+// off are not highlighted until the live one finishes.
+test("a live match carries the highlight rather than the next to kick off", async ({ page }) => {
   await page.route("**/site.api.espn.com/**", (route) => route.fulfill({
     json: {
       events: [espnEvent({
@@ -179,11 +179,11 @@ test("a live match is not highlighted as the next upcoming fixture", async ({ pa
 
   await page.goto("/#fixtures");
 
-  // Seed match 8 (Qatar vs Switzerland) is live and styled as such, not "next".
+  // Seed match 8 (Qatar vs Switzerland) is live and holds the highlight.
   await expect(page.locator("#fixture-8")).toHaveClass(/live/);
-  await expect(page.locator("#fixture-8")).not.toHaveClass(/\bnext\b/);
-  // The next highlight sits on the following match still to kick off (match 7).
-  await expect(page.locator("#fixture-7")).toHaveClass(/\bnext\b/);
+  await expect(page.locator("#fixture-8")).toHaveClass(/\bnext\b/);
+  // A later match still to kick off is not highlighted while one is live.
+  await expect(page.locator("#fixture-7")).not.toHaveClass(/\bnext\b/);
 });
 
 test("fixture cards show goals and red cards from ESPN game data", async ({ page }) => {

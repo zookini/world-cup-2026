@@ -160,6 +160,32 @@ test("live ESPN data lands on the seed fixture for the right teams", async ({ pa
   await expect(page.locator("#fixture-5")).not.toHaveClass(/live/);
 });
 
+// A match already underway is shown as live, not as the upcoming "next" match;
+// the next highlight belongs on the following fixture still to kick off.
+test("a live match is not highlighted as the next upcoming fixture", async ({ page }) => {
+  await page.route("**/site.api.espn.com/**", (route) => route.fulfill({
+    json: {
+      events: [espnEvent({
+        id: "900",
+        date: "2026-06-13T19:00Z",
+        home: { id: "QAT", name: "Qatar" },
+        away: { id: "SUI", name: "Switzerland" },
+        homeScore: "1",
+        awayScore: "0",
+        status: "36'",
+      })],
+    },
+  }));
+
+  await page.goto("/#fixtures");
+
+  // Seed match 8 (Qatar vs Switzerland) is live and styled as such, not "next".
+  await expect(page.locator("#fixture-8")).toHaveClass(/live/);
+  await expect(page.locator("#fixture-8")).not.toHaveClass(/\bnext\b/);
+  // The next highlight sits on the following match still to kick off (match 7).
+  await expect(page.locator("#fixture-7")).toHaveClass(/\bnext\b/);
+});
+
 test("fixture cards show goals and red cards from ESPN game data", async ({ page }) => {
   await page.route("**/site.api.espn.com/**", (route) => route.fulfill({
     json: {

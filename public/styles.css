@@ -241,7 +241,7 @@ th:nth-child(3),
   border-color: var(--accent);
 }
 
-.flag-live-points {
+.flag-live-score {
   position: absolute;
   right: -4px;
   bottom: -7px;
@@ -256,7 +256,7 @@ th:nth-child(3),
   line-height: 1;
   text-align: center;
   font-variant-numeric: tabular-nums;
-  animation: points-pulse 1.8s ease-in-out infinite;
+  animation: score-pulse 1.8s ease-in-out infinite;
 }
 
 .team-flag img,
@@ -335,14 +335,17 @@ tr.eliminated .table-flag {
 
 .score-badge {
   display: inline-block;
-  min-width: 14px;
-  color: var(--accent);
-  font-size: inherit;
+  min-width: 18px;
+  padding: 1px 6px;
+  color: var(--bg);
+  background: var(--accent);
+  border-radius: 999px;
+  font-size: 0.7rem;
   font-weight: 850;
-  line-height: inherit;
+  line-height: 1.45;
   text-align: center;
   font-variant-numeric: tabular-nums;
-  animation: active-pulse 1.8s ease-in-out infinite;
+  animation: score-pulse 1.8s ease-in-out infinite;
 }
 
 .team-cell > span {
@@ -797,10 +800,10 @@ tr.eliminated {
   }
 }
 
-@keyframes active-pulse {
+@keyframes score-pulse {
   0%,
   100% {
-    opacity: 0.55;
+    opacity: 0.7;
     transform: scale(0.96);
   }
   50% {
@@ -809,22 +812,12 @@ tr.eliminated {
   }
 }
 
-@keyframes points-pulse {
-  0%,
-  100% {
-    transform: scale(0.94);
-  }
-  50% {
-    transform: scale(1.1);
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .sync-status.loading {
     animation: none;
   }
 
-  .flag-live-points,
+  .flag-live-score,
   .score-badge {
     animation: none;
   }

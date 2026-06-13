@@ -375,11 +375,11 @@ test("pool standings mark the active owned team flag", async ({ page }) => {
 
   const chun = page.locator("#contenders tbody tr", { hasText: "Chun" });
   await expect(chun.locator(".team-flag.playing")).toHaveCount(1);
-  await expect(chun.locator(".team-flag.playing .flag-live-points")).toHaveText("+3");
+  await expect(chun.locator(".team-flag.playing .flag-live-score")).toHaveText("3");
 
   const sharon = page.locator("#contenders tbody tr", { hasText: "Sharon" });
   await expect(sharon.locator(".team-flag.playing")).toHaveCount(1);
-  await expect(sharon.locator(".team-flag.playing .flag-live-points")).toHaveText("+0");
+  await expect(sharon.locator(".team-flag.playing .flag-live-score")).toHaveText("0");
 });
 
 test("medal badges appear only when each podium place is settled", async ({ page }) => {

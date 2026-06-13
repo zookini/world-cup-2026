@@ -650,17 +650,6 @@ function liveTeamScore(teamId) {
   return side ? scoreText(liveGame(), side) : "";
 }
 
-function liveTeamPoints(teamId) {
-  const game = liveGame();
-  const side = liveTeamSide(teamId);
-  if (!game || !side) return null;
-  const ownScore = number(game[`${side}_score`]);
-  const otherScore = number(game[`${side === "home" ? "away" : "home"}_score`]);
-  if (ownScore > otherScore) return 3;
-  if (ownScore < otherScore) return 0;
-  return 1;
-}
-
 function renderActiveView() {
   if (!selections.length) return;
   if (!initialDataLoaded && loadingMessage) {
@@ -828,11 +817,11 @@ function teamGroupRecord(selection) {
 function flagMarkup(team) {
   const status = teamStatus(team);
   const apiTeam = teamByName.get(normalizeName(team.name));
-  const livePoints = apiTeam ? liveTeamPoints(apiTeam.id) : null;
+  const liveScore = apiTeam ? liveTeamScore(apiTeam.id) : "";
   return `
-    <span class="team-flag ${status} ${livePoints === null ? "" : "playing"}" title="${team.name}">
+    <span class="team-flag ${status} ${liveScore ? "playing" : ""}" title="${team.name}">
       ${flagImage(team)}
-      ${livePoints === null ? "" : `<span class="flag-live-points">+${livePoints}</span>`}
+      ${liveScore ? `<span class="flag-live-score">${liveScore}</span>` : ""}
       <small class="visually-hidden">${team.code}</small>
     </span>
   `;

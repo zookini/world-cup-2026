@@ -311,54 +311,80 @@ async function optionalFetchJson(path) {
 // by feed order: the seed's match numbers are the canonical schedule but are
 // not strictly chronological, so aligning ESPN's date-sorted events to seed ids
 // by position drops live data onto the wrong fixture (e.g. an early kickoff's
-// score landing on a later same-day match). Matching on the team pair keeps each
-// overlay on its own row regardless of kickoff order.
+// score landing on a later same-day match).
+//
+// Match on the teams instead, but tolerate the feed naming a side differently
+// than the seed ("Côte d'Ivoire" vs "Ivory Coast", "Cabo Verde" vs "Cape
+// Verde", ...): score every seed/ESPN combination by how many of the two teams'
+// names align (2 = exact pairing, 1 = one side differs), break ties by kickoff
+// proximity, and claim greedily from the most confident pairings down. A
+// fixture only needs one recognizable team to land on its own row, so an
+// unrecognized spelling no longer silently drops the game from the standings.
 function mergeEspnGames(seedGames, payload) {
-  const espnByPair = new Map();
-  (payload.events || []).forEach((event) => {
-    const espnGame = mapEspnEvent(event);
-    if (!espnGame) return;
-    const key = teamPairKey(espnGame.home_team_name_en, espnGame.away_team_name_en);
-    if (!key) return;
-    if (!espnByPair.has(key)) espnByPair.set(key, []);
-    espnByPair.get(key).push(espnGame);
+  const espnGames = (payload.events || []).map(mapEspnEvent).filter(Boolean);
+  const pairings = [];
+  seedGames.forEach((seedGame, seedIndex) => {
+    espnGames.forEach((espnGame, espnIndex) => {
+      const shared = sharedTeamCount(seedGame, espnGame);
+      if (!shared) return;
+      pairings.push({ seedIndex, espnIndex, shared, gap: kickoffGap(seedGame, espnGame) });
+    });
   });
-  return seedGames.map((game) => {
-    const key = teamPairKey(game.home_team_name_en, game.away_team_name_en);
-    const candidates = key ? espnByPair.get(key) : null;
-    const espnGame = candidates ? closestByDate(game, candidates) : null;
+  pairings.sort((a, b) => b.shared - a.shared || a.gap - b.gap);
+  const espnForSeed = new Map();
+  const claimedEspn = new Set();
+  pairings.forEach(({ seedIndex, espnIndex }) => {
+    if (espnForSeed.has(seedIndex) || claimedEspn.has(espnIndex)) return;
+    espnForSeed.set(seedIndex, espnGames[espnIndex]);
+    claimedEspn.add(espnIndex);
+  });
+  return seedGames.map((game, index) => {
+    const espnGame = espnForSeed.get(index);
     return espnGame ? overlayEspnGame(game, espnGame) : game;
   });
 }
 
-// Unordered, normalized key for the two teams in a game so a seed fixture and
-// its ESPN event match regardless of which side the feed lists as home.
-function teamPairKey(homeName, awayName) {
-  const home = normalizeName(homeName || "");
-  const away = normalizeName(awayName || "");
-  if (!home || !away) return "";
-  return [home, away].sort().join("|");
+// How many of the two teams in a game share a normalized name with the ESPN
+// event, regardless of home/away order. Both sides must be named (knockout seed
+// rows are placeholders) for a pairing to be eligible.
+function sharedTeamCount(seedGame, espnGame) {
+  const seedTeams = [normalizeName(seedGame.home_team_name_en || ""), normalizeName(seedGame.away_team_name_en || "")].filter(Boolean);
+  const espnTeams = [normalizeName(espnGame.home_team_name_en || ""), normalizeName(espnGame.away_team_name_en || "")].filter(Boolean);
+  if (seedTeams.length < 2 || espnTeams.length < 2) return 0;
+  const remaining = [...espnTeams];
+  let shared = 0;
+  seedTeams.forEach((name) => {
+    const i = remaining.indexOf(name);
+    if (i >= 0) {
+      remaining.splice(i, 1);
+      shared += 1;
+    }
+  });
+  return shared;
 }
 
-// The same pairing can recur (a group fixture and a later knockout rematch), so
-// pick the ESPN event whose kickoff sits closest to the seed fixture's.
-function closestByDate(seedGame, candidates) {
-  if (candidates.length === 1) return candidates[0];
+// Distance between the two kickoffs, used to disambiguate a recurring pairing (a
+// group fixture and a later knockout rematch) and to pick the temporally closest
+// event when only one team's name resolves the match.
+function kickoffGap(seedGame, espnGame) {
   const seedDate = parseMatchDate(seedGame);
-  if (!seedDate) return candidates[0];
-  return candidates.reduce((best, candidate) => {
-    const bestDate = parseMatchDate(best);
-    const candidateDate = parseMatchDate(candidate);
-    if (!candidateDate) return best;
-    if (!bestDate) return candidate;
-    return Math.abs(candidateDate - seedDate) < Math.abs(bestDate - seedDate) ? candidate : best;
-  });
+  const espnDate = parseMatchDate(espnGame);
+  if (!seedDate || !espnDate) return Number.MAX_SAFE_INTEGER;
+  return Math.abs(espnDate - seedDate);
 }
 
 // The seed is canonical for which team is home, so flip ESPN's per-side fields
-// when the feed lists the teams in the opposite order.
+// when the feed lists the teams in the opposite order. Orientation is decided by
+// whichever alignment matches more team names, so a one-sided naming difference
+// still lands each score on the right side.
 function overlayEspnGame(seedGame, espnGame) {
-  const flipped = normalizeName(seedGame.home_team_name_en) !== normalizeName(espnGame.home_team_name_en);
+  const seedHome = normalizeName(seedGame.home_team_name_en || "");
+  const seedAway = normalizeName(seedGame.away_team_name_en || "");
+  const espnHome = normalizeName(espnGame.home_team_name_en || "");
+  const espnAway = normalizeName(espnGame.away_team_name_en || "");
+  const aligned = (seedHome && seedHome === espnHome ? 1 : 0) + (seedAway && seedAway === espnAway ? 1 : 0);
+  const swapped = (seedHome && seedHome === espnAway ? 1 : 0) + (seedAway && seedAway === espnHome ? 1 : 0);
+  const flipped = swapped > aligned;
   const home = flipped ? "away" : "home";
   const away = flipped ? "home" : "away";
   return {

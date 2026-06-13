@@ -160,6 +160,38 @@ test("live ESPN data lands on the seed fixture for the right teams", async ({ pa
   await expect(page.locator("#fixture-5")).not.toHaveClass(/live/);
 });
 
+// The feed names some teams differently than the seed ("Côte d'Ivoire" vs
+// "Ivory Coast"). A one-sided naming difference must not drop the game: the
+// shared team (Ecuador) still lands the result on seed match 9, with the score
+// oriented to the seed's home/away even though the feed lists them flipped.
+test("ESPN games merge when the feed spells one team differently", async ({ page }) => {
+  await page.route("**/site.api.espn.com/**", (route) => route.fulfill({
+    json: {
+      events: [espnEvent({
+        id: "910",
+        date: "2026-06-14T23:00Z",
+        home: { id: "ECU", name: "Ecuador" },
+        away: { id: "CIV", name: "Côte d'Ivoire" },
+        homeScore: "0",
+        awayScore: "2",
+        status: "FT",
+      })],
+    },
+  }));
+
+  await page.goto("/#fixtures");
+
+  // Seed match 9 is Ivory Coast (home) vs Ecuador: the score follows the seed's
+  // sides even though the feed listed Ecuador as home.
+  await expect(page.locator("#fixture-9 .fixture-team strong")).toHaveText(["2", "0"]);
+
+  // ...and the finished game counts toward the group E standings.
+  await page.goto("/#groups");
+  const ivoryCoast = page.locator("#group-e tbody tr", { hasText: "Ivory Coast" }).first();
+  await expect(ivoryCoast.locator("td").nth(2)).toHaveText("1");
+  await expect(ivoryCoast.locator("td").nth(7)).toHaveText("3");
+});
+
 // While a match is in progress it carries the highlight; matches still to kick
 // off are not highlighted until the live one finishes.
 test("a live match carries the highlight rather than the next to kick off", async ({ page }) => {

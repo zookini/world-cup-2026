@@ -1150,16 +1150,12 @@ function compareGames(a, b) {
     return number(a.id) - number(b.id);
 }
 
-// The "next" highlight marks the next match still to kick off. A live match
-// carries its own live styling, so it — and anything earlier the feed has
-// already started or settled — is skipped: "next" is the first upcoming fixture
-// that falls after the last started match in the schedule.
+// While a match is in progress it carries the highlight; otherwise the next
+// fixture still to kick off does. Finished matches are never highlighted.
 function nextFixtureId(ordered) {
-  let lastStarted = -1;
-  ordered.forEach((game, index) => {
-    if (matchState(game) !== "upcoming") lastStarted = index;
-  });
-  return ordered.slice(lastStarted + 1).find((game) => matchState(game) === "upcoming") || null;
+  return ordered.find((game) => matchState(game) === "live")
+    || ordered.find((game) => matchState(game) === "upcoming")
+    || null;
 }
 
 function requestFixtureScroll() {
@@ -1194,10 +1190,7 @@ function scrollToFixture(target) {
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       const scrollTarget = () => {
-        const el = target
-          || fixturesEl.querySelector(".fixture.live")
-          || fixturesEl.querySelector(".fixture.next")
-          || fixturesEl.querySelector(".fixture:last-child");
+        const el = target || fixturesEl.querySelector(".fixture.next") || fixturesEl.querySelector(".fixture:last-child");
         if (!el) return;
         scrollElementToUsableCenter(el);
       };

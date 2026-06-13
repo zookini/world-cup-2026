@@ -197,8 +197,9 @@ tr.selected {
   letter-spacing: 0.01em;
   line-height: 1.28;
 }
-.group-table .card-context h3 {
-  color: var(--ink);
+.group-table .card-context h3,
+.fixture .card-context h3 {
+  color: #1d5fbf;
   font-size: 0.78rem;
 }
 .group-table.active-group {
@@ -210,10 +211,6 @@ tr.selected {
   color: var(--ink);
   border-bottom-color: var(--ink);
 }
-.group-table.active-group .card-context h3 {
-  color: var(--ink);
-}
-
 /* --- Flags get a thick ink frame --- */
 .team-flag img,
 .table-flag {
@@ -233,14 +230,8 @@ tr.selected {
   border-color: var(--accent);
   box-shadow: 4px 4px 0 var(--accent);
 }
-.fixture.next .card-context h3 {
-  color: var(--ink);
-}
 .fixture-foot {
   border-top: 2px dashed var(--ink);
-}
-.fixture .card-context h3 {
-  color: var(--accent);
 }
 .fixture-foot .fixture-live {
   color: var(--accent);

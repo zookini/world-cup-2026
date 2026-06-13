@@ -1028,13 +1028,20 @@ function fixtureTeamLine(team, score) {
 
 function scorerMarkup(scorers) {
   if (!scorers?.length) return "";
-  const incidents = scorers.map((scorer) => {
+  const grouped = scorers.reduce((groups, scorer) => {
     const incident = typeof scorer === "string" ? { kind: "goal", label: scorer } : scorer;
     const kind = incident.kind === "red-card" ? "red-card" : "goal";
     const label = incident.label || `${incident.name}${incident.minute ? ` ${incident.minute}` : ""}`;
+    groups[kind].push(label);
+    return groups;
+  }, { goal: [], "red-card": [] });
+
+  const incidents = ["goal", "red-card"].filter((kind) => grouped[kind].length).map((kind) => {
     const iconLabel = kind === "red-card" ? "Red card" : "Goal";
-    return `<span class="fixture-incident ${kind}"><span class="fixture-incident-icon" aria-hidden="true" title="${iconLabel}"></span><span>${label}</span></span>`;
+    const labels = grouped[kind].map((label) => `<span class="fixture-incident-label">${label}</span>`).join(`<span class="fixture-incident-separator">, </span>`);
+    return `<span class="fixture-incident ${kind}"><span class="fixture-incident-icon" aria-hidden="true" title="${iconLabel}"></span><span>${labels}</span></span>`;
   }).join(" ");
+
   return `<span class="fixture-scorers">${incidents}</span>`;
 }
 

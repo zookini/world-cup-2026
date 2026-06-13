@@ -461,8 +461,8 @@ tr.eliminated {
 
 .fixture-scorers {
   display: flex;
-  flex-wrap: wrap;
-  gap: 3px 7px;
+  flex-direction: column;
+  gap: 2px;
   margin-top: 2px;
   overflow-wrap: anywhere;
   color: var(--muted);
@@ -472,7 +472,7 @@ tr.eliminated {
 
 .fixture-incident {
   display: inline-flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 4px;
 }
 
@@ -482,6 +482,11 @@ tr.eliminated {
   justify-content: center;
   flex: 0 0 auto;
   line-height: 1;
+  margin-top: 0.14em;
+}
+
+.fixture-incident-label {
+  white-space: nowrap;
 }
 
 .fixture-incident.goal .fixture-incident-icon {

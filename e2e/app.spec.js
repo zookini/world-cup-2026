@@ -141,9 +141,9 @@ test("fixture cards show goals and red cards from ESPN game data", async ({ page
 
   await page.goto("/#fixtures");
 
-  await expect(page.locator("#fixture-1 .fixture-scorers").first()).toHaveText("J. Quiñones 9' R. Jiménez 67'");
+  await expect(page.locator("#fixture-1 .fixture-scorers").first()).toHaveText("J. Quiñones 9', R. Jiménez 67'");
   await expect(page.locator("#fixture-1 .fixture-scorers").last()).toHaveText("T. Mokoena 84'");
-  await expect(page.locator("#fixture-1 .fixture-incident.goal")).toHaveCount(2);
+  await expect(page.locator("#fixture-1 .fixture-incident.goal")).toHaveCount(1);
   await expect(page.locator("#fixture-1 .fixture-incident.red-card")).toHaveCount(1);
 });
 

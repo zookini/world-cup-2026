@@ -171,10 +171,25 @@ function hashGroupTarget() {
   return hashTarget("groups", "group", "group");
 }
 
+// A monotonic token so only the most recently scheduled scroll runs. Switching
+// views (or scheduling another scroll) supersedes a scroll still waiting on
+// layout, so a scroll meant for a view you've left can't yank the page after
+// you've moved on.
+let scrollToken = 0;
+
+// Run fn once the freshly shown panel has been laid out (two frames), unless a
+// newer scroll has superseded this one. The position is applied instantly:
+// switching tabs should land at the right spot, not animate there from
+// wherever the previous view happened to be scrolled.
+function afterLayout(fn) {
+  const token = ++scrollToken;
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    if (token === scrollToken) fn();
+  }));
+}
+
 function scrollToTop() {
-  requestAnimationFrame(() => {
-    window.scrollTo({ top: 0, behavior: "auto" });
-  });
+  afterLayout(() => window.scrollTo({ top: 0, behavior: "auto" }));
 }
 
 function groupSlug(group) {
@@ -1221,27 +1236,17 @@ function settleGroupScroll() {
 // Center a fixture in the usable viewport below the sticky tabs. Passing null
 // targets the next unfinished match (or the last one); the router passes a
 // specific element when the hash points at one (e.g. `#fixtures/match-1234`).
-// Runs after a frame so the panel has been shown and laid out before we measure.
 function scrollToFixture(target) {
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      const scrollTarget = () => {
-        const el = target || fixturesEl.querySelector(".fixture.next") || fixturesEl.querySelector(".fixture:last-child");
-        if (!el) return;
-        scrollElementToUsableCenter(el);
-      };
-      setTimeout(scrollTarget, 80);
-      setTimeout(scrollTarget, 450);
-    });
+  afterLayout(() => {
+    if (activeView !== "fixtures") return;
+    const el = target || fixturesEl.querySelector(".fixture.next") || fixturesEl.querySelector(".fixture:last-child");
+    if (el) scrollElementToUsableCenter(el);
   });
 }
 
 function scrollToGroup(target) {
-  requestAnimationFrame(() => {
-    if (!target) return;
-    const scrollTarget = () => scrollElementToUsableCenter(target);
-    scrollTarget();
-    setTimeout(scrollTarget, 450);
+  afterLayout(() => {
+    if (target && activeView === "groups") scrollElementToUsableCenter(target);
   });
 }
 
@@ -1251,7 +1256,7 @@ function scrollElementToUsableCenter(target) {
   const usableHeight = Math.max(0, window.innerHeight - usableTop - 16);
   const centerOffset = Math.max(0, (usableHeight - rect.height) / 2);
   const top = window.scrollY + rect.top - usableTop - centerOffset;
-  window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+  window.scrollTo({ top: Math.max(0, top), behavior: "auto" });
 }
 
 function stickyTabsBottom() {

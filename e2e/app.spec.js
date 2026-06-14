@@ -492,6 +492,10 @@ test("tabs render and route", async ({ page }) => {
 });
 
 test("plain tab switch resets scroll", async ({ page }) => {
+  // Empty feed so no group is live: a plain switch then resets to the top
+  // rather than auto-centering an active group (see "groups tab returns to
+  // active group"). Without this the test depends on live tournament state.
+  await page.route("**/site.api.espn.com/**", (route) => route.fulfill({ json: { events: [] } }));
   await page.goto("/");
   await page.click('[data-view="fixtures"]');
   await rendered(page, "fixtures");

@@ -1,53 +1,53 @@
 # groups
-group	team_id	team_name_en
-H	29	
-H	30	
-H	31	
-H	32	
-I	33	
-I	34	
-I	35	
-I	36	
-D	13	
-D	14	
-D	15	
-D	16	
-E	17	
-E	18	
-E	19	
-E	20	
-F	21	
-F	22	
-F	23	
-F	24	
-G	25	
-G	26	
-G	27	
-G	28	
-A	1	
-A	2	
-A	3	
-A	4	
-B	5	
-B	6	
-B	7	
-B	8	
-L	45	
-L	46	
-L	47	
-L	48	
-K	41	
-K	42	
-K	43	
-K	44	
-C	9	
-C	10	
-C	11	
-C	12	
-J	37	
-J	38	
-J	39	
-J	40	
+group	team_id	team_name_en	code
+H	29		ESP
+H	30		CPV
+H	31		KSA
+H	32		URU
+I	33		FRA
+I	34		SEN
+I	35		IRQ
+I	36		NOR
+D	13		USA
+D	14		PAR
+D	15		AUS
+D	16		TUR
+E	17		GER
+E	18		CUW
+E	19		CIV
+E	20		ECU
+F	21		NED
+F	22		JPN
+F	23		SWE
+F	24		TUN
+G	25		BEL
+G	26		EGY
+G	27		IRN
+G	28		NZL
+A	1		MEX
+A	2		RSA
+A	3		KOR
+A	4		CZE
+B	5		CAN
+B	6		BIH
+B	7		QAT
+B	8		SUI
+L	45		ENG
+L	46		CRO
+L	47		GHA
+L	48		PAN
+K	41		POR
+K	42		COD
+K	43		UZB
+K	44		COL
+C	9		BRA
+C	10		MAR
+C	11		HAI
+C	12		SCO
+J	37		ARG
+J	38		ALG
+J	39		AUT
+J	40		JOR
 
 # games
 id	home_team_id	away_team_id	group	local_date	stadium_id	type	home_team_name_en	away_team_name_en	home_team_label	away_team_label
@@ -71,7 +71,7 @@ id	home_team_id	away_team_id	group	local_date	stadium_id	type	home_team_name_en	
 18	35	36	I	06/16/2026 18:00	9	group	Iraq	Norway		
 19	37	38	J	06/16/2026 20:00	6	group	Argentina	Algeria		
 20	39	40	J	06/16/2026 21:00	15	group	Austria	Jordan		
-21	41	42	K	06/17/2026 12:00	5	group	Portugal	Democratic Republic of the Congo		
+21	41	42	K	06/17/2026 12:00	5	group	Portugal	Congo DR		
 22	45	46	L	06/17/2026 15:00	4	group	England	Croatia		
 23	43	44	K	06/17/2026 20:00	1	group	Uzbekistan	Colombia		
 24	47	48	L	06/17/2026 19:00	12	group	Ghana	Panama		
@@ -97,7 +97,7 @@ id	home_team_id	away_team_id	group	local_date	stadium_id	type	home_team_name_en	
 44	40	38	J	06/22/2026 20:00	15	group	Jordan	Algeria		
 45	41	43	K	06/23/2026 12:00	5	group	Portugal	Uzbekistan		
 46	48	46	L	06/23/2026 19:00	12	group	Panama	Croatia		
-47	44	42	K	06/23/2026 20:00	2	group	Colombia	Democratic Republic of the Congo		
+47	44	42	K	06/23/2026 20:00	2	group	Colombia	Congo DR		
 48	45	47	L	06/23/2026 16:00	9	group	England	Ghana		
 49	12	9	C	06/24/2026 18:00	8	group	Scotland	Brazil		
 50	10	11	C	06/24/2026 18:00	7	group	Morocco	Haiti		
@@ -122,7 +122,7 @@ id	home_team_id	away_team_id	group	local_date	stadium_id	type	home_team_name_en	
 69	38	39	J	06/27/2026 21:00	6	group	Algeria	Austria		
 70	40	37	J	06/27/2026 21:00	4	group	Jordan	Argentina		
 71	44	41	K	06/27/2026 19:30	8	group	Colombia	Portugal		
-72	42	43	K	06/27/2026 19:30	7	group	Democratic Republic of the Congo	Uzbekistan		
+72	42	43	K	06/27/2026 19:30	7	group	Congo DR	Uzbekistan		
 73	0	0	R32	06/28/2026 12:00	16	r32			Runner-up Group A	Runner-up Group B
 74	0	0	R32	06/29/2026 16:30	9	r32			Winner Group E	3rd Group A/B/C/D/F
 75	0	0	R32	06/29/2026 19:00	3	r32			Winner Group F	Runner-up Group C

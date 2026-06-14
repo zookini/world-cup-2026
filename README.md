@@ -24,9 +24,15 @@ complete group stage, `/?mock=match-104` for a fully played tournament. Mock dat
 
 Live mode uses `public/tournament-seed.tsv` as the canonical schedule, group, stage,
 team, and match-number source. ESPN's FIFA World Cup scoreboard is overlaid for
-live status, scores, and scorers, fetched directly from `site.api.espn.com` in
-the browser (the API sends `Access-Control-Allow-Origin: *`, so no proxy is
+live status, scores, scorers, and team names, fetched directly from `site.api.espn.com`
+in the browser (the API sends `Access-Control-Allow-Origin: *`, so no proxy is
 needed).
+
+Seed fixtures are joined to ESPN events by FIFA code (the seed's `code` column
+against ESPN's `team.abbreviation`), which also keys ownership in
+`selections.csv` and the flag filenames. Team names shown on the board come
+from ESPN; the seed's names are only an offline/mock fallback. See
+`mergeEspnGames` in `public/app.js` for the matching details.
 
 Shootouts: ESPN puts a numeric `shootoutScore` on each competitor (verified
 against the 2022 final, ESPN event 633850), which is mapped to

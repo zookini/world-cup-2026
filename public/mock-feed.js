@@ -9,7 +9,7 @@ const TEAM_STRENGTH = {
   Paraguay: 69, Canada: 68, Egypt: 67, Ghana: 66, Algeria: 65, Australia: 64,
   "Bosnia and Herzegovina": 63, Czechia: 62, Iran: 61, Scotland: 60, Tunisia: 59,
   "South Africa": 58, Qatar: 57, Panama: 56, "Saudi Arabia": 55, Uzbekistan: 54,
-  "DR Congo": 53, "Democratic Republic of the Congo": 53, Iraq: 52, Jordan: 51,
+  "Congo DR": 53, Iraq: 52, Jordan: 51,
   "New Zealand": 50, "Cape Verde": 49, Haiti: 48, "Curaçao": 47,
 };
 
@@ -246,7 +246,6 @@ function loserTeam(game, teamById) {
     : teamById.get(`${game.away_team_id}`);
 }
 
-// TEAM_STRENGTH lists both DR Congo spellings, so no name mapping is needed.
 function teamStrength(name) {
   return TEAM_STRENGTH[name] ?? 40;
 }

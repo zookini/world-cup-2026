@@ -79,13 +79,13 @@ function espnEvent({ id, date, home, away, homeScore = "0", awayScore = "0", hom
         homeAway: "home",
         score: homeScore,
         ...(homeShootout === undefined ? {} : { shootoutScore: homeShootout }),
-        team: { id: home.id, displayName: home.name },
+        team: { id: home.id, displayName: home.name, abbreviation: home.abbrev || home.id },
       }, {
         id: away.id,
         homeAway: "away",
         score: awayScore,
         ...(awayShootout === undefined ? {} : { shootoutScore: awayShootout }),
-        team: { id: away.id, displayName: away.name },
+        team: { id: away.id, displayName: away.name, abbreviation: away.abbrev || away.id },
       }],
       details,
     }],
@@ -95,8 +95,8 @@ function espnEvent({ id, date, home, away, homeScore = "0", awayScore = "0", hom
 const ESPN_MEX_RSA_FT = espnEvent({
   id: "760415",
   date: "2026-06-11T19:00Z",
-  home: { id: "203", name: "Mexico" },
-  away: { id: "467", name: "South Africa" },
+  home: { id: "203", name: "Mexico", abbrev: "MEX" },
+  away: { id: "467", name: "South Africa", abbrev: "RSA" },
   homeScore: "2",
   awayScore: "0",
   status: "FT",
@@ -160,11 +160,11 @@ test("live ESPN data lands on the seed fixture for the right teams", async ({ pa
   await expect(page.locator("#fixture-5")).not.toHaveClass(/live/);
 });
 
-// The feed names some teams differently than the seed ("Côte d'Ivoire" vs
-// "Ivory Coast"). A one-sided naming difference must not drop the game: the
-// shared team (Ecuador) still lands the result on seed match 9, with the score
-// oriented to the seed's home/away even though the feed lists them flipped.
-test("ESPN games merge when the feed spells one team differently", async ({ page }) => {
+// The feed names the team differently than the seed ("Côte d'Ivoire" vs the
+// seed's "Ivory Coast") and lists the sides flipped, but the shared FIFA code
+// (CIV) still lands the result on seed match 9 with the score oriented to the
+// seed's home/away. The standings then render ESPN's spelling.
+test("ESPN games merge by code and adopt the feed's team name", async ({ page }) => {
   await page.route("**/site.api.espn.com/**", (route) => route.fulfill({
     json: {
       events: [espnEvent({
@@ -185,11 +185,44 @@ test("ESPN games merge when the feed spells one team differently", async ({ page
   // sides even though the feed listed Ecuador as home.
   await expect(page.locator("#fixture-9 .fixture-team strong")).toHaveText(["2", "0"]);
 
-  // ...and the finished game counts toward the group E standings.
+  // ...and the finished game counts toward the group E standings under the
+  // feed's spelling.
   await page.goto("/#groups");
-  const ivoryCoast = page.locator("#group-e tbody tr", { hasText: "Ivory Coast" }).first();
+  const ivoryCoast = page.locator("#group-e tbody tr", { hasText: "Côte d'Ivoire" }).first();
   await expect(ivoryCoast.locator("td").nth(2)).toHaveText("1");
   await expect(ivoryCoast.locator("td").nth(7)).toHaveText("3");
+});
+
+// The feed spells both teams differently than the seed and uses ESPN's own
+// numeric event id, so only the FIFA codes (ESP/CPV vs the seed's code column)
+// tie the event to seed match 14. The board then shows the feed's spelling.
+test("ESPN games merge on FIFA code and show the feed's names", async ({ page }) => {
+  await page.route("**/site.api.espn.com/**", (route) => route.fulfill({
+    json: {
+      events: [espnEvent({
+        id: "914",
+        date: "2026-06-15T12:00Z",
+        home: { id: "208", name: "España", abbrev: "ESP" },
+        away: { id: "299", name: "Cabo Verde", abbrev: "CPV" },
+        homeScore: "3",
+        awayScore: "0",
+        status: "FT",
+      })],
+    },
+  }));
+
+  await page.goto("/#fixtures");
+
+  // Seed match 14 is Spain (home) vs Cape Verde (away); the score follows the
+  // seed's sides and the names show ESPN's spelling.
+  await expect(page.locator("#fixture-14 .fixture-team strong")).toHaveText(["3", "0"]);
+  await expect(page.locator("#fixture-14 .team-name")).toHaveText(["España", "Cabo Verde"]);
+
+  // ...and the finished game counts toward the group H standings under that name.
+  await page.goto("/#groups");
+  const spain = page.locator("#group-h tbody tr", { hasText: "España" }).first();
+  await expect(spain.locator("td").nth(2)).toHaveText("1");
+  await expect(spain.locator("td").nth(7)).toHaveText("3");
 });
 
 // While a match is in progress it carries the highlight; matches still to kick
@@ -224,8 +257,8 @@ test("fixture cards show goals and red cards from ESPN game data", async ({ page
       events: [espnEvent({
         id: "760415",
         date: "2026-06-11T19:00Z",
-        home: { id: "203", name: "Mexico" },
-        away: { id: "467", name: "South Africa" },
+        home: { id: "203", name: "Mexico", abbrev: "MEX" },
+        away: { id: "467", name: "South Africa", abbrev: "RSA" },
         homeScore: "2",
         awayScore: "0",
         status: "FT",
@@ -267,8 +300,8 @@ test("ESPN shootout scores render as a bracketed penalty tally", async ({ page }
       events: [espnEvent({
         id: "760415",
         date: "2026-06-11T19:00Z",
-        home: { id: "203", name: "Mexico" },
-        away: { id: "467", name: "South Africa" },
+        home: { id: "203", name: "Mexico", abbrev: "MEX" },
+        away: { id: "467", name: "South Africa", abbrev: "RSA" },
         homeScore: "1",
         awayScore: "1",
         homeShootout: 4,
@@ -299,12 +332,12 @@ test("live fixtures use ESPN status with local schedule metadata", async ({ page
             id: "203",
             homeAway: "home",
             score: "2",
-            team: { id: "203", displayName: "Mexico" },
+            team: { id: "203", displayName: "Mexico", abbreviation: "MEX" },
           }, {
             id: "467",
             homeAway: "away",
             score: "0",
-            team: { id: "467", displayName: "South Africa" },
+            team: { id: "467", displayName: "South Africa", abbreviation: "RSA" },
           }],
         }],
       }, {
@@ -320,12 +353,12 @@ test("live fixtures use ESPN status with local schedule metadata", async ({ page
             id: "451",
             homeAway: "home",
             score: "1",
-            team: { id: "451", displayName: "South Korea" },
+            team: { id: "451", displayName: "South Korea", abbreviation: "KOR" },
           }, {
             id: "450",
             homeAway: "away",
             score: "0",
-            team: { id: "450", displayName: "Czechia" },
+            team: { id: "450", displayName: "Czechia", abbreviation: "CZE" },
           }],
           details: [{
             scoringPlay: true,

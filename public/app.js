@@ -7,7 +7,8 @@ let selections = [];
 let groups = [];
 let games = [];
 let teamById = new Map();
-let teamByName = new Map();
+let teamByCode = new Map();
+let espnNameByCode = new Map();
 let dataStatus = "";
 let initialDataLoaded = false;
 let loadingMessage = "";
@@ -313,78 +314,78 @@ async function optionalFetchJson(path) {
 // by position drops live data onto the wrong fixture (e.g. an early kickoff's
 // score landing on a later same-day match).
 //
-// Match on the teams instead, but tolerate the feed naming a side differently
-// than the seed ("Côte d'Ivoire" vs "Ivory Coast", "Cabo Verde" vs "Cape
-// Verde", ...): score every seed/ESPN combination by how many of the two teams'
-// names align (2 = exact pairing, 1 = one side differs), break ties by kickoff
-// proximity, and claim greedily from the most confident pairings down. A
-// fixture only needs one recognizable team to land on its own row, so an
-// unrecognized spelling no longer silently drops the game from the standings.
+// Match on the teams' FIFA codes, the one identifier the seed (its `code`
+// column) and ESPN (team.abbreviation) share exactly. That sidesteps every
+// spelling difference between the two sources ("Côte d'Ivoire" vs "Ivory
+// Coast", "Cabo Verde" vs "Cape Verde", ...) with no name normalization or
+// fuzzy scoring: each fixture finds its event by an unordered code pair, and the
+// matched event's names overlay the seed so the board shows ESPN's spelling.
 function mergeEspnGames(seedGames, payload) {
-  const espnGames = (payload.events || []).map(mapEspnEvent).filter(Boolean);
-  const pairings = [];
-  seedGames.forEach((seedGame, seedIndex) => {
-    espnGames.forEach((espnGame, espnIndex) => {
-      const shared = sharedTeamCount(seedGame, espnGame);
-      if (!shared) return;
-      pairings.push({ seedIndex, espnIndex, shared, gap: kickoffGap(seedGame, espnGame) });
-    });
+  espnNameByCode = new Map();
+  const espnByPair = new Map();
+  (payload.events || []).forEach((event) => {
+    const espnGame = mapEspnEvent(event);
+    if (!espnGame) return;
+    rememberEspnName(espnGame.home_team_code, espnGame.home_team_name_en);
+    rememberEspnName(espnGame.away_team_code, espnGame.away_team_name_en);
+    const key = teamPairKey(espnGame.home_team_code, espnGame.away_team_code);
+    if (!key) return;
+    if (!espnByPair.has(key)) espnByPair.set(key, []);
+    espnByPair.get(key).push(espnGame);
   });
-  pairings.sort((a, b) => b.shared - a.shared || a.gap - b.gap);
-  const espnForSeed = new Map();
-  const claimedEspn = new Set();
-  pairings.forEach(({ seedIndex, espnIndex }) => {
-    if (espnForSeed.has(seedIndex) || claimedEspn.has(espnIndex)) return;
-    espnForSeed.set(seedIndex, espnGames[espnIndex]);
-    claimedEspn.add(espnIndex);
-  });
-  return seedGames.map((game, index) => {
-    const espnGame = espnForSeed.get(index);
+  return seedGames.map((game) => {
+    const key = teamPairKey(game.home_team_code, game.away_team_code);
+    const candidates = key ? espnByPair.get(key) : null;
+    const espnGame = candidates ? closestByDate(game, candidates) : null;
     return espnGame ? overlayEspnGame(game, espnGame) : game;
   });
 }
 
-// How many of the two teams in a game share a normalized name with the ESPN
-// event, regardless of home/away order. Both sides must be named (knockout seed
-// rows are placeholders) for a pairing to be eligible.
-function sharedTeamCount(seedGame, espnGame) {
-  const seedTeams = [normalizeName(seedGame.home_team_name_en || ""), normalizeName(seedGame.away_team_name_en || "")].filter(Boolean);
-  const espnTeams = [normalizeName(espnGame.home_team_name_en || ""), normalizeName(espnGame.away_team_name_en || "")].filter(Boolean);
-  if (seedTeams.length < 2 || espnTeams.length < 2) return 0;
-  const remaining = [...espnTeams];
-  let shared = 0;
-  seedTeams.forEach((name) => {
-    const i = remaining.indexOf(name);
-    if (i >= 0) {
-      remaining.splice(i, 1);
-      shared += 1;
-    }
-  });
-  return shared;
+// FIFA codes arrive from the seed, selections.csv, and ESPN with inconsistent
+// casing, so compare them in one canonical form.
+function upperCode(code) {
+  return `${code || ""}`.toUpperCase();
 }
 
-// Distance between the two kickoffs, used to disambiguate a recurring pairing (a
-// group fixture and a later knockout rematch) and to pick the temporally closest
-// event when only one team's name resolves the match.
-function kickoffGap(seedGame, espnGame) {
+// Unordered key of the two FIFA codes so a seed fixture and its ESPN event match
+// regardless of which side the feed lists as home. A game with a missing code
+// (knockout seed rows are placeholders until teams advance) yields no key and so
+// never matches.
+function teamPairKey(homeCode, awayCode) {
+  const home = upperCode(homeCode);
+  const away = upperCode(awayCode);
+  if (!home || !away) return "";
+  return [home, away].sort().join("|");
+}
+
+// The same code pair can recur (a group fixture and a later knockout rematch),
+// so pick the ESPN event whose kickoff is closest to the seed fixture's.
+function closestByDate(seedGame, candidates) {
+  if (candidates.length === 1) return candidates[0];
   const seedDate = parseMatchDate(seedGame);
-  const espnDate = parseMatchDate(espnGame);
-  if (!seedDate || !espnDate) return Number.MAX_SAFE_INTEGER;
-  return Math.abs(espnDate - seedDate);
+  if (!seedDate) return candidates[0];
+  return candidates.reduce((best, candidate) => {
+    const bestDate = parseMatchDate(best);
+    const candidateDate = parseMatchDate(candidate);
+    if (!candidateDate) return best;
+    if (!bestDate) return candidate;
+    return Math.abs(candidateDate - seedDate) < Math.abs(bestDate - seedDate) ? candidate : best;
+  });
+}
+
+// The board shows ESPN's spelling of each team: remember the feed's name per
+// FIFA code so every fixture and standings row for that team renders it
+// (teamDisplayName), regardless of which games the feed covers.
+function rememberEspnName(code, name) {
+  const key = upperCode(code);
+  if (key && name) espnNameByCode.set(key, name);
 }
 
 // The seed is canonical for which team is home, so flip ESPN's per-side fields
-// when the feed lists the teams in the opposite order. Orientation is decided by
-// whichever alignment matches more team names, so a one-sided naming difference
-// still lands each score on the right side.
+// when the feed lists the teams in the opposite order (decided by code).
 function overlayEspnGame(seedGame, espnGame) {
-  const seedHome = normalizeName(seedGame.home_team_name_en || "");
-  const seedAway = normalizeName(seedGame.away_team_name_en || "");
-  const espnHome = normalizeName(espnGame.home_team_name_en || "");
-  const espnAway = normalizeName(espnGame.away_team_name_en || "");
-  const aligned = (seedHome && seedHome === espnHome ? 1 : 0) + (seedAway && seedAway === espnAway ? 1 : 0);
-  const swapped = (seedHome && seedHome === espnAway ? 1 : 0) + (seedAway && seedAway === espnHome ? 1 : 0);
-  const flipped = swapped > aligned;
+  const seedHome = upperCode(seedGame.home_team_code);
+  const flipped = seedHome !== "" && seedHome === upperCode(espnGame.away_team_code);
   const home = flipped ? "away" : "home";
   const away = flipped ? "home" : "away";
   return {
@@ -412,6 +413,8 @@ function mapEspnEvent(event) {
     espn_id: event.id,
     home_team_id: home.team?.id || home.id,
     away_team_id: away.team?.id || away.id,
+    home_team_code: espnTeamCode(home),
+    away_team_code: espnTeamCode(away),
     home_team_name_en: espnTeamName(home),
     away_team_name_en: espnTeamName(away),
     utc_date: event.date || competition.date || "",
@@ -431,6 +434,12 @@ function mapEspnEvent(event) {
 
 function espnTeamName(competitor) {
   return competitor.team?.displayName || competitor.team?.name || competitor.team?.location || "";
+}
+
+// ESPN's national-team abbreviation is the FIFA 3-letter code, the stable
+// identifier matched against the seed's `code` column.
+function espnTeamCode(competitor) {
+  return competitor.team?.abbreviation || "";
 }
 
 function espnIncidents(competition, competitor) {
@@ -462,41 +471,41 @@ function espnElapsed(status) {
 
 function indexTeams() {
   teamById = new Map();
-  teamByName = new Map();
+  teamByCode = new Map();
 
   games.forEach((game) => {
-    addTeam(game.home_team_id, game.home_team_name_en, game.group);
-    addTeam(game.away_team_id, game.away_team_name_en, game.group);
+    addTeam(game.home_team_id, game.home_team_code, game.home_team_name_en, game.group);
+    addTeam(game.away_team_id, game.away_team_code, game.away_team_name_en, game.group);
   });
 
-  selections.forEach((team) => {
-    const indexed = teamByName.get(normalizeName(team.name));
+  selections.forEach((selection) => {
+    const indexed = teamByCode.get(upperCode(selection.code));
     if (indexed) {
-      indexed.code = team.code;
-      indexed.owner = team.player;
-      indexed.group = team.group || indexed.group;
+      indexed.owner = selection.player;
+      indexed.group = selection.group || indexed.group;
     }
   });
 }
 
-function addTeam(id, name, group) {
+function addTeam(id, code, name, group) {
   if (!id || !name || name.toLowerCase().includes("winner") || name.toLowerCase().includes("runner")) return;
-  const normalized = normalizeName(name);
-  const existing = teamByName.get(normalized) || {};
-  const selection = selectionForName(name);
+  const upper = upperCode(code);
+  const existing = teamByCode.get(upper) || {};
+  const selection = selectionByCode(upper);
   const team = {
     id: `${id}`,
     name,
-    code: selection?.code || existing.code || codeFromName(name),
+    code: upper || existing.code || codeFromName(name),
     owner: selection?.player || existing.owner || "",
     group: selection?.group || group || existing.group || "",
   };
   teamById.set(`${id}`, team);
-  teamByName.set(normalized, team);
+  if (team.code) teamByCode.set(team.code, team);
 }
 
-function selectionForName(name) {
-  return selections.find((team) => normalizeName(team.name) === normalizeName(name));
+function selectionByCode(code) {
+  const upper = upperCode(code);
+  return upper ? selections.find((team) => upperCode(team.code) === upper) : undefined;
 }
 
 function codeFromName(name) {
@@ -513,7 +522,7 @@ function standingsForGroup(group) {
       id,
       name: team.name || row.team_name_en || row.name || `Team ${id}`,
       code: team.code || `T${id}`,
-      owner: team.owner || selectionForName(team.name)?.player || "",
+      owner: team.owner || selectionByCode(team.code)?.player || "",
       group: group.name,
       mp: number(row.mp),
       w: number(row.w),
@@ -598,7 +607,7 @@ function sortStandings(a, b) {
 }
 
 function teamStatus(selection) {
-  const apiTeam = teamByName.get(normalizeName(selection.name));
+  const apiTeam = teamByCode.get(upperCode(selection.code));
   const teamId = apiTeam?.id;
   const knockoutLoss = hasKnockoutLoss(teamId);
   if (knockoutLoss) return "eliminated";
@@ -607,7 +616,7 @@ function teamStatus(selection) {
 }
 
 function teamEliminatedAt(selection) {
-  const apiTeam = teamByName.get(normalizeName(selection.name));
+  const apiTeam = teamByCode.get(upperCode(selection.code));
   const teamId = apiTeam?.id;
   if (!teamId || teamStatus(selection) !== "eliminated") return null;
 
@@ -640,7 +649,7 @@ function groupStageStatus(selection, teamId, throughGame = null) {
 }
 
 function teamStatusAtMatch(selection, game) {
-  const apiTeam = teamByName.get(normalizeName(selection.name));
+  const apiTeam = teamByCode.get(upperCode(selection.code));
   const teamId = apiTeam?.id;
   if (!teamId) return "alive";
   if (isThirdPlaceGame(game) && teamInGame(teamId, game)) {
@@ -887,14 +896,14 @@ function groupStageComplete() {
 function teamGroupRecord(selection) {
   const group = groups.find((item) => item.name === selection.group);
   if (!group) return { played: 0, w: 0, l: 0, d: 0, pts: 0 };
-  const team = standingsForGroup(group).find((item) => normalizeName(item.name) === normalizeName(selection.name));
+  const team = standingsForGroup(group).find((item) => upperCode(item.code) === upperCode(selection.code));
   if (!team) return { played: 0, w: 0, l: 0, d: 0, pts: 0 };
   return { played: team.mp, w: team.w, l: team.l, d: team.d, pts: team.pts };
 }
 
 function flagMarkup(team) {
   const status = teamStatus(team);
-  const apiTeam = teamByName.get(normalizeName(team.name));
+  const apiTeam = teamByCode.get(upperCode(team.code));
   const liveScore = apiTeam ? liveTeamScore(apiTeam.id) : "";
   return `
     <span class="team-flag ${status} ${liveScore ? "playing" : ""}" title="${team.name}">
@@ -926,7 +935,7 @@ function renderGroups() {
     table.id = `group-${groupSlug(group.name)}`;
     const standings = groups.length ? standingsForGroup(group) : group.teams;
     const rows = standings.map((team) => {
-      const selected = selections.find((item) => normalizeName(item.name) === normalizeName(team.name));
+      const selected = selectionByCode(team.code);
       const status = selected ? groupStageStatus(selected, team.id) : "neutral";
       const displayName = teamDisplayName(team);
       const liveScore = liveTeamScore(team.id);
@@ -964,9 +973,10 @@ function tableFlagMarkup(team) {
   return flagImage(team, "table-flag");
 }
 
+// Prefer ESPN's spelling for the team (by code); fall back to the seed name
+// offline/in mock.
 function teamDisplayName(team) {
-  if (team.code === "COD") return "DR Congo";
-  return team.name;
+  return espnNameByCode.get(upperCode(team.code)) || team.name;
 }
 
 function fallbackGroups() {
@@ -1132,7 +1142,7 @@ function fixtureTeam(game, side, statusGame = null) {
   const id = `${game[`${side}_team_id`]}`;
   const fallbackName = game[`${side}_team_name_en`] || game[`${side}_team_label`] || "TBD";
   const team = teamById.get(id) || { name: fallbackName, code: "TBD" };
-  const selection = selectionForName(team.name);
+  const selection = selectionByCode(team.code);
   const placeholder = !selection && (!team.code || team.code === "TBD");
   const status = selection ? teamStatusAtMatch(selection, statusGame || game) : "neutral";
   return {
@@ -1301,18 +1311,6 @@ function parseCsv(text) {
   row.push(value);
   if (row.some((cell) => cell.trim())) rows.push(row);
   return rows;
-}
-
-function normalizeName(name) {
-  return `${name}`
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/democratic republic of the congo/g, "dr congo")
-    .replace(/democratic republic of congo/g, "dr congo")
-    .replace(/czech republic/g, "czechia")
-    .replace(/turkey/g, "turkiye")
-    .replace(/[^a-z]/g, "");
 }
 
 init().catch((error) => {

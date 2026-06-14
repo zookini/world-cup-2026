@@ -957,7 +957,7 @@ function renderGroups() {
       return `
         <tr class="${status} ${selected ? "selected" : ""} ${liveScore ? "playing" : ""}">
           <td>${ownerBadge(team.owner, status)}</td>
-          <td><div class="team-cell">${tableFlagMarkup(team)}<span class="team-name" title="${team.name}">${displayName}</span>${liveScore ? `<span class="score-badge">${liveScore}</span>` : ""}</div></td>
+          <td><div class="team-cell">${tableFlagMarkup(team)}<span class="team-name">${displayName}</span>${liveScore ? `<span class="score-badge">${liveScore}</span>` : ""}</div></td>
           <td>${team.mp}</td>
           <td>${team.w}</td>
           <td>${team.l}</td>
@@ -1113,7 +1113,7 @@ function fixtureTeamLine(team, score) {
       <span class="fixture-gambler">${ownerBadge(team.owner, team.ownerStatus)}</span>
       ${fixtureFlag(team)}
       <span class="fixture-team-copy">
-        <span class="team-name" title="${team.name}">${team.name}</span>
+        <span class="team-name">${team.name}</span>
         ${scorerMarkup(team.scorers)}
       </span>
       <strong>${score}</strong>

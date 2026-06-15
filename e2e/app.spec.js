@@ -115,13 +115,13 @@ test("live standings update from finished ESPN games", async ({ page }) => {
   await page.goto("/#groups");
 
   await expect(page.locator("#group-a tbody tr").first()).toContainText("Mexico");
-  await expect(page.locator("#group-a tbody tr").first().locator("td").nth(2)).toHaveText("1");
-  await expect(page.locator("#group-a tbody tr").first().locator("td").nth(7)).toHaveText("3");
+  await expect(page.locator("#group-a tbody tr").first().locator("td").nth(3)).toHaveText("1");
+  await expect(page.locator("#group-a tbody tr").first().locator("td").nth(8)).toHaveText("3");
 
   await page.goto("/");
   const mexicoOwner = page.locator("#contenders tbody tr", { hasText: "T" }).first();
   await expect(mexicoOwner.locator("td").nth(2)).toHaveText("1");
-  await expect(mexicoOwner.locator("td").nth(6)).toHaveText("3");
+  await expect(mexicoOwner.locator("td").nth(7)).toHaveText("3");
 });
 
 // The seed schedule is not strictly chronological (match 8, Qatar vs
@@ -189,8 +189,8 @@ test("ESPN games merge by code and adopt the feed's team name", async ({ page })
   // feed's spelling.
   await page.goto("/#groups");
   const ivoryCoast = page.locator("#group-e tbody tr", { hasText: "Côte d'Ivoire" }).first();
-  await expect(ivoryCoast.locator("td").nth(2)).toHaveText("1");
-  await expect(ivoryCoast.locator("td").nth(7)).toHaveText("3");
+  await expect(ivoryCoast.locator("td").nth(3)).toHaveText("1");
+  await expect(ivoryCoast.locator("td").nth(8)).toHaveText("3");
 });
 
 // The feed spells both teams differently than the seed and uses ESPN's own
@@ -221,8 +221,8 @@ test("ESPN games merge on FIFA code and show the feed's names", async ({ page })
   // ...and the finished game counts toward the group H standings under that name.
   await page.goto("/#groups");
   const spain = page.locator("#group-h tbody tr", { hasText: "España" }).first();
-  await expect(spain.locator("td").nth(2)).toHaveText("1");
-  await expect(spain.locator("td").nth(7)).toHaveText("3");
+  await expect(spain.locator("td").nth(3)).toHaveText("1");
+  await expect(spain.locator("td").nth(8)).toHaveText("3");
 });
 
 // While a match is in progress it carries the highlight; matches still to kick
@@ -395,9 +395,9 @@ test("auto refresh picks up newly finished games", async ({ page }) => {
 
   await page.goto("/");
   const mexicoOwner = page.locator("#contenders tbody tr", { hasText: "T" }).first();
-  await expect(mexicoOwner.locator("td").nth(6)).toHaveText("0");
+  await expect(mexicoOwner.locator("td").nth(7)).toHaveText("0");
   await expect.poll(() => espnRequests, { timeout: 6000 }).toBeGreaterThanOrEqual(2);
-  await expect(mexicoOwner.locator("td").nth(6)).toHaveText("3", { timeout: 6000 });
+  await expect(mexicoOwner.locator("td").nth(7)).toHaveText("3", { timeout: 6000 });
 });
 
 test("fixture refresh does not steal manual scroll", async ({ page }) => {
@@ -448,7 +448,7 @@ test("live mode does not show zero standings before feed data loads", async ({ p
   await loading;
 
   await expect(page.locator("#contenders tbody tr").first()).toContainText("T");
-  await expect(page.locator("#contenders tbody tr").first().locator("td").nth(6)).toHaveText("3");
+  await expect(page.locator("#contenders tbody tr").first().locator("td").nth(7)).toHaveText("3");
 });
 
 test("loading state is consistent across tabs while feed data loads", async ({ page }) => {
@@ -536,8 +536,8 @@ test("mock live state updates group tables as the score stands", async ({ page }
   await expect(page.locator("#group-h tbody tr.playing .score-badge")).toHaveText(["3", "0"]);
 
   const uruguay = page.locator("#group-h tbody tr", { hasText: "Uruguay" });
-  await expect(uruguay.locator("td").nth(2)).toHaveText("2");
-  await expect(uruguay.locator("td").nth(7)).toHaveText("6");
+  await expect(uruguay.locator("td").nth(3)).toHaveText("2");
+  await expect(uruguay.locator("td").nth(8)).toHaveText("6");
 });
 
 test("pool standings mark the active owned team flag", async ({ page }) => {

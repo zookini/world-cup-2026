@@ -318,11 +318,16 @@ tr.eliminated .table-flag {
 
 .group-table th:first-child,
 .group-table td:first-child {
+  width: 28px;
+}
+
+.group-table th:nth-child(2),
+.group-table td:nth-child(2) {
   width: 74px;
 }
 
-.group-table th:nth-child(n + 3),
-.group-table td:nth-child(n + 3) {
+.group-table th:nth-child(n + 4),
+.group-table td:nth-child(n + 4) {
   width: 38px;
 }
 
@@ -378,10 +383,6 @@ tr.eliminated .table-flag {
 .last-place-table td:nth-child(3) {
   width: auto;
   text-align: left;
-}
-
-tr.selected {
-  background: #fbfbfb;
 }
 
 tr.eliminated {
@@ -749,7 +750,7 @@ tr.eliminated {
 
   .group-table th:first-child,
   .group-table td:first-child {
-    width: 64px;
+    width: 22px;
   }
 
   .last-place-table th:first-child,
@@ -763,12 +764,13 @@ tr.eliminated {
     padding-left: 8px;
   }
 
-  .group-table th:first-child {
+  .group-table th:nth-child(2) {
     font-size: 0.72rem;
   }
 
   .group-table th:nth-child(2),
   .group-table td:nth-child(2) {
+    width: 64px;
     padding-left: 8px;
   }
 
@@ -820,8 +822,8 @@ tr.eliminated {
     padding-left: 3px;
   }
 
-  .group-table th:nth-child(n + 3),
-  .group-table td:nth-child(n + 3) {
+  .group-table th:nth-child(n + 4),
+  .group-table td:nth-child(n + 4) {
     width: 24px;
   }
 

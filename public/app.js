@@ -791,11 +791,12 @@ function renderContenders() {
           <th>W</th>
           <th>L</th>
           <th>D</th>
+          <th>GD</th>
           <th>Pts</th>
         </tr>
       </thead>
       <tbody>
-        ${rows.map(({ player, owned, played, w, l, d, pts }, index) => {
+        ${rows.map(({ player, owned, played, w, l, d, gd, pts }, index) => {
           const rank = rankForPlayerSummary(rows, index, false);
           return `
             <tr class="contender-row">
@@ -812,6 +813,7 @@ function renderContenders() {
               <td>${w}</td>
               <td>${l}</td>
               <td>${d}</td>
+              <td>${gd}</td>
               <td><strong>${pts}</strong></td>
             </tr>
           `;
@@ -835,9 +837,10 @@ function playerSummary(player) {
     summary.w += record.w;
     summary.l += record.l;
     summary.d += record.d;
+    summary.gd += record.gd;
     summary.pts += record.pts;
     return summary;
-  }, { player, owned, alive: 0, eliminated: false, eliminations: [], lastEliminatedGame: null, played: 0, w: 0, l: 0, d: 0, pts: 0 });
+  }, { player, owned, alive: 0, eliminated: false, eliminations: [], lastEliminatedGame: null, played: 0, w: 0, l: 0, d: 0, gd: 0, pts: 0 });
 
   summary.eliminated = owned.length > 0 && summary.alive === 0;
   if (summary.eliminated) {
@@ -914,10 +917,10 @@ function groupStageComplete() {
 
 function teamGroupRecord(selection) {
   const group = groups.find((item) => item.name === selection.group);
-  if (!group) return { played: 0, w: 0, l: 0, d: 0, pts: 0 };
+  if (!group) return { played: 0, w: 0, l: 0, d: 0, gd: 0, pts: 0 };
   const team = standingsForGroup(group).find((item) => upperCode(item.code) === upperCode(selection.code));
-  if (!team) return { played: 0, w: 0, l: 0, d: 0, pts: 0 };
-  return { played: team.mp, w: team.w, l: team.l, d: team.d, pts: team.pts };
+  if (!team) return { played: 0, w: 0, l: 0, d: 0, gd: 0, pts: 0 };
+  return { played: team.mp, w: team.w, l: team.l, d: team.d, gd: team.gd, pts: team.pts };
 }
 
 function flagMarkup(team) {
@@ -1029,13 +1032,14 @@ function renderGroups() {
     table.className = `group-table${activeGroup ? " active-group" : ""}`;
     table.id = `group-${groupSlug(group.name)}`;
     const standings = groups.length ? standingsForGroup(group) : group.teams;
-    const rows = standings.map((team) => {
+    const rows = standings.map((team, index) => {
       const selected = selectionByCode(team.code);
       const status = selected ? groupStageStatus(selected, team.id) : "neutral";
       const displayName = teamDisplayName(team);
       const liveScore = liveTeamScore(team.id);
       return `
         <tr class="${status} ${selected ? "selected" : ""} ${liveScore ? "playing" : ""}">
+          <td><span class="rank-number">${index + 1}</span></td>
           <td>${ownerBadge(team.owner, status)}</td>
           <td><div class="team-cell">${tableFlagMarkup(team)}<span class="team-name">${displayName}</span>${liveScore ? `<span class="score-badge">${liveScore}</span>` : ""}</div></td>
           <td>${team.mp}</td>
@@ -1052,7 +1056,7 @@ function renderGroups() {
         <h3>Group ${group.name}</h3>
       </div>
       <table>
-        <thead><tr><th>Gambler</th><th>Team</th><th>P</th><th>W</th><th>L</th><th>D</th><th>GD</th><th>Pts</th></tr></thead>
+        <thead><tr><th>#</th><th>Gambler</th><th>Team</th><th>P</th><th>W</th><th>L</th><th>D</th><th>GD</th><th>Pts</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
     `;

@@ -175,11 +175,8 @@ td {
   font-family: Anton, sans-serif;
   font-style: italic;
 }
-/* Almost every group row is a picked team, so keep the highlight faint —
-   otherwise the group tables read as blue against the white standings table. */
-tr.selected {
-  background: #eef4fd;
-}
+/* Every pool team is owned, so a "selected" highlight would tint whole tables
+   and distinguish nothing. Selected rows stay white, matching Standings. */
 
 .group-table .card-context {
   font-family: Anton, Impact, sans-serif;

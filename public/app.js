@@ -23,7 +23,7 @@ const syncStatusEl = document.querySelector("#sync-status");
 const viewButtons = document.querySelectorAll("[data-view]");
 const viewPanels = document.querySelectorAll("[data-panel]");
 
-const VIEWS = ["standings", "last", "fixtures", "groups"];
+const VIEWS = ["standings", "losers", "fixtures", "groups"];
 let activeView = "standings";
 
 // ESPN's scoreboard API sends Access-Control-Allow-Origin: *, so the browser
@@ -764,7 +764,7 @@ function renderActiveView() {
     renderFixtures();
   } else if (activeView === "groups") {
     renderGroups();
-  } else if (activeView === "last") {
+  } else if (activeView === "losers") {
     renderLastPlace();
   } else {
     renderContenders();

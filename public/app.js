@@ -16,13 +16,14 @@ let pendingFixtureScroll = false;
 let pendingGroupScroll = false;
 
 const contendersEl = document.querySelector("#contenders");
+const lastPlaceEl = document.querySelector("#last-place");
 const groupsEl = document.querySelector("#groups");
 const fixturesEl = document.querySelector("#fixtures");
 const syncStatusEl = document.querySelector("#sync-status");
 const viewButtons = document.querySelectorAll("[data-view]");
 const viewPanels = document.querySelectorAll("[data-panel]");
 
-const VIEWS = ["standings", "fixtures", "groups"];
+const VIEWS = ["standings", "last", "fixtures", "groups"];
 let activeView = "standings";
 
 // ESPN's scoreboard API sends Access-Control-Allow-Origin: *, so the browser
@@ -258,6 +259,7 @@ function statusLine() {
 
 function renderLoadingState() {
   contendersEl.innerHTML = "";
+  lastPlaceEl.innerHTML = "";
   fixturesEl.innerHTML = "";
   groupsEl.innerHTML = "";
 }
@@ -762,6 +764,8 @@ function renderActiveView() {
     renderFixtures();
   } else if (activeView === "groups") {
     renderGroups();
+  } else if (activeView === "last") {
+    renderLastPlace();
   } else {
     renderContenders();
   }
@@ -937,6 +941,82 @@ function flagUrl(team) {
 function flagImage(team, className = "") {
   const classAttribute = className ? ` class="${className}"` : "";
   return `<img${classAttribute} src="${flagUrl(team)}" alt="${team.name} flag" loading="lazy" decoding="async" />`;
+}
+
+function renderLastPlace() {
+  const rows = selections.map(lastPlaceRow).sort(sortLastPlaceRows).slice(0, 10);
+  lastPlaceEl.innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Gambler</th>
+          <th>Team</th>
+          <th>P</th>
+          <th>W</th>
+          <th>L</th>
+          <th>D</th>
+          <th>GD</th>
+          <th>Pts</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map((row, index) => `
+          <tr class="${row.status} selected ${row.liveScore ? "playing" : ""}">
+            <td>${lastPlaceRankBadge(rankForLastPlace(rows, index))}</td>
+            <td>${ownerBadge(row.owner, row.status)}</td>
+            <td><div class="team-cell">${tableFlagMarkup(row)}<span class="team-name">${teamDisplayName(row)}</span>${row.liveScore ? `<span class="score-badge">${row.liveScore}</span>` : ""}</div></td>
+            <td>${row.mp}</td>
+            <td>${row.w}</td>
+            <td>${row.l}</td>
+            <td>${row.d}</td>
+            <td>${row.gd}</td>
+            <td><strong>${row.pts}</strong></td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>
+  `;
+}
+
+function lastPlaceRow(selection) {
+  const apiTeam = teamByCode.get(upperCode(selection.code)) || {};
+  const group = groups.find((item) => item.name === selection.group);
+  const record = group
+    ? standingsForGroup(group).find((item) => upperCode(item.code) === upperCode(selection.code))
+    : null;
+  const team = record || { ...selection, id: apiTeam.id || selection.code, mp: 0, w: 0, l: 0, d: 0, gf: 0, ga: 0, gd: 0, pts: 0 };
+  return {
+    ...team,
+    id: team.id || apiTeam.id || selection.code,
+    code: selection.code,
+    name: team.name || selection.name,
+    owner: selection.player,
+    group: selection.group,
+    status: teamStatus(selection),
+    liveScore: apiTeam.id ? liveTeamScore(apiTeam.id) : "",
+  };
+}
+
+function sortLastPlaceRows(a, b) {
+  return compareLastPlaceRank(a, b) || a.name.localeCompare(b.name);
+}
+
+// Worst record first, by the same criteria FIFA uses to rank group-stage
+// casualties. Excludes the name tiebreaker so truly tied teams share a rank.
+function compareLastPlaceRank(a, b) {
+  return a.pts - b.pts || a.gd - b.gd || a.gf - b.gf || b.ga - a.ga;
+}
+
+function lastPlaceRankBadge(rank) {
+  return `<span class="rank-number">${rank === 1 ? "💩" : rank}</span>`;
+}
+
+function rankForLastPlace(rows, index) {
+  if (index === 0) return 1;
+  const previous = rows[index - 1];
+  const current = rows[index];
+  return compareLastPlaceRank(current, previous) === 0 ? rankForLastPlace(rows, index - 1) : index + 1;
 }
 
 function renderGroups() {

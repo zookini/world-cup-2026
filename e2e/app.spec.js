@@ -484,11 +484,24 @@ test("loading state is consistent across tabs while feed data loads", async ({ p
 
 test("tabs render and route", async ({ page }) => {
   await page.goto("/");
-  for (const view of ["fixtures", "groups"]) {
+  for (const view of ["last", "fixtures", "groups"]) {
     await page.click(`[data-view="${view}"]`);
     await expect(page).toHaveURL(new RegExp(`#${view}$`));
     await rendered(page, view);
   }
+});
+
+test("last place tab ranks selected teams by worst group record", async ({ page }) => {
+  await page.goto(`${MOCK}#last`);
+
+  await expect(page.locator("#last-place tbody tr")).toHaveCount(10);
+  await expect(page.locator("#last-place tbody tr").first().locator("td").nth(0)).toHaveText("💩");
+  await expect(page.locator("#last-place tbody tr").first().locator("td").nth(8)).toHaveText("0");
+
+  const pointTotals = await page.locator("#last-place tbody tr td:nth-child(9)").evaluateAll((cells) =>
+    cells.map((cell) => Number(cell.textContent))
+  );
+  expect(pointTotals).toEqual([...pointTotals].sort((a, b) => a - b));
 });
 
 test("plain tab switch resets scroll", async ({ page }) => {

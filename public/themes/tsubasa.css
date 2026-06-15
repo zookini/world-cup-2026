@@ -137,7 +137,8 @@ h2::before {
   box-shadow: 5px 5px 0 var(--ink);
   overflow: hidden;
 }
-.contender-table:empty {
+.contender-table:empty,
+.last-place-table:empty {
   border: 0;
   box-shadow: none;
   background: transparent;

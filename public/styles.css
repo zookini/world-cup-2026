@@ -92,6 +92,7 @@ h3 {
 }
 
 .money-board,
+.last-board,
 .world-board {
   margin-bottom: 22px;
 }
@@ -358,6 +359,25 @@ tr.eliminated .table-flag {
   display: block;
   font-size: inherit;
   white-space: nowrap;
+}
+
+.last-place-table th:first-child,
+.last-place-table td:first-child {
+  width: 34px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.last-place-table th:nth-child(2),
+.last-place-table td:nth-child(2) {
+  width: 88px;
+  text-align: left;
+}
+
+.last-place-table th:nth-child(3),
+.last-place-table td:nth-child(3) {
+  width: auto;
+  text-align: left;
 }
 
 tr.selected {
@@ -732,6 +752,17 @@ tr.eliminated {
     width: 64px;
   }
 
+  .last-place-table th:first-child,
+  .last-place-table td:first-child {
+    width: 24px;
+  }
+
+  .last-place-table th:nth-child(3),
+  .last-place-table td:nth-child(3) {
+    width: auto;
+    padding-left: 8px;
+  }
+
   .group-table th:first-child {
     font-size: 0.72rem;
   }
@@ -792,6 +823,21 @@ tr.eliminated {
   .group-table th:nth-child(n + 3),
   .group-table td:nth-child(n + 3) {
     width: 24px;
+  }
+
+  .last-place-table th:nth-child(3),
+  .last-place-table td:nth-child(3) {
+    width: auto;
+  }
+
+  .last-place-table th:nth-child(2),
+  .last-place-table td:nth-child(2) {
+    width: 54px;
+  }
+
+  .last-place-table th:nth-child(n + 4),
+  .last-place-table td:nth-child(n + 4) {
+    width: 22px;
   }
 
   .group-table th:last-child,

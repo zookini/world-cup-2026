@@ -832,7 +832,7 @@ tr.eliminated {
 
   .last-place-table th:nth-child(2),
   .last-place-table td:nth-child(2) {
-    width: 54px;
+    width: 64px;
   }
 
   .last-place-table th:nth-child(n + 4),

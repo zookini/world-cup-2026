@@ -865,7 +865,7 @@ function comparePlayerRank(a, b, survivalMode = survivalSortingActive()) {
 }
 
 function compareGroupRank(a, b) {
-  return b.pts - a.pts || b.w - a.w || a.l - b.l;
+  return b.pts - a.pts || b.gd - a.gd || b.w - a.w || a.l - b.l;
 }
 
 function compareSurvivalRank(a, b) {

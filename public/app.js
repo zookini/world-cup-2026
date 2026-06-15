@@ -784,7 +784,7 @@ function renderContenders() {
     <table>
       <thead>
         <tr>
-          <th>#</th>
+          <th><span class="rank-heading">#</span></th>
           <th>Gambler</th>
           <th>Teams</th>
           <th>P</th>
@@ -952,7 +952,7 @@ function renderLastPlace() {
     <table>
       <thead>
         <tr>
-          <th>#</th>
+          <th><span class="rank-heading">#</span></th>
           <th>Gambler</th>
           <th>Team</th>
           <th>P</th>
@@ -1025,10 +1025,10 @@ function rankForLastPlace(rows, index) {
 function renderGroups() {
   groupsEl.innerHTML = "";
   const sourceGroups = groups.length ? groups : fallbackGroups();
+  const activeGroupName = nextGroupName();
   sourceGroups.slice().sort((a, b) => a.name.localeCompare(b.name)).forEach((group) => {
     const table = document.createElement("article");
-    const live = liveGame();
-    const activeGroup = live?.type === "group" && live.group === group.name;
+    const activeGroup = activeGroupName === group.name;
     table.className = `group-table${activeGroup ? " active-group" : ""}`;
     table.id = `group-${groupSlug(group.name)}`;
     const standings = groups.length ? standingsForGroup(group) : group.teams;
@@ -1056,7 +1056,7 @@ function renderGroups() {
         <h3>Group ${group.name}</h3>
       </div>
       <table>
-        <thead><tr><th>#</th><th>Gambler</th><th>Team</th><th>P</th><th>W</th><th>L</th><th>D</th><th>GD</th><th>Pts</th></tr></thead>
+        <thead><tr><th><span class="rank-heading">#</span></th><th>Gambler</th><th>Team</th><th>P</th><th>W</th><th>L</th><th>D</th><th>GD</th><th>Pts</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
     `;
@@ -1164,7 +1164,7 @@ function renderSurvivors(rows) {
     <table>
       <thead>
         <tr>
-          <th>#</th>
+          <th><span class="rank-heading">#</span></th>
           <th>Gambler</th>
           <th>Teams</th>
         </tr>
@@ -1291,6 +1291,16 @@ function nextFixtureId(ordered) {
   return ordered.find((game) => matchState(game) === "live")
     || ordered.find((game) => matchState(game) === "upcoming")
     || null;
+}
+
+// The group the Groups view highlights and focuses: the one whose match is in
+// progress, or—failing that—the group of the next group-stage match still to
+// kick off. Mirrors nextFixtureId so Groups and Fixtures track the same match.
+function nextGroupName() {
+  const groupGames = sortedGames().filter((game) => game.type === "group");
+  const game = groupGames.find((g) => matchState(g) === "live")
+    || groupGames.find((g) => matchState(g) === "upcoming");
+  return game ? game.group : null;
 }
 
 function requestFixtureScroll() {

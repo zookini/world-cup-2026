@@ -184,6 +184,16 @@ th:nth-child(3),
   line-height: 1;
 }
 
+/* The rank column's "#" heading sits over body cells whose digits are centred
+   in a 20px .rank-number box. Give the heading the same centred box (keeping
+   header typography) so it lines up above the numbers. */
+.rank-heading {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+}
+
 .rank-badge {
   padding: 0 4px;
   color: var(--muted);
@@ -652,6 +662,15 @@ tr.eliminated {
 .fixture.next {
   border-color: var(--accent);
   background: var(--soft);
+}
+
+.group-table.active-group .card-context {
+  background: var(--soft);
+  border-bottom-color: var(--accent);
+}
+
+.group-table.active-group .card-context h3 {
+  color: var(--accent);
 }
 
 .fixture.next .fixture-foot time {

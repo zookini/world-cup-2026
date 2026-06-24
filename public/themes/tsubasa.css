@@ -216,6 +216,10 @@ td {
   border-radius: 2px;
 }
 
+.team-flag.playing img {
+  border-color: var(--live-pair-color);
+}
+
 /* --- Fixture cards as manga panels --- */
 .fixture {
   border: 3px solid var(--ink);

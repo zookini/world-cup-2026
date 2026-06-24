@@ -5,6 +5,7 @@
   --line: #e6e6e6;
   --soft: #f7f7f7;
   --accent: #111111;
+  --live-pair-color: var(--accent);
   --tabs-height: 44px; /* deep-link scroll targets clear the sticky tab bar */
 }
 
@@ -249,7 +250,7 @@ th:nth-child(3),
 }
 
 .team-flag.playing img {
-  border-color: var(--accent);
+  border-color: var(--live-pair-color);
 }
 
 .flag-live-score {
@@ -259,7 +260,7 @@ th:nth-child(3),
   min-width: 18px;
   padding: 1px 3px;
   color: var(--bg);
-  background: var(--accent);
+  background: var(--live-pair-color);
   border: 1px solid var(--bg);
   border-radius: 999px;
   font-size: 0.58rem;
@@ -317,8 +318,8 @@ tr.eliminated .table-flag {
   white-space: nowrap;
 }
 
-.group-table tr.playing .team-name {
-  color: var(--accent);
+tr.playing .team-name {
+  color: var(--live-pair-color);
 }
 
 .group-table table {
@@ -354,7 +355,7 @@ tr.eliminated .table-flag {
   min-width: 18px;
   padding: 1px 6px;
   color: var(--bg);
-  background: var(--accent);
+  background: var(--live-pair-color);
   border-radius: 999px;
   font-size: 0.7rem;
   font-weight: 850;
@@ -362,6 +363,22 @@ tr.eliminated .table-flag {
   text-align: center;
   font-variant-numeric: tabular-nums;
   animation: score-pulse 1.8s ease-in-out infinite;
+}
+
+.live-pair-1 {
+  --live-pair-color: #d71920;
+}
+
+.live-pair-2 {
+  --live-pair-color: #0072ce;
+}
+
+.live-pair-3 {
+  --live-pair-color: #00843d;
+}
+
+.live-pair-4 {
+  --live-pair-color: #7c3aed;
 }
 
 .team-cell > span {

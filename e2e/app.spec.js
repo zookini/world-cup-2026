@@ -540,6 +540,36 @@ test("mock live state updates group tables as the score stands", async ({ page }
   await expect(uruguay.locator("td").nth(8)).toHaveText("6");
 });
 
+test("simultaneous final group games are active together", async ({ page }) => {
+  await page.goto("/?mock=match-49&state=live#fixtures");
+
+  await expect(page.locator("#fixture-49")).toHaveClass(/\bnext\b/);
+  await expect(page.locator("#fixture-50")).toHaveClass(/\bnext\b/);
+  await expect(page.locator(".fixture.next.live")).toHaveCount(2);
+
+  await page.click('[data-view="groups"]');
+  await expect(page.locator("#group-c")).toHaveClass(/active-group/);
+  await expect(page.locator("#group-c tbody tr.playing")).toHaveCount(4);
+  await expect(page.locator("#group-c tbody tr", { hasText: "Scotland" })).toHaveClass(/live-pair-1/);
+  await expect(page.locator("#group-c tbody tr", { hasText: "Brazil" })).toHaveClass(/live-pair-1/);
+  await expect(page.locator("#group-c tbody tr", { hasText: "Morocco" })).toHaveClass(/live-pair-2/);
+  await expect(page.locator("#group-c tbody tr", { hasText: "Haiti" })).toHaveClass(/live-pair-2/);
+  await expect(page.locator("#group-c tbody tr", { hasText: "Scotland" }).locator(".score-badge")).toHaveText("0");
+  await expect(page.locator("#group-c tbody tr", { hasText: "Brazil" }).locator(".score-badge")).toHaveText("3");
+  await expect(page.locator("#group-c tbody tr", { hasText: "Morocco" }).locator(".score-badge")).toHaveText("3");
+  await expect(page.locator("#group-c tbody tr", { hasText: "Haiti" }).locator(".score-badge")).toHaveText("0");
+});
+
+test("pool standings mark every owned team playing in simultaneous games", async ({ page }) => {
+  await page.goto("/?mock=match-49&state=live");
+
+  const andy = page.locator("#contenders tbody tr", { hasText: "Andy" });
+  await expect(andy.locator(".team-flag.playing")).toHaveCount(2);
+  await expect(andy.locator(".team-flag.playing.live-pair-1")).toHaveCount(1);
+  await expect(andy.locator(".team-flag.playing.live-pair-2")).toHaveCount(1);
+  await expect(andy.locator(".team-flag.playing .flag-live-score")).toHaveText(["3", "0"]);
+});
+
 test("pool standings mark the active owned team flag", async ({ page }) => {
   await page.goto("/?mock=match-40&state=live");
 

@@ -733,25 +733,27 @@ function scoreText(game, side) {
   return pens === null ? `${score}` : `${score} (${pens})`;
 }
 
-function liveGame() {
-  return games.find((game) => matchState(game) === "live") || null;
+function liveGames() {
+  return games.filter((game) => matchState(game) === "live");
 }
 
 function countsInGroupTable(game) {
   return isFinished(game) || matchState(game) === "live";
 }
 
-function liveTeamSide(teamId) {
-  const game = liveGame();
-  if (!game) return "";
-  if (`${game.home_team_id}` === `${teamId}`) return "home";
-  if (`${game.away_team_id}` === `${teamId}`) return "away";
-  return "";
+function liveTeamScore(teamId) {
+  return liveTeamMeta(teamId)?.score || "";
 }
 
-function liveTeamScore(teamId) {
-  const side = liveTeamSide(teamId);
-  return side ? scoreText(liveGame(), side) : "";
+function liveTeamMeta(teamId) {
+  const game = liveGames().find((item) => `${item.home_team_id}` === `${teamId}` || `${item.away_team_id}` === `${teamId}`);
+  if (!game) return null;
+  const side = `${game.home_team_id}` === `${teamId}` ? "home" : "away";
+  const index = sortedGames().filter((item) => matchState(item) === "live").findIndex((item) => item === game);
+  return {
+    score: scoreText(game, side),
+    pairClass: `live-pair-${(Math.max(0, index) % 4) + 1}`,
+  };
 }
 
 function renderActiveView() {
@@ -926,11 +928,11 @@ function teamGroupRecord(selection) {
 function flagMarkup(team) {
   const status = teamStatus(team);
   const apiTeam = teamByCode.get(upperCode(team.code));
-  const liveScore = apiTeam ? liveTeamScore(apiTeam.id) : "";
+  const live = apiTeam ? liveTeamMeta(apiTeam.id) : null;
   return `
-    <span class="team-flag ${status} ${liveScore ? "playing" : ""}" title="${team.name}">
+    <span class="team-flag ${status} ${live ? `playing ${live.pairClass}` : ""}" title="${team.name}">
       ${flagImage(team)}
-      ${liveScore ? `<span class="flag-live-score">${liveScore}</span>` : ""}
+      ${live ? `<span class="flag-live-score">${live.score}</span>` : ""}
       <small class="visually-hidden">${team.code}</small>
     </span>
   `;
@@ -965,7 +967,7 @@ function renderLastPlace() {
       </thead>
       <tbody>
         ${rows.map((row, index) => `
-          <tr class="${row.status} selected ${row.liveScore ? "playing" : ""}">
+          <tr class="${row.status} selected ${row.liveScore ? `playing ${row.livePairClass}` : ""}">
             <td>${lastPlaceRankBadge(rankForLastPlace(rows, index))}</td>
             <td>${ownerBadge(row.owner, row.status)}</td>
             <td><div class="team-cell">${tableFlagMarkup(row)}<span class="team-name">${teamDisplayName(row)}</span>${row.liveScore ? `<span class="score-badge">${row.liveScore}</span>` : ""}</div></td>
@@ -984,6 +986,7 @@ function renderLastPlace() {
 
 function lastPlaceRow(selection) {
   const apiTeam = teamByCode.get(upperCode(selection.code)) || {};
+  const live = apiTeam.id ? liveTeamMeta(apiTeam.id) : null;
   const group = groups.find((item) => item.name === selection.group);
   const record = group
     ? standingsForGroup(group).find((item) => upperCode(item.code) === upperCode(selection.code))
@@ -997,7 +1000,8 @@ function lastPlaceRow(selection) {
     owner: selection.player,
     group: selection.group,
     status: teamStatus(selection),
-    liveScore: apiTeam.id ? liveTeamScore(apiTeam.id) : "",
+    liveScore: live?.score || "",
+    livePairClass: live?.pairClass || "",
   };
 }
 
@@ -1025,10 +1029,10 @@ function rankForLastPlace(rows, index) {
 function renderGroups() {
   groupsEl.innerHTML = "";
   const sourceGroups = groups.length ? groups : fallbackGroups();
-  const activeGroupName = nextGroupName();
+  const activeGroupNames = nextGroupNames();
   sourceGroups.slice().sort((a, b) => a.name.localeCompare(b.name)).forEach((group) => {
     const table = document.createElement("article");
-    const activeGroup = activeGroupName === group.name;
+    const activeGroup = activeGroupNames.has(group.name);
     table.className = `group-table${activeGroup ? " active-group" : ""}`;
     table.id = `group-${groupSlug(group.name)}`;
     const standings = groups.length ? standingsForGroup(group) : group.teams;
@@ -1036,9 +1040,10 @@ function renderGroups() {
       const selected = selectionByCode(team.code);
       const status = selected ? groupStageStatus(selected, team.id) : "neutral";
       const displayName = teamDisplayName(team);
-      const liveScore = liveTeamScore(team.id);
+      const live = liveTeamMeta(team.id);
+      const liveScore = live?.score || "";
       return `
-        <tr class="${status} ${selected ? "selected" : ""} ${liveScore ? "playing" : ""}">
+        <tr class="${status} ${selected ? "selected" : ""} ${liveScore ? `playing ${live.pairClass}` : ""}">
           <td><span class="rank-number">${index + 1}</span></td>
           <td>${ownerBadge(team.owner, status)}</td>
           <td><div class="team-cell">${tableFlagMarkup(team)}<span class="team-name">${displayName}</span>${liveScore ? `<span class="score-badge">${liveScore}</span>` : ""}</div></td>
@@ -1108,7 +1113,7 @@ function renderFixtures() {
     return;
   }
 
-  const nextGame = nextFixtureId(ordered);
+  const nextGames = nextFixtures(ordered);
   let currentDay = "";
   fixturesEl.innerHTML = ordered.map((game) => {
     const date = parseMatchDate(game);
@@ -1118,7 +1123,7 @@ function renderFixtures() {
       currentDay = dayLabel;
       header = `<div class="fixture-day">${dayLabel}</div>`;
     }
-    return header + fixtureRow(game, game === nextGame);
+    return header + fixtureRow(game, nextGames.has(game));
   }).join("");
 
   markDeepLinkedElement(hashFixtureTarget());
@@ -1287,20 +1292,33 @@ function compareGames(a, b) {
 
 // While a match is in progress it carries the highlight; otherwise the next
 // fixture still to kick off does. Finished matches are never highlighted.
-function nextFixtureId(ordered) {
-  return ordered.find((game) => matchState(game) === "live")
-    || ordered.find((game) => matchState(game) === "upcoming")
+function nextFixtures(ordered) {
+  const game = ordered.find((item) => matchState(item) === "live")
+    || ordered.find((item) => matchState(item) === "upcoming")
     || null;
+  if (!game) return new Set();
+  const state = matchState(game);
+  const kickoff = parseMatchDate(game)?.getTime();
+  return new Set(ordered.filter((item) => {
+    if (matchState(item) !== state) return false;
+    if (!kickoff) return item === game;
+    return parseMatchDate(item)?.getTime() === kickoff;
+  }));
 }
 
-// The group the Groups view highlights and focuses: the one whose match is in
-// progress, or—failing that—the group of the next group-stage match still to
-// kick off. Mirrors nextFixtureId so Groups and Fixtures track the same match.
-function nextGroupName() {
+// The groups the Groups view highlights and focuses: groups with matches in
+// progress, or—failing that—groups in the next group-stage kickoff window.
+// Mirrors nextFixtures so simultaneous group finales stay visible together.
+function nextGroupNames() {
   const groupGames = sortedGames().filter((game) => game.type === "group");
   const game = groupGames.find((g) => matchState(g) === "live")
     || groupGames.find((g) => matchState(g) === "upcoming");
-  return game ? game.group : null;
+  if (!game) return new Set();
+  const state = matchState(game);
+  const kickoff = parseMatchDate(game)?.getTime();
+  return new Set(groupGames
+    .filter((item) => matchState(item) === state && (!kickoff || parseMatchDate(item)?.getTime() === kickoff))
+    .map((item) => item.group));
 }
 
 function requestFixtureScroll() {

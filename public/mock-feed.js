@@ -69,7 +69,7 @@ function buildMatchDayData({ groups, games, targetMatch, mockState }) {
   projectedGroups.forEach((group) => group.teams.forEach((team) => groupRows.set(`${team.team_id}`, team)));
 
   projectedGames.filter((game) => game.type === "group").forEach((game) => {
-    if (targetIsLive && game === targetGame) {
+    if (targetIsLive && isSimultaneousMockLiveGame(game, targetGame)) {
       applyLivePredictedScore(game, teamById);
     } else if (shouldFinishMockGame(game, targetGame, { excludeTarget: targetIsLive })) {
       applyPredictedScore(game, teamById, { allowDraw: true });
@@ -101,7 +101,7 @@ function buildMatchDayData({ groups, games, targetMatch, mockState }) {
     assignBracketTeam(game, "home", home);
     assignBracketTeam(game, "away", away);
 
-    if (targetIsLive && game === targetGame) {
+    if (targetIsLive && isSimultaneousMockLiveGame(game, targetGame)) {
       applyLivePredictedScore(game, teamById);
     } else if (shouldFinishMockGame(game, targetGame, { excludeTarget: targetIsLive })) {
       applyPredictedScore(game, teamById, { allowDraw: false });
@@ -135,6 +135,14 @@ function shouldFinishMockGame(game, targetGame, { excludeTarget = false } = {}) 
   if (!gameDate || !targetDate) return number(game.id) < number(targetGame.id);
   if (gameDate.getTime() !== targetDate.getTime()) return gameDate < targetDate;
   return excludeTarget ? number(game.id) < number(targetGame.id) : number(game.id) <= number(targetGame.id);
+}
+
+function isSimultaneousMockLiveGame(game, targetGame) {
+  if (game === targetGame) return true;
+  if (game.type !== "group" || targetGame.type !== "group") return false;
+  const gameDate = parseMatchDate(game);
+  const targetDate = parseMatchDate(targetGame);
+  return Boolean(gameDate && targetDate && gameDate.getTime() === targetDate.getTime());
 }
 
 function bracketSeeds(projectedGroups, teamById) {

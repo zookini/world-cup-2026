@@ -707,7 +707,19 @@ function bestThirdPlaceIds(throughGame = null) {
 function groupGamesComplete(groupName, throughGame = null) {
   return games
     .filter((game) => game.type === "group" && game.group === groupName)
-    .every((game) => isFinished(game) && (!throughGame || compareGames(game, throughGame) <= 0));
+    .every((game) => isFinished(game) && kickedOffBy(game, throughGame));
+}
+
+// A group's final two games kick off simultaneously, so as of either one the
+// group is already decided. Treat games sharing throughGame's kickoff as within
+// the window (the isFinished check above still gates on them actually being
+// played), rather than letting compareGames' id tiebreak push the later id out.
+function kickedOffBy(game, throughGame) {
+  if (!throughGame) return true;
+  const at = parseMatchDate(game)?.getTime();
+  const through = parseMatchDate(throughGame)?.getTime();
+  if (at != null && through != null) return at <= through;
+  return compareGames(game, throughGame) <= 0;
 }
 
 function loserId(game) {

@@ -235,6 +235,10 @@ async function refreshData() {
     initialDataLoaded = true;
     indexTeams();
     resolveKnownBracketTeams();
+    // Bracket resolution fills in the teams (and FIFA codes) of knockout
+    // fixtures that the feed's first overlay couldn't match while they were
+    // still placeholders, so overlay once more to pick up their live scores.
+    if (dataSet.overlayLive) games = dataSet.overlayLive(games);
     indexTeams();
     renderActiveView();
     syncStatusEl.textContent = statusLine();
@@ -293,10 +297,15 @@ function liveFeed() {
         loadSeedData(),
         optionalFetchJson(ESPN_SCOREBOARD_URL),
       ]);
-      const games = espnPayload ? mergeEspnGames(seed.games, espnPayload) : seed.games;
+      // A knockout fixture only learns its teams (and thus their FIFA codes)
+      // once the feeding groups finish, which happens in resolveKnownBracketTeams
+      // after this load. Expose the overlay so refreshData can re-run it on the
+      // resolved fixtures and land their live ESPN scores too.
+      const overlayLive = (games) => (espnPayload ? mergeEspnGames(games, espnPayload) : games);
       return {
         groups: seed.groups,
-        games,
+        games: overlayLive(seed.games),
+        overlayLive,
         status: espnPayload ? "" : "ESPN live scores unavailable; showing local schedule only.",
       };
     },

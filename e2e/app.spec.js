@@ -176,6 +176,10 @@ test("known knockout fixture slots resolve from completed groups", async ({ page
         espnEvent({ id: "b4", date: "2026-06-18T19:00Z", home: { id: "CAN", name: "Canada" }, away: { id: "QAT", name: "Qatar" }, homeScore: "3", awayScore: "0", status: "FT" }),
         espnEvent({ id: "b5", date: "2026-06-24T16:00Z", home: { id: "BIH", name: "Bosnia and Herzegovina" }, away: { id: "QAT", name: "Qatar" }, homeScore: "1", awayScore: "0", status: "FT" }),
         espnEvent({ id: "b6", date: "2026-06-24T16:00Z", home: { id: "SUI", name: "Switzerland" }, away: { id: "CAN", name: "Canada" }, homeScore: "0", awayScore: "1", status: "FT" }),
+        // The round-of-32 match between the two runners-up (seed game 73): its
+        // teams are only known once groups A and B finish, so the feed lists it
+        // by the resolved sides, not the seed's empty placeholders.
+        espnEvent({ id: "r73", date: "2026-06-28T16:00Z", home: { id: "KOR", name: "South Korea" }, away: { id: "SUI", name: "Switzerland" }, homeScore: "2", awayScore: "1", status: "62'" }),
       ],
     },
   }));
@@ -185,6 +189,11 @@ test("known knockout fixture slots resolve from completed groups", async ({ page
   await expect(page.locator("#fixture-73 .team-name")).toHaveText(["South Korea", "Switzerland"]);
   await expect(page.locator("#fixture-79 .team-name")).toHaveText(["Mexico", "3rd Group C/E/F/H/I"]);
   await expect(page.locator("#fixture-85 .team-name")).toHaveText(["Canada", "3rd Group E/F/G/I/J"]);
+
+  // The live score for the freshly resolved knockout fixture overlays too, even
+  // though the feed couldn't match it while its teams were still placeholders.
+  await expect(page.locator("#fixture-73")).toHaveClass(/live/);
+  await expect(page.locator("#fixture-73 .fixture-team strong")).toHaveText(["2", "1"]);
 });
 
 // Group standings, in the finishing order each group should end up in. The

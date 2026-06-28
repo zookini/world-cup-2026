@@ -160,6 +160,33 @@ test("live ESPN data lands on the seed fixture for the right teams", async ({ pa
   await expect(page.locator("#fixture-5")).not.toHaveClass(/live/);
 });
 
+test("known knockout fixture slots resolve from completed groups", async ({ page }) => {
+  await page.route("**/site.api.espn.com/**", (route) => route.fulfill({
+    json: {
+      events: [
+        espnEvent({ id: "a1", date: "2026-06-11T17:00Z", home: { id: "MEX", name: "Mexico" }, away: { id: "RSA", name: "South Africa" }, homeScore: "2", awayScore: "0", status: "FT" }),
+        espnEvent({ id: "a2", date: "2026-06-12T00:00Z", home: { id: "KOR", name: "South Korea" }, away: { id: "CZE", name: "Czech Republic" }, homeScore: "2", awayScore: "1", status: "FT" }),
+        espnEvent({ id: "a3", date: "2026-06-18T23:00Z", home: { id: "MEX", name: "Mexico" }, away: { id: "KOR", name: "South Korea" }, homeScore: "1", awayScore: "0", status: "FT" }),
+        espnEvent({ id: "a4", date: "2026-06-18T16:00Z", home: { id: "CZE", name: "Czech Republic" }, away: { id: "RSA", name: "South Africa" }, homeScore: "1", awayScore: "0", status: "FT" }),
+        espnEvent({ id: "a5", date: "2026-06-24T23:00Z", home: { id: "RSA", name: "South Africa" }, away: { id: "KOR", name: "South Korea" }, homeScore: "0", awayScore: "1", status: "FT" }),
+        espnEvent({ id: "a6", date: "2026-06-24T23:00Z", home: { id: "CZE", name: "Czech Republic" }, away: { id: "MEX", name: "Mexico" }, homeScore: "0", awayScore: "2", status: "FT" }),
+        espnEvent({ id: "b1", date: "2026-06-12T19:00Z", home: { id: "CAN", name: "Canada" }, away: { id: "BIH", name: "Bosnia and Herzegovina" }, homeScore: "2", awayScore: "0", status: "FT" }),
+        espnEvent({ id: "b2", date: "2026-06-13T16:00Z", home: { id: "QAT", name: "Qatar" }, away: { id: "SUI", name: "Switzerland" }, homeScore: "0", awayScore: "2", status: "FT" }),
+        espnEvent({ id: "b3", date: "2026-06-18T16:00Z", home: { id: "SUI", name: "Switzerland" }, away: { id: "BIH", name: "Bosnia and Herzegovina" }, homeScore: "1", awayScore: "0", status: "FT" }),
+        espnEvent({ id: "b4", date: "2026-06-18T19:00Z", home: { id: "CAN", name: "Canada" }, away: { id: "QAT", name: "Qatar" }, homeScore: "3", awayScore: "0", status: "FT" }),
+        espnEvent({ id: "b5", date: "2026-06-24T16:00Z", home: { id: "BIH", name: "Bosnia and Herzegovina" }, away: { id: "QAT", name: "Qatar" }, homeScore: "1", awayScore: "0", status: "FT" }),
+        espnEvent({ id: "b6", date: "2026-06-24T16:00Z", home: { id: "SUI", name: "Switzerland" }, away: { id: "CAN", name: "Canada" }, homeScore: "0", awayScore: "1", status: "FT" }),
+      ],
+    },
+  }));
+
+  await page.goto("/#fixtures");
+
+  await expect(page.locator("#fixture-73 .team-name")).toHaveText(["South Korea", "Switzerland"]);
+  await expect(page.locator("#fixture-79 .team-name")).toHaveText(["Mexico", "3rd Group C/E/F/H/I"]);
+  await expect(page.locator("#fixture-85 .team-name")).toHaveText(["Canada", "3rd Group E/F/G/I/J"]);
+});
+
 // The feed names the team differently than the seed ("Côte d'Ivoire" vs the
 // seed's "Ivory Coast") and lists the sides flipped, but the shared FIFA code
 // (CIV) still lands the result on seed match 9 with the score oriented to the

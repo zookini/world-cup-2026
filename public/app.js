@@ -233,6 +233,8 @@ async function refreshData() {
     dataStatus = dataSet.status || "";
     initialDataLoaded = true;
     indexTeams();
+    resolveKnownBracketTeams();
+    indexTeams();
     renderActiveView();
     syncStatusEl.textContent = statusLine();
     syncStatusEl.classList.remove("loading");
@@ -702,6 +704,56 @@ function bestThirdPlaceIds(throughGame = null) {
     return standingsForGroup(group)[2];
   }).filter(Boolean).sort(sortStandings);
   return new Set(thirds.slice(0, 8).map((team) => team.id));
+}
+
+function resolveKnownBracketTeams() {
+  const groupSeeds = bracketGroupSeeds();
+
+  sortedGames().filter((game) => game.type !== "group").forEach((game) => {
+    assignResolvedBracketTeam(game, "home", resolveGroupBracketLabel(game.home_team_label, groupSeeds));
+    assignResolvedBracketTeam(game, "away", resolveGroupBracketLabel(game.away_team_label, groupSeeds));
+  });
+}
+
+function bracketGroupSeeds() {
+  const seeds = new Map();
+  const thirdPlaceRows = [];
+
+  groups.forEach((group) => {
+    if (!groupGamesComplete(group.name)) return;
+    const standings = standingsForGroup(group);
+    seeds.set(`Winner Group ${group.name}`, standings[0]);
+    seeds.set(`Runner-up Group ${group.name}`, standings[1]);
+    if (standings[2]) thirdPlaceRows.push({ group: group.name, team: standings[2] });
+  });
+
+  const bestThirdIds = bestThirdPlaceIds();
+  thirdPlaceRows
+    .filter(({ team }) => bestThirdIds.has(team.id))
+    .forEach(({ group, team }) => seeds.set(`3rd Group ${group}`, team));
+
+  return seeds;
+}
+
+function resolveGroupBracketLabel(label, groupSeeds) {
+  if (!label) return null;
+
+  const thirdChoice = /^3rd Group (.+)$/.exec(label);
+  if (thirdChoice) {
+    const candidates = thirdChoice[1].split("/")
+      .map((group) => groupSeeds.get(`3rd Group ${group}`))
+      .filter(Boolean);
+    return candidates.length === 1 ? candidates[0] : null;
+  }
+
+  return groupSeeds.get(label) || null;
+}
+
+function assignResolvedBracketTeam(game, side, team) {
+  if (!team) return;
+  game[`${side}_team_id`] = team.id;
+  game[`${side}_team_name_en`] = team.name;
+  game[`${side}_team_code`] = team.code;
 }
 
 function groupGamesComplete(groupName, throughGame = null) {

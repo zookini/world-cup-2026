@@ -1,5 +1,6 @@
 import { parseMatchDate, number } from "./match-utils.js";
 import { parseSeedTsv } from "./seed-data.js";
+import { thirdPlaceAllocation } from "./third-place-allocation.js";
 
 const TEAM_STRENGTH = {
   Spain: 96, France: 95, Argentina: 94, England: 93, Brazil: 92, Portugal: 91, Germany: 90,
@@ -87,16 +88,18 @@ function buildMatchDayData({ groups, games, targetMatch, mockState }) {
 
   if (targetGame.type === "group") return { games: projectedGames, groups: projectedGroups };
 
-  const seeds = bracketSeeds(projectedGroups, teamById);
+  const { seeds, thirdByWinnerGroup } = bracketSeeds(projectedGroups, teamById);
   const winners = new Map();
   const losers = new Map();
   const usedThirdPlaceGroups = new Set();
   const usedFirstRoundTeams = new Set();
 
   projectedGames.filter((game) => game.type !== "group").sort((a, b) => number(a.id) - number(b.id)).forEach((game) => {
-    const home = resolveBracketTeam(game.home_team_label, seeds, winners, losers, usedThirdPlaceGroups, usedFirstRoundTeams, game.type);
+    const home = officialThirdForSide(game, "home", thirdByWinnerGroup)
+      || resolveBracketTeam(game.home_team_label, seeds, winners, losers, usedThirdPlaceGroups, usedFirstRoundTeams, game.type);
     if (game.type === "r32" && home) usedFirstRoundTeams.add(home.id);
-    const away = resolveBracketTeam(game.away_team_label, seeds, winners, losers, usedThirdPlaceGroups, usedFirstRoundTeams, game.type);
+    const away = officialThirdForSide(game, "away", thirdByWinnerGroup)
+      || resolveBracketTeam(game.away_team_label, seeds, winners, losers, usedThirdPlaceGroups, usedFirstRoundTeams, game.type);
     if (game.type === "r32" && away) usedFirstRoundTeams.add(away.id);
     assignBracketTeam(game, "home", home);
     assignBracketTeam(game, "away", away);
@@ -155,10 +158,40 @@ function bracketSeeds(projectedGroups, teamById) {
     thirds.push({ group: name, team: teamById.get(`${group.teams[2]?.team_id}`), row: group.teams[2] });
   });
   thirds.sort((a, b) => sortStandingsRow(b.row, a.row) || teamStrength(b.team?.name) - teamStrength(a.team?.name));
-  thirds.slice(0, 8).forEach(({ group, team }) => {
+  const qualifyingThirds = thirds.slice(0, 8);
+  qualifyingThirds.forEach(({ group, team }) => {
     seeds[`3rd Group ${group}`] = team;
   });
-  return seeds;
+  return { seeds, thirdByWinnerGroup: officialThirdSeeds(projectedGroups, qualifyingThirds) };
+}
+
+// Mirrors the live path (app.js officialThirdPlaceSeeds): once the projected
+// group stage is fully played, FIFA's Annexe C table fixes which third-placed
+// team each winner faces, so map winner group -> third-placed team. Empty until
+// every group is complete, leaving the heuristic in resolveBracketTeam to fill
+// the speculative previews shown mid-group-stage.
+function officialThirdSeeds(projectedGroups, qualifyingThirds) {
+  const byWinnerGroup = new Map();
+  const allGroupsComplete = projectedGroups.every((group) =>
+    group.teams.every((team) => number(team.mp) === group.teams.length - 1));
+  if (!allGroupsComplete) return byWinnerGroup;
+
+  const allocation = thirdPlaceAllocation(qualifyingThirds.map(({ group }) => group));
+  if (!allocation) return byWinnerGroup;
+  const teamByGroup = new Map(qualifyingThirds.map(({ group, team }) => [group, team]));
+  allocation.forEach((thirdGroup, winnerGroup) => {
+    const team = teamByGroup.get(thirdGroup);
+    if (team) byWinnerGroup.set(winnerGroup, team);
+  });
+  return byWinnerGroup;
+}
+
+function officialThirdForSide(game, side, thirdByWinnerGroup) {
+  const label = game[`${side}_team_label`];
+  if (!label || !/^3rd Group /.test(label)) return null;
+  const otherLabel = game[`${side === "home" ? "away" : "home"}_team_label`];
+  const winnerGroup = /^Winner Group ([A-L])$/.exec(otherLabel || "")?.[1];
+  return (winnerGroup && thirdByWinnerGroup.get(winnerGroup)) || null;
 }
 
 function sortStandingsRow(a, b) {

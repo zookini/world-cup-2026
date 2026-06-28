@@ -187,6 +187,90 @@ test("known knockout fixture slots resolve from completed groups", async ({ page
   await expect(page.locator("#fixture-85 .team-name")).toHaveText(["Canada", "3rd Group E/F/G/I/J"]);
 });
 
+// Group standings, in the finishing order each group should end up in. The
+// third-placed team of each group is the third code; groups E–L are built to
+// give their thirds a better goal difference than A–D, so those eight are the
+// best thirds that advance.
+const FULL_GROUPS = {
+  A: ["MEX", "RSA", "KOR", "CZE"], B: ["CAN", "BIH", "QAT", "SUI"],
+  C: ["BRA", "MAR", "HAI", "SCO"], D: ["USA", "PAR", "AUS", "TUR"],
+  E: ["GER", "CUW", "CIV", "ECU"], F: ["NED", "JPN", "SWE", "TUN"],
+  G: ["BEL", "EGY", "IRN", "NZL"], H: ["ESP", "CPV", "KSA", "URU"],
+  I: ["FRA", "SEN", "IRQ", "NOR"], J: ["ARG", "ALG", "AUT", "JOR"],
+  K: ["POR", "COD", "UZB", "COL"], L: ["ENG", "CRO", "GHA", "PAN"],
+};
+
+const TEAM_NAMES = {
+  MEX: "Mexico", RSA: "South Africa", KOR: "South Korea", CZE: "Czechia",
+  CAN: "Canada", BIH: "Bosnia and Herzegovina", QAT: "Qatar", SUI: "Switzerland",
+  BRA: "Brazil", MAR: "Morocco", HAI: "Haiti", SCO: "Scotland",
+  USA: "United States", PAR: "Paraguay", AUS: "Australia", TUR: "Turkey",
+  GER: "Germany", CUW: "Curaçao", CIV: "Ivory Coast", ECU: "Ecuador",
+  NED: "Netherlands", JPN: "Japan", SWE: "Sweden", TUN: "Tunisia",
+  BEL: "Belgium", EGY: "Egypt", IRN: "Iran", NZL: "New Zealand",
+  ESP: "Spain", CPV: "Cape Verde", KSA: "Saudi Arabia", URU: "Uruguay",
+  FRA: "France", SEN: "Senegal", IRQ: "Iraq", NOR: "Norway",
+  ARG: "Argentina", ALG: "Algeria", AUT: "Austria", JOR: "Jordan",
+  POR: "Portugal", COD: "Congo DR", UZB: "Uzbekistan", COL: "Colombia",
+  ENG: "England", CRO: "Croatia", GHA: "Ghana", PAN: "Panama",
+};
+
+// Synthesises a finished group stage: in each group the higher-placed team beats
+// every lower-placed one, fixing the standings order. Margins are tuned so the
+// third-placed team's goal difference is +1 in the "strong" groups (E–L) and −5
+// in the rest, which is what makes E–L the eight best thirds.
+function fullGroupStageEvents() {
+  const events = [];
+  let id = 0;
+  let day = 11;
+  Object.entries(FULL_GROUPS).forEach(([group, order]) => {
+    const strongThird = "EFGHIJKL".includes(group);
+    for (let i = 0; i < order.length; i++) {
+      for (let j = i + 1; j < order.length; j++) {
+        let margin = 1;
+        if (j === 2 && i < 2) margin = strongThird ? 1 : 3; // 1st/2nd over 3rd
+        if (i === 2 && j === 3) margin = strongThird ? 3 : 1; // 3rd over 4th
+        const date = `2026-06-${String(day).padStart(2, "0")}T12:00Z`;
+        events.push(espnEvent({
+          id: `g${id++}`,
+          date,
+          home: { id: order[i], name: TEAM_NAMES[order[i]] },
+          away: { id: order[j], name: TEAM_NAMES[order[j]] },
+          homeScore: `${margin}`,
+          awayScore: "0",
+          status: "FT",
+        }));
+      }
+    }
+    day += 1;
+  });
+  return events;
+}
+
+// With every group played, the eight round-of-32 slots that read "3rd Group …"
+// resolve to specific teams via FIFA's Annexe C allocation. For the best-third
+// set {E,F,G,H,I,J,K,L}, Annexe C pairs winner A↔3E, B↔3J, D↔3I, E↔3F, G↔3H,
+// I↔3G, K↔3L, L↔3K.
+test("completed group stage resolves third-placed teams into the bracket", async ({ page }) => {
+  await page.route("**/site.api.espn.com/**", (route) => route.fulfill({
+    json: { events: fullGroupStageEvents() },
+  }));
+
+  await page.goto("/#fixtures");
+
+  await expect(page.locator("#fixture-74 .team-name")).toHaveText(["Germany", "Sweden"]); // E vs 3F
+  await expect(page.locator("#fixture-77 .team-name")).toHaveText(["France", "Iran"]); // I vs 3G
+  await expect(page.locator("#fixture-79 .team-name")).toHaveText(["Mexico", "Ivory Coast"]); // A vs 3E
+  await expect(page.locator("#fixture-80 .team-name")).toHaveText(["England", "Uzbekistan"]); // L vs 3K
+  await expect(page.locator("#fixture-81 .team-name")).toHaveText(["United States", "Iraq"]); // D vs 3I
+  await expect(page.locator("#fixture-82 .team-name")).toHaveText(["Belgium", "Saudi Arabia"]); // G vs 3H
+  await expect(page.locator("#fixture-85 .team-name")).toHaveText(["Canada", "Austria"]); // B vs 3J
+  await expect(page.locator("#fixture-87 .team-name")).toHaveText(["Portugal", "Ghana"]); // K vs 3L
+
+  // No round-of-32 fixture should still show a "3rd Group …" placeholder.
+  await expect(page.locator(".team-name", { hasText: "3rd Group" })).toHaveCount(0);
+});
+
 // The feed names the team differently than the seed ("Côte d'Ivoire" vs the
 // seed's "Ivory Coast") and lists the sides flipped, but the shared FIFA code
 // (CIV) still lands the result on seed match 9 with the score oriented to the

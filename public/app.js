@@ -1,5 +1,6 @@
 import { parseMatchDate, isFinished, number } from "./match-utils.js";
 import { parseSeedTsv } from "./seed-data.js";
+import { thirdPlaceAllocation } from "./third-place-allocation.js";
 
 const PLAYER_ORDER = ["Boe", "Colm", "Ivan", "T", "Sharon", "Andy", "Joey", "Vinny", "Kachun", "Chun", "Kakei", "Janey"];
 
@@ -708,11 +709,61 @@ function bestThirdPlaceIds(throughGame = null) {
 
 function resolveKnownBracketTeams() {
   const groupSeeds = bracketGroupSeeds();
+  const thirdByWinnerGroup = officialThirdPlaceSeeds();
 
   sortedGames().filter((game) => game.type !== "group").forEach((game) => {
-    assignResolvedBracketTeam(game, "home", resolveGroupBracketLabel(game.home_team_label, groupSeeds));
-    assignResolvedBracketTeam(game, "away", resolveGroupBracketLabel(game.away_team_label, groupSeeds));
+    assignResolvedBracketTeam(game, "home", resolveBracketSide(game, "home", groupSeeds, thirdByWinnerGroup));
+    assignResolvedBracketTeam(game, "away", resolveBracketSide(game, "away", groupSeeds, thirdByWinnerGroup));
   });
+}
+
+function resolveBracketSide(game, side, groupSeeds, thirdByWinnerGroup) {
+  const label = game[`${side}_team_label`];
+  if (label && /^3rd Group /.test(label)) {
+    // Once every group is played, which third-placed team each winner faces is
+    // fixed by FIFA's Annexe C table (see officialThirdPlaceSeeds), keyed off the
+    // winner sharing this fixture. Fall through to the single-candidate logic
+    // below while the table is still indeterminate (groups mid-play).
+    const winnerGroup = pairedWinnerGroup(game, side);
+    const officialTeam = winnerGroup && thirdByWinnerGroup.get(winnerGroup);
+    if (officialTeam) return officialTeam;
+  }
+  return resolveGroupBracketLabel(label, groupSeeds);
+}
+
+// The group winner sharing a round-of-32 fixture with a "3rd Group ..." slot is
+// the other side's "Winner Group X" label; that winner is what Annexe C keys on.
+function pairedWinnerGroup(game, side) {
+  const otherLabel = game[`${side === "home" ? "away" : "home"}_team_label`];
+  return /^Winner Group ([A-L])$/.exec(otherLabel || "")?.[1] || null;
+}
+
+// Maps each group winner (A, B, D, E, G, I, K, L) to the actual third-placed team
+// it faces in the round of 32, but only once all twelve groups are complete and
+// the eight best thirds are settled — the point at which Annexe C's allocation is
+// determinable. Returns an empty map before then.
+function officialThirdPlaceSeeds() {
+  const byWinnerGroup = new Map();
+  if (!groups.every((group) => groupGamesComplete(group.name))) return byWinnerGroup;
+
+  const bestThirdIds = bestThirdPlaceIds();
+  const qualifyingGroups = [];
+  const thirdTeamByGroup = new Map();
+  groups.forEach((group) => {
+    const third = standingsForGroup(group)[2];
+    if (third && bestThirdIds.has(third.id)) {
+      qualifyingGroups.push(group.name);
+      thirdTeamByGroup.set(group.name, third);
+    }
+  });
+
+  const allocation = thirdPlaceAllocation(qualifyingGroups);
+  if (!allocation) return byWinnerGroup;
+  allocation.forEach((thirdGroup, winnerGroup) => {
+    const team = thirdTeamByGroup.get(thirdGroup);
+    if (team) byWinnerGroup.set(winnerGroup, team);
+  });
+  return byWinnerGroup;
 }
 
 function bracketGroupSeeds() {

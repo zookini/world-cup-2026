@@ -280,6 +280,56 @@ test("completed group stage resolves third-placed teams into the bracket", async
   await expect(page.locator(".team-name", { hasText: "3rd Group" })).toHaveCount(0);
 });
 
+// Each round-of-32 fixture (seed games 73–88) as [match, winner, loser], using
+// the resolved sides from the test above. The event must carry both real teams
+// so its FIFA-code pair lands on the seed fixture; the winner is the ESPN home
+// side and wins 1-0, so it advances regardless of the seed's home/away order.
+const R32_RESULTS = [
+  [73, "RSA", "BIH"], [74, "GER", "SWE"], [75, "NED", "MAR"], [76, "BRA", "JPN"],
+  [77, "FRA", "IRN"], [78, "CUW", "SEN"], [79, "MEX", "CIV"], [80, "ENG", "UZB"],
+  [81, "USA", "IRQ"], [82, "BEL", "KSA"], [83, "COD", "CRO"], [84, "ESP", "ALG"],
+  [85, "CAN", "AUT"], [86, "ARG", "CPV"], [87, "POR", "GHA"], [88, "PAR", "EGY"],
+];
+
+// One finished ESPN event per round-of-32 fixture with the advancing team
+// winning, so the round of 16 (seed games 89–96, which name their teams as
+// "Winner Match N") can be filled in from those results.
+function roundOf32Events() {
+  return R32_RESULTS.map(([match, winner, loser], index) => espnEvent({
+    id: `r${match}`,
+    date: `2026-07-0${Math.floor(index / 8) + 1}T12:00Z`,
+    home: { id: winner, name: TEAM_NAMES[winner] },
+    away: { id: loser, name: TEAM_NAMES[loser] },
+    homeScore: "1",
+    awayScore: "0",
+    status: "FT",
+  }));
+}
+
+// With the round of 32 played, each round-of-16 fixture's "Winner Match N" slots
+// resolve to the teams that advanced, so none stay placeholders.
+test("completed round of 32 resolves the round of 16 from match winners", async ({ page }) => {
+  await page.route("**/site.api.espn.com/**", (route) => route.fulfill({
+    json: { events: [...fullGroupStageEvents(), ...roundOf32Events()] },
+  }));
+
+  await page.goto("/#fixtures");
+
+  await expect(page.locator("#fixture-89 .team-name")).toHaveText(["Germany", "France"]); // W74 vs W77
+  await expect(page.locator("#fixture-90 .team-name")).toHaveText(["South Africa", "Netherlands"]); // W73 vs W75
+  await expect(page.locator("#fixture-91 .team-name")).toHaveText(["Brazil", "Curaçao"]); // W76 vs W78
+  await expect(page.locator("#fixture-92 .team-name")).toHaveText(["Mexico", "England"]); // W79 vs W80
+  await expect(page.locator("#fixture-93 .team-name")).toHaveText(["Congo DR", "Spain"]); // W83 vs W84
+  await expect(page.locator("#fixture-94 .team-name")).toHaveText(["United States", "Belgium"]); // W81 vs W82
+  await expect(page.locator("#fixture-95 .team-name")).toHaveText(["Argentina", "Paraguay"]); // W86 vs W88
+  await expect(page.locator("#fixture-96 .team-name")).toHaveText(["Canada", "Portugal"]); // W85 vs W87
+
+  // No round-of-16 fixture should still show a "Winner Match …" placeholder
+  // (later rounds still do, since the round of 16 has not been played here).
+  const roundOf16 = page.locator("#fixture-89,#fixture-90,#fixture-91,#fixture-92,#fixture-93,#fixture-94,#fixture-95,#fixture-96");
+  await expect(roundOf16.locator(".team-name", { hasText: "Winner Match" })).toHaveCount(0);
+});
+
 // The feed names the team differently than the seed ("Côte d'Ivoire" vs the
 // seed's "Ivory Coast") and lists the sides flipped, but the shared FIFA code
 // (CIV) still lands the result on seed match 9 with the score oriented to the

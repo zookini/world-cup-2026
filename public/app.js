@@ -237,8 +237,18 @@ async function refreshData() {
     resolveKnownBracketTeams();
     // Bracket resolution fills in the teams (and FIFA codes) of knockout
     // fixtures that the feed's first overlay couldn't match while they were
-    // still placeholders, so overlay once more to pick up their live scores.
-    if (dataSet.overlayLive) games = dataSet.overlayLive(games);
+    // still placeholders, so overlay again to pick up their live scores. Each
+    // knockout round only learns its teams once the round feeding it has both
+    // finished and had its scores overlaid, so alternate overlay/resolve passes
+    // to carry winners forward (R32 → R16 → QF → SF → final) until the bracket
+    // stops changing.
+    if (dataSet.overlayLive) {
+      let pass = 0;
+      do {
+        games = dataSet.overlayLive(games);
+        indexTeams();
+      } while (resolveKnownBracketTeams() && ++pass < 8);
+    }
     indexTeams();
     renderActiveView();
     syncStatusEl.textContent = statusLine();
@@ -716,19 +726,49 @@ function bestThirdPlaceIds(throughGame = null) {
   return new Set(thirds.slice(0, 8).map((team) => team.id));
 }
 
+// Returns whether any fixture gained a newly-resolved side, so refreshData can
+// keep alternating overlay/resolve passes while the bracket is still settling.
 function resolveKnownBracketTeams() {
   const groupSeeds = bracketGroupSeeds();
   const thirdByWinnerGroup = officialThirdPlaceSeeds();
+  const matchWinners = new Map();
+  const matchLosers = new Map();
+  let changed = false;
 
+  // Walk knockout fixtures in kickoff order so each finished game's winner (and
+  // loser, for the third-place playoff) is recorded before the later fixtures
+  // that name it as "Winner Match N" / "Loser Match N" are resolved.
   sortedGames().filter((game) => game.type !== "group").forEach((game) => {
-    assignResolvedBracketTeam(game, "home", resolveBracketSide(game, "home", groupSeeds, thirdByWinnerGroup));
-    assignResolvedBracketTeam(game, "away", resolveBracketSide(game, "away", groupSeeds, thirdByWinnerGroup));
+    if (assignResolvedBracketTeam(game, "home", resolveBracketSide(game, "home", groupSeeds, thirdByWinnerGroup, matchWinners, matchLosers))) changed = true;
+    if (assignResolvedBracketTeam(game, "away", resolveBracketSide(game, "away", groupSeeds, thirdByWinnerGroup, matchWinners, matchLosers))) changed = true;
+    recordKnockoutOutcome(game, matchWinners, matchLosers);
   });
+  return changed;
 }
 
-function resolveBracketSide(game, side, groupSeeds, thirdByWinnerGroup) {
+// Once a knockout game's teams are known and it has a decided result, remember
+// who advanced (and who dropped out) so the next round's "Winner Match N" /
+// "Loser Match N" slots resolve. winnerId/loserId return "" while a finished
+// game is still level with no shootout in the feed, leaving those slots as
+// placeholders rather than guessing.
+function recordKnockoutOutcome(game, matchWinners, matchLosers) {
+  if (!isFinished(game)) return;
+  const winner = teamById.get(winnerId(game));
+  const loser = teamById.get(loserId(game));
+  if (winner) matchWinners.set(`${game.id}`, winner);
+  if (loser) matchLosers.set(`${game.id}`, loser);
+}
+
+function resolveBracketSide(game, side, groupSeeds, thirdByWinnerGroup, matchWinners, matchLosers) {
   const label = game[`${side}_team_label`];
-  if (label && /^3rd Group /.test(label)) {
+  if (!label) return null;
+
+  const winnerMatch = /^Winner Match (\d+)$/.exec(label);
+  if (winnerMatch) return matchWinners.get(winnerMatch[1]) || null;
+  const loserMatch = /^Loser Match (\d+)$/.exec(label);
+  if (loserMatch) return matchLosers.get(loserMatch[1]) || null;
+
+  if (/^3rd Group /.test(label)) {
     // Once every group is played, which third-placed team each winner faces is
     // fixed by FIFA's Annexe C table (see officialThirdPlaceSeeds), keyed off the
     // winner sharing this fixture. Fall through to the single-candidate logic
@@ -809,11 +849,14 @@ function resolveGroupBracketLabel(label, groupSeeds) {
   return groupSeeds.get(label) || null;
 }
 
+// Returns whether this side gained (or changed) a resolved team, so a resolve
+// pass can report progress without looping forever once the bracket is stable.
 function assignResolvedBracketTeam(game, side, team) {
-  if (!team) return;
+  if (!team || game[`${side}_team_id`] === team.id) return false;
   game[`${side}_team_id`] = team.id;
   game[`${side}_team_name_en`] = team.name;
   game[`${side}_team_code`] = team.code;
+  return true;
 }
 
 function groupGamesComplete(groupName, throughGame = null) {
@@ -842,6 +885,16 @@ function loserId(game) {
   const awayPens = penaltyScore(game, "away");
   if (homePens === null || awayPens === null || homePens === awayPens) return "";
   return homePens < awayPens ? `${game.home_team_id}` : `${game.away_team_id}`;
+}
+
+function winnerId(game) {
+  const homeScore = game.home_score;
+  const awayScore = game.away_score;
+  if (homeScore !== awayScore) return homeScore > awayScore ? `${game.home_team_id}` : `${game.away_team_id}`;
+  const homePens = penaltyScore(game, "home");
+  const awayPens = penaltyScore(game, "away");
+  if (homePens === null || awayPens === null || homePens === awayPens) return "";
+  return homePens > awayPens ? `${game.home_team_id}` : `${game.away_team_id}`;
 }
 
 // ESPN reports shootouts as a numeric shootoutScore per competitor (verified

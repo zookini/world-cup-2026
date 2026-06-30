@@ -15,6 +15,20 @@ const test = base.extend({
         }
       });
       page.on("pageerror", (error) => errors.push(`pageerror: ${error}`));
+
+      // Serve fast local stand-ins for the page's two external dependencies so
+      // the suite never depends on outbound internet (CI/sandbox browsers have
+      // none, and a blocked host hangs ~12s before resetting rather than failing
+      // fast): the theme's render-blocking Google Fonts @import (otherwise it
+      // stalls page load) and the live ESPN scoreboard (otherwise the board sits
+      // on "Fetching…"). Tests that need specific feed data register their own
+      // **/site.api.espn.com/** route in the test body, which Playwright matches
+      // ahead of this one.
+      await page.route("**/fonts.googleapis.com/**", (route) =>
+        route.fulfill({ status: 200, contentType: "text/css", body: "" }));
+      await page.route("**/site.api.espn.com/**", (route) =>
+        route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ events: [] }) }));
+
       await use(errors);
       expect(errors).toEqual([]);
     },

@@ -833,14 +833,29 @@ tr.eliminated {
 
 /* A pair's connector spans exactly the height of its two match slots, with a
    right border drawing the vertical stroke that meets the next column. */
+/* The bracket's vertical stroke stops short of the next round's card, with a
+   thin stub (::after) continuing on at the vertex to reach it — a single
+   line pointing into the card, rather than the whole curved stroke sitting
+   flush against its edge. */
 .bracket-connector {
   position: absolute;
-  right: calc(-1 * var(--bracket-gap));
-  width: var(--bracket-gap);
+  right: calc(-1 * var(--bracket-gap) + 6px);
+  width: calc(var(--bracket-gap) - 6px);
   border: 2px solid var(--line);
   border-left: 0;
   border-radius: 0 6px 6px 0;
   pointer-events: none;
+}
+
+.bracket-connector::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: -6px;
+  width: 6px;
+  height: 2px;
+  background: var(--line);
+  transform: translateY(-50%);
 }
 
 .bracket-match-group {

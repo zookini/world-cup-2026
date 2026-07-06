@@ -126,13 +126,8 @@ test("live standings update from finished ESPN games", async ({ page }) => {
   await page.route("**/site.api.espn.com/**", (route) => route.fulfill({
     json: { events: [ESPN_MEX_RSA_FT] },
   }));
-  await page.goto("/#groups");
-
-  await expect(page.locator("#group-a tbody tr").first()).toContainText("Mexico");
-  await expect(page.locator("#group-a tbody tr").first().locator("td").nth(3)).toHaveText("1");
-  await expect(page.locator("#group-a tbody tr").first().locator("td").nth(8)).toHaveText("3");
-
   await page.goto("/");
+
   const mexicoOwner = page.locator("#contenders tbody tr", { hasText: "T" }).first();
   await expect(mexicoOwner.locator("td").nth(2)).toHaveText("1");
   await expect(mexicoOwner.locator("td").nth(7)).toHaveText("3");
@@ -344,6 +339,26 @@ test("completed round of 32 resolves the round of 16 from match winners", async 
   await expect(roundOf16.locator(".team-name", { hasText: "Winner Match" })).toHaveCount(0);
 });
 
+// The round of 16's own id order (89-96) interleaves which round-of-32 pairs
+// feed which fixture, so the bracket view has to walk the "Winner Match N"
+// labels back from the final to lay each round out in true left-to-right
+// bracket order rather than trusting seed id order directly.
+test("bracket view lays out rounds in true bracket order with a connector per pair", async ({ page }) => {
+  await page.route("**/site.api.espn.com/**", (route) => route.fulfill({
+    json: { events: [...fullGroupStageEvents(), ...roundOf32Events()] },
+  }));
+
+  await page.goto("/#bracket");
+
+  await expect(page.locator("#bracket-89 .team-name")).toHaveText(["Germany", "France"]);
+  await expect(page.locator("#bracket-90 .team-name")).toHaveText(["South Africa", "Netherlands"]);
+  await expect(page.locator(".bracket-round-r32 .bracket-connector")).toHaveCount(8);
+  await expect(page.locator(".bracket-round-r16 .bracket-connector")).toHaveCount(4);
+  // Third place hangs off the final's own column rather than getting a
+  // further-right column of its own.
+  await expect(page.locator(".bracket-round-final .bracket-third-place .team-name")).toHaveCount(2);
+});
+
 // The feed names the team differently than the seed ("Côte d'Ivoire" vs the
 // seed's "Ivory Coast") and lists the sides flipped, but the shared FIFA code
 // (CIV) still lands the result on seed match 9 with the score oriented to the
@@ -368,13 +383,7 @@ test("ESPN games merge by code and adopt the feed's team name", async ({ page })
   // Seed match 9 is Ivory Coast (home) vs Ecuador: the score follows the seed's
   // sides even though the feed listed Ecuador as home.
   await expect(page.locator("#fixture-9 .fixture-team strong")).toHaveText(["2", "0"]);
-
-  // ...and the finished game counts toward the group E standings under the
-  // feed's spelling.
-  await page.goto("/#groups");
-  const ivoryCoast = page.locator("#group-e tbody tr", { hasText: "Côte d'Ivoire" }).first();
-  await expect(ivoryCoast.locator("td").nth(3)).toHaveText("1");
-  await expect(ivoryCoast.locator("td").nth(8)).toHaveText("3");
+  await expect(page.locator("#fixture-9 .team-name")).toHaveText(["Côte d'Ivoire", "Ecuador"]);
 });
 
 // The feed spells both teams differently than the seed and uses ESPN's own
@@ -401,12 +410,6 @@ test("ESPN games merge on FIFA code and show the feed's names", async ({ page })
   // seed's sides and the names show ESPN's spelling.
   await expect(page.locator("#fixture-14 .fixture-team strong")).toHaveText(["3", "0"]);
   await expect(page.locator("#fixture-14 .team-name")).toHaveText(["España", "Cabo Verde"]);
-
-  // ...and the finished game counts toward the group H standings under that name.
-  await page.goto("/#groups");
-  const spain = page.locator("#group-h tbody tr", { hasText: "España" }).first();
-  await expect(spain.locator("td").nth(3)).toHaveText("1");
-  await expect(spain.locator("td").nth(8)).toHaveText("3");
 });
 
 // While a match is in progress it carries the highlight; matches still to kick
@@ -656,9 +659,9 @@ test("loading state is consistent across tabs while feed data loads", async ({ p
   await expect(page.locator("#fixtures > *")).toHaveCount(0);
   await expect(page.locator("#sync-status")).toContainText("Fetching live World Cup groups and matches");
 
-  await page.click('[data-view="groups"]');
-  await expect(page.locator('[data-panel="groups"]')).toHaveClass(/active/);
-  await expect(page.locator("#groups > *")).toHaveCount(0);
+  await page.click('[data-view="bracket"]');
+  await expect(page.locator('[data-panel="bracket"]')).toHaveClass(/active/);
+  await expect(page.locator("#bracket > *")).toHaveCount(0);
   await expect(page.locator("#sync-status")).toContainText("Fetching live World Cup groups and matches");
 
   releaseFeed();
@@ -668,7 +671,7 @@ test("loading state is consistent across tabs while feed data loads", async ({ p
 
 test("tabs render and route", async ({ page }) => {
   await page.goto("/");
-  for (const view of ["losers", "fixtures", "groups"]) {
+  for (const view of ["losers", "fixtures", "bracket"]) {
     await page.click(`[data-view="${view}"]`);
     await expect(page).toHaveURL(new RegExp(`#${view}$`));
     await rendered(page, view);
@@ -689,15 +692,12 @@ test("last place tab ranks selected teams by worst group record", async ({ page 
 });
 
 test("plain tab switch resets scroll", async ({ page }) => {
-  // Empty feed so no group is live: a plain switch then resets to the top
-  // rather than auto-centering an active group (see "groups tab returns to
-  // active group"). Without this the test depends on live tournament state.
   await page.route("**/site.api.espn.com/**", (route) => route.fulfill({ json: { events: [] } }));
   await page.goto("/");
   await page.click('[data-view="fixtures"]');
   await rendered(page, "fixtures");
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight / 2));
-  await page.click('[data-view="groups"]');
+  await page.click('[data-view="bracket"]');
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
 });
 
@@ -711,37 +711,12 @@ test("mock mode loads and stays offline", async ({ page }) => {
   expect(feedRequests).toEqual([]);
 });
 
-test("mock live state updates group tables as the score stands", async ({ page }) => {
-  await page.goto("/?mock=match-40&state=live#groups/h");
-
-  await expect(page.locator("#sync-status")).toContainText("with target match live");
-  await expect(page.locator("#group-h")).toHaveClass(/active-group/);
-  await expect(page.locator("#group-h tbody tr.playing")).toHaveCount(2);
-  await expect(page.locator("#group-h tbody tr.playing .score-badge")).toHaveText(["3", "0"]);
-
-  const uruguay = page.locator("#group-h tbody tr", { hasText: "Uruguay" });
-  await expect(uruguay.locator("td").nth(3)).toHaveText("2");
-  await expect(uruguay.locator("td").nth(8)).toHaveText("6");
-});
-
-test("simultaneous final group games are active together", async ({ page }) => {
+test("simultaneous final group fixtures are marked next together", async ({ page }) => {
   await page.goto("/?mock=match-49&state=live#fixtures");
 
   await expect(page.locator("#fixture-49")).toHaveClass(/\bnext\b/);
   await expect(page.locator("#fixture-50")).toHaveClass(/\bnext\b/);
   await expect(page.locator(".fixture.next.live")).toHaveCount(2);
-
-  await page.click('[data-view="groups"]');
-  await expect(page.locator("#group-c")).toHaveClass(/active-group/);
-  await expect(page.locator("#group-c tbody tr.playing")).toHaveCount(4);
-  await expect(page.locator("#group-c tbody tr", { hasText: "Scotland" })).toHaveClass(/live-pair-1/);
-  await expect(page.locator("#group-c tbody tr", { hasText: "Brazil" })).toHaveClass(/live-pair-1/);
-  await expect(page.locator("#group-c tbody tr", { hasText: "Morocco" })).toHaveClass(/live-pair-2/);
-  await expect(page.locator("#group-c tbody tr", { hasText: "Haiti" })).toHaveClass(/live-pair-2/);
-  await expect(page.locator("#group-c tbody tr", { hasText: "Scotland" }).locator(".score-badge")).toHaveText("0");
-  await expect(page.locator("#group-c tbody tr", { hasText: "Brazil" }).locator(".score-badge")).toHaveText("3");
-  await expect(page.locator("#group-c tbody tr", { hasText: "Morocco" }).locator(".score-badge")).toHaveText("3");
-  await expect(page.locator("#group-c tbody tr", { hasText: "Haiti" }).locator(".score-badge")).toHaveText("0");
 });
 
 test("pool standings mark every owned team playing in simultaneous games", async ({ page }) => {
@@ -802,46 +777,12 @@ test("fixtures tab returns to next match", async ({ page }) => {
     .toBe(true);
 });
 
-test("groups tab returns to active group", async ({ page }) => {
-  await page.goto("/?mock=match-40&state=live");
-  await page.click('[data-view="groups"]');
-  await rendered(page, "groups");
-  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-  await page.click('[data-view="groups"]');
-  await expect
-    .poll(() =>
-      page.evaluate(() => {
-        const el = document.querySelector(".group-table.active-group");
-        const tabs = document.querySelector(".view-tabs");
-        if (!el) return false;
-        const rect = el.getBoundingClientRect();
-        const tabsBottom = tabs?.getBoundingClientRect().bottom || 0;
-        const usableTop = tabsBottom + 14;
-        const usableBottom = innerHeight - 16;
-        const usableCenter = usableTop + (usableBottom - usableTop) / 2;
-        const elementCenter = rect.top + rect.height / 2;
-        return Math.abs(elementCenter - usableCenter) < 40 && rect.bottom > 0;
-      })
-    )
-    .toBe(true);
-});
-
 // Deep links highlight and scroll, including the bare-slug anchor form.
 test("fixture deep link highlights and scrolls", async ({ page }) => {
   await page.goto(`${MOCK}#fixtures/match-5`);
   await expect
     .poll(async () => {
       const target = await deepLinkTarget(page, "fixture-5");
-      return target.highlighted && target.inView;
-    })
-    .toBe(true);
-});
-
-test("group deep link accepts a bare slug", async ({ page }) => {
-  await page.goto(`${MOCK}#groups/c`);
-  await expect
-    .poll(async () => {
-      const target = await deepLinkTarget(page, "group-c");
       return target.highlighted && target.inView;
     })
     .toBe(true);

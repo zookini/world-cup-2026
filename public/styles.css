@@ -93,8 +93,7 @@ h3 {
 }
 
 .money-board,
-.last-board,
-.world-board {
+.last-board {
   margin-bottom: 22px;
 }
 
@@ -284,12 +283,6 @@ th:nth-child(3),
 tr.eliminated .table-flag {
   opacity: 0.32;
   filter: grayscale(1);
-}
-
-.group-stage {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(460px, 1fr));
-  gap: 18px;
 }
 
 .group-table {
@@ -681,15 +674,6 @@ tr.eliminated {
   background: var(--soft);
 }
 
-.group-table.active-group .card-context {
-  background: var(--soft);
-  border-bottom-color: var(--accent);
-}
-
-.group-table.active-group .card-context h3 {
-  color: var(--accent);
-}
-
 .fixture.next .fixture-foot time {
   color: var(--accent);
 }
@@ -721,12 +705,14 @@ tr.eliminated {
 
 /* Bracket view: one horizontally-scrolling, scroll-snapping column per round.
    All columns stretch to the tallest (R32) column's height, so each shorter
-   round's matches can be centered against it with plain flexbox — no manual
-   connector-line math needed. */
+   round's matches can be centered against it with plain flexbox, and a
+   connector drawn per pair lines up with the next round's match with no
+   manual positioning (see bracketConnectors in app.js for the math). */
 .bracket-scroll {
+  --bracket-gap: 20px;
   display: flex;
   align-items: stretch;
-  gap: 14px;
+  gap: var(--bracket-gap);
   overflow-x: auto;
   scroll-snap-type: x proximity;
   padding-bottom: 6px;
@@ -737,14 +723,8 @@ tr.eliminated {
   display: flex;
   flex: 0 0 auto;
   flex-direction: column;
-  width: 200px;
+  width: 150px;
   scroll-snap-align: start;
-}
-
-.bracket-round-third {
-  margin-left: 8px;
-  border-left: 1px dashed var(--line);
-  padding-left: 14px;
 }
 
 .bracket-round-title {
@@ -763,71 +743,75 @@ tr.eliminated {
 }
 
 .bracket-round-matches {
+  position: relative;
   display: flex;
   flex: 1;
   flex-direction: column;
   justify-content: space-around;
-  gap: 10px;
 }
 
 .bracket-match {
-  display: grid;
-  gap: 4px;
-  padding: 8px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--bg);
-}
-
-.bracket-match.live {
-  border-color: var(--accent);
-  background: var(--soft);
-}
-
-.bracket-match .fixture-team {
-  grid-template-columns: 0 20px minmax(0, 1fr) minmax(20px, auto);
-  gap: 6px;
-}
-
-.bracket-match .fixture-gambler {
-  visibility: hidden;
-}
-
-.bracket-match .team-name {
-  font-size: 0.8rem;
-}
-
-/* Round switcher (segmented control) for the Rounds view. */
-.round-switcher {
   display: flex;
+  flex-direction: column;
   gap: 6px;
-  margin-bottom: 14px;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
 }
 
-.round-switcher button {
-  flex: 0 0 auto;
-  padding: 8px 12px;
-  color: var(--muted);
-  font-size: 0.78rem;
-  font-weight: 700;
+.bracket-team {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.bracket-team .team-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
-  background: var(--soft);
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  cursor: pointer;
+  color: var(--text);
+  font-size: 0.82rem;
 }
 
-.round-switcher button.active {
-  color: #fff;
-  background: var(--accent);
-  border-color: var(--accent);
+.bracket-team.placeholder .team-name {
+  color: var(--muted);
+  font-style: italic;
 }
 
-.round-list {
-  display: grid;
-  gap: 10px;
+.bracket-team.eliminated .team-name,
+.bracket-team.eliminated .table-flag {
+  opacity: 0.4;
+  filter: grayscale(1);
+}
+
+/* A pair's connector spans exactly the height of its two match slots, with a
+   right border drawing the vertical stroke that meets the next column. */
+.bracket-connector {
+  position: absolute;
+  right: calc(-1 * var(--bracket-gap));
+  width: var(--bracket-gap);
+  border: 2px solid var(--line);
+  border-left: 0;
+  border-radius: 0 6px 6px 0;
+  pointer-events: none;
+}
+
+.bracket-match-group {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.bracket-third-place {
+  padding-top: 10px;
+  border-top: 1px dashed var(--line);
+}
+
+.bracket-third-label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 0.64rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .visually-hidden {
@@ -846,13 +830,13 @@ tr.eliminated {
 
   .view-tabs {
     gap: 2px;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+    overflow-x: visible;
   }
 
   .view-tabs button {
-    flex: 0 0 auto;
-    padding: 10px 10px;
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 10px 4px;
     font-size: 0.82rem;
     text-align: center;
     white-space: nowrap;
@@ -949,11 +933,6 @@ tr.eliminated {
     display: none;
   }
 
-  .group-stage {
-    grid-template-columns: 1fr;
-    overflow-x: visible;
-  }
-
   .group-table {
     overflow: hidden;
   }
@@ -1023,12 +1002,16 @@ tr.eliminated {
     font-size: 0.86rem;
   }
 
-  .bracket-round {
-    width: 168px;
+  .bracket-scroll {
+    --bracket-gap: 14px;
   }
 
-  .bracket-match {
-    padding: 6px;
+  .bracket-round {
+    width: 132px;
+  }
+
+  .bracket-team .team-name {
+    font-size: 0.78rem;
   }
 }
 

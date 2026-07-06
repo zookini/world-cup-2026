@@ -14,22 +14,17 @@ let dataStatus = "";
 let initialDataLoaded = false;
 let loadingMessage = "";
 let pendingFixtureScroll = false;
-let pendingGroupScroll = false;
 
 const contendersEl = document.querySelector("#contenders");
 const lastPlaceEl = document.querySelector("#last-place");
-const groupsEl = document.querySelector("#groups");
 const fixturesEl = document.querySelector("#fixtures");
 const bracketEl = document.querySelector("#bracket");
-const roundsEl = document.querySelector("#rounds");
 const syncStatusEl = document.querySelector("#sync-status");
 const viewButtons = document.querySelectorAll("[data-view]");
 const viewPanels = document.querySelectorAll("[data-panel]");
 
-const VIEWS = ["standings", "losers", "fixtures", "groups", "bracket", "rounds"];
+const VIEWS = ["standings", "losers", "fixtures", "bracket"];
 let activeView = "standings";
-const KNOCKOUT_TYPES = ["r32", "r16", "qf", "sf", "third", "final"];
-let activeRound = null;
 
 // ESPN's scoreboard API sends Access-Control-Allow-Origin: *, so the browser
 // can call it directly without a same-origin proxy.
@@ -39,9 +34,6 @@ const ESPN_SCOREBOARD_URL =
 async function init() {
   bindViewTabs();
   bindShareButtons(fixturesEl, shareFixture);
-  bindShareButtons(roundsEl, shareFixture);
-  bindShareButtons(groupsEl, shareGroup);
-  bindRoundSwitcher();
   applyHashRoute();
   window.addEventListener("hashchange", applyHashRoute);
   await loadSelections();
@@ -112,10 +104,6 @@ function shareFixture(id, button) {
   return share(`fixtures/match-${id}`, matchLabel(id, "this match"), button);
 }
 
-function shareGroup(group, button) {
-  return share(`groups/${groupSlug(group)}`, `Group ${group}`, button);
-}
-
 async function copyShareLink(url, button) {
   try {
     await navigator.clipboard.writeText(url);
@@ -150,15 +138,10 @@ function applyHashRoute() {
       requestFixtureScroll();
       return;
     }
-    if (resolved === "groups") {
-      requestGroupScroll();
-      return;
-    }
     scrollToTop();
     return;
   }
   if (resolved === "fixtures") requestFixtureScroll();
-  if (resolved === "groups") scrollToGroup(hashGroupTarget());
 }
 
 // The element a `#<view>/<anchor>` hash points at, or null when the hash isn't
@@ -173,10 +156,6 @@ function hashTarget(view, elementPrefix, anchorPrefix) {
 
 function hashFixtureTarget() {
   return hashTarget("fixtures", "fixture", "match");
-}
-
-function hashGroupTarget() {
-  return hashTarget("groups", "group", "group");
 }
 
 // A monotonic token so only the most recently scheduled scroll runs. Switching
@@ -198,10 +177,6 @@ function afterLayout(fn) {
 
 function scrollToTop() {
   afterLayout(() => window.scrollTo({ top: 0, behavior: "auto" }));
-}
-
-function groupSlug(group) {
-  return `${group}`.trim().toLowerCase().replace(/^group\s+/, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }
 
 async function loadSelections() {
@@ -284,9 +259,7 @@ function renderLoadingState() {
   contendersEl.innerHTML = "";
   lastPlaceEl.innerHTML = "";
   fixturesEl.innerHTML = "";
-  groupsEl.innerHTML = "";
   bracketEl.innerHTML = "";
-  roundsEl.innerHTML = "";
 }
 
 // A finished knockout game that is still level means the feed didn't encode
@@ -949,14 +922,10 @@ function renderActiveView() {
   }
   if (activeView === "fixtures") {
     renderFixtures();
-  } else if (activeView === "groups") {
-    renderGroups();
   } else if (activeView === "losers") {
     renderLastPlace();
   } else if (activeView === "bracket") {
     renderBracket();
-  } else if (activeView === "rounds") {
-    renderRounds();
   } else {
     renderContenders();
   }
@@ -1215,53 +1184,6 @@ function rankForLastPlace(rows, index) {
   return compareLastPlaceRank(current, previous) === 0 ? rankForLastPlace(rows, index - 1) : index + 1;
 }
 
-function renderGroups() {
-  groupsEl.innerHTML = "";
-  const sourceGroups = groups.length ? groups : fallbackGroups();
-  const activeGroupNames = nextGroupNames();
-  sourceGroups.slice().sort((a, b) => a.name.localeCompare(b.name)).forEach((group) => {
-    const table = document.createElement("article");
-    const activeGroup = activeGroupNames.has(group.name);
-    table.className = `group-table${activeGroup ? " active-group" : ""}`;
-    table.id = `group-${groupSlug(group.name)}`;
-    const standings = groups.length ? standingsForGroup(group) : group.teams;
-    const rows = standings.map((team, index) => {
-      const selected = selectionByCode(team.code);
-      const status = selected ? groupStageStatus(selected, team.id) : "neutral";
-      const displayName = teamDisplayName(team);
-      const live = liveTeamMeta(team.id);
-      const liveScore = live?.score || "";
-      return `
-        <tr class="${status} ${selected ? "selected" : ""} ${liveScore ? `playing ${live.pairClass}` : ""}">
-          <td><span class="rank-number">${index + 1}</span></td>
-          <td>${ownerBadge(team.owner, status)}</td>
-          <td><div class="team-cell">${tableFlagMarkup(team)}<span class="team-name">${displayName}</span>${liveScore ? `<span class="score-badge">${liveScore}</span>` : ""}</div></td>
-          <td>${team.mp}</td>
-          <td>${team.w}</td>
-          <td>${team.l}</td>
-          <td>${team.d}</td>
-          <td>${team.gd}</td>
-          <td><strong>${team.pts}</strong></td>
-        </tr>
-      `;
-    }).join("");
-    table.innerHTML = `
-      <div class="card-context">
-        <h3>Group ${group.name}</h3>
-      </div>
-      <table>
-        <thead><tr><th><span class="rank-heading">#</span></th><th>Gambler</th><th>Team</th><th>P</th><th>W</th><th>L</th><th>D</th><th>GD</th><th>Pts</th></tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
-    `;
-    groupsEl.append(table);
-  });
-  markDeepLinkedElement(hashGroupTarget());
-  if (document.querySelector('[data-panel="groups"]')?.classList.contains("active")) {
-    settleGroupScroll();
-  }
-}
-
 function tableFlagMarkup(team) {
   return flagImage(team, "table-flag");
 }
@@ -1270,14 +1192,6 @@ function tableFlagMarkup(team) {
 // offline/in mock.
 function teamDisplayName(team) {
   return espnNameByCode.get(upperCode(team.code)) || team.name;
-}
-
-function fallbackGroups() {
-  return Object.values(selections.reduce((collection, team) => {
-    collection[team.group] ||= { name: team.group, teams: [] };
-    collection[team.group].teams.push({ ...team, mp: 0, w: 0, d: 0, l: 0, gd: 0, pts: 0, owner: team.player });
-    return collection;
-  }, {}));
 }
 
 const STAGE_LABELS = {
@@ -1331,7 +1245,7 @@ function matchMeta(game, state, date) {
   return `<time>${date ? timeLabel(date) : "TBD"}</time>`;
 }
 
-function fixtureRow(game, isNext, idPrefix = "fixture") {
+function fixtureRow(game, isNext) {
   const home = fixtureTeam(game, "home", game);
   const away = fixtureTeam(game, "away", game);
   const state = matchState(game);
@@ -1339,7 +1253,7 @@ function fixtureRow(game, isNext, idPrefix = "fixture") {
   const stage = game.type === "group" ? `Group ${game.group}` : STAGE_LABELS[game.type] || "Match";
   const date = parseMatchDate(game);
   return `
-    <div id="${idPrefix}-${game.id}" class="fixture ${state} ${isNext ? "next" : ""}">
+    <div id="fixture-${game.id}" class="fixture ${state} ${isNext ? "next" : ""}">
       <div class="card-context">
         <h3>${stage}</h3>
         <span class="fixture-foot-end">
@@ -1387,6 +1301,8 @@ function orderedBracketRounds() {
   return rounds;
 }
 
+const BRACKET_ROUNDS = ["r32", "r16", "qf", "sf", "final"];
+
 function renderBracket() {
   const rounds = orderedBracketRounds();
   if (!rounds) {
@@ -1395,69 +1311,70 @@ function renderBracket() {
   }
   bracketEl.innerHTML = `
     <div class="bracket-scroll">
-      ${["r32", "r16", "qf", "sf", "final"].map((type) => bracketColumn(type, rounds[type])).join("")}
-      ${rounds.third ? bracketColumn("third", rounds.third) : ""}
+      ${BRACKET_ROUNDS.map((type) => bracketColumn(type, rounds[type] || [], rounds.third?.[0])).join("")}
     </div>
   `;
 }
 
-function bracketColumn(type, matches) {
+function bracketColumn(type, matches, thirdPlaceGame) {
+  const isFinal = type === "final";
+  const connectors = isFinal ? "" : bracketConnectors(matches.length);
+  // The final match sits alone in its column (so it stays centered on the
+  // semi-final connectors above it); the third-place playoff hangs off the
+  // same match as a sub-row rather than getting its own column further right.
+  const matchesHtml = isFinal
+    ? `
+      <div class="bracket-match-group">
+        ${bracketMatch(matches[0])}
+        ${thirdPlaceGame ? `
+          <div class="bracket-third-place">
+            <span class="bracket-third-label">Third Place</span>
+            ${bracketMatch(thirdPlaceGame)}
+          </div>
+        ` : ""}
+      </div>
+    `
+    : matches.map((game) => bracketMatch(game)).join("");
   return `
     <div class="bracket-round bracket-round-${type}">
       <h3 class="bracket-round-title">${STAGE_LABELS[type]}</h3>
       <div class="bracket-round-matches">
-        ${matches.map((game) => bracketMatch(game)).join("")}
+        ${matchesHtml}
+        ${connectors}
       </div>
     </div>
   `;
 }
 
+// Matches lay out with justify-content: space-around, which puts match i's
+// vertical center at (i + 0.5) / count of the column's height. For a
+// power-of-two bracket that means a pair's midpoint always lands exactly on
+// the next round's match center, so a connector spanning one pair's two slots
+// meets the following column's match with no further calculation needed.
+function bracketConnectors(count) {
+  return Array.from({ length: count / 2 }, (_, i) => {
+    const top = ((2 * i + 0.5) / count) * 100;
+    const height = (1 / count) * 100;
+    return `<div class="bracket-connector" style="top:${top}%;height:${height}%"></div>`;
+  }).join("");
+}
+
 function bracketMatch(game) {
-  const home = fixtureTeam(game, "home", game);
-  const away = fixtureTeam(game, "away", game);
-  const state = matchState(game);
-  const started = state !== "upcoming";
   return `
-    <div id="bracket-${game.id}" class="bracket-match ${state}">
-      ${fixtureTeamLine(home, started ? scoreText(game, "home") : "")}
-      ${fixtureTeamLine(away, started ? scoreText(game, "away") : "")}
+    <div id="bracket-${game.id}" class="bracket-match ${matchState(game)}">
+      ${bracketTeamLine(fixtureTeam(game, "home", game))}
+      ${bracketTeamLine(fixtureTeam(game, "away", game))}
     </div>
   `;
 }
 
-function defaultRound() {
-  const present = KNOCKOUT_TYPES.filter((type) => games.some((game) => game.type === type));
-  const unfinished = present.find((type) => games.some((game) => game.type === type && !isFinished(game)));
-  return unfinished || present[present.length - 1] || "r32";
-}
-
-function renderRounds() {
-  const present = KNOCKOUT_TYPES.filter((type) => games.some((game) => game.type === type));
-  if (!present.length) {
-    roundsEl.innerHTML = `<p class="fixtures-empty">No knockout fixtures available yet.</p>`;
-    return;
-  }
-  if (!activeRound || !present.includes(activeRound)) activeRound = defaultRound();
-  const list = games.filter((game) => game.type === activeRound).sort(compareGames);
-  roundsEl.innerHTML = `
-    <div class="round-switcher" role="tablist">
-      ${present.map((type) => `
-        <button type="button" role="tab" class="${type === activeRound ? "active" : ""}" aria-selected="${type === activeRound}" data-round="${type}">${STAGE_LABELS[type]}</button>
-      `).join("")}
-    </div>
-    <div class="round-list">
-      ${list.map((game) => fixtureRow(game, false, "round-fixture")).join("")}
+function bracketTeamLine(team) {
+  return `
+    <div class="bracket-team ${team.status} ${team.placeholder ? "placeholder" : ""}">
+      ${fixtureFlag(team)}
+      <span class="team-name">${team.name}</span>
     </div>
   `;
-}
-
-function bindRoundSwitcher() {
-  roundsEl.addEventListener("click", (event) => {
-    const button = event.target.closest("[data-round]");
-    if (!button) return;
-    activeRound = button.dataset.round;
-    renderRounds();
-  });
 }
 
 function renderSurvivors(rows) {
@@ -1602,43 +1519,15 @@ function nextFixtures(ordered) {
   }));
 }
 
-// The groups the Groups view highlights and focuses: groups with matches in
-// progress, or—failing that—groups in the next group-stage kickoff window.
-// Mirrors nextFixtures so simultaneous group finales stay visible together.
-function nextGroupNames() {
-  const groupGames = sortedGames().filter((game) => game.type === "group");
-  const game = groupGames.find((g) => matchState(g) === "live")
-    || groupGames.find((g) => matchState(g) === "upcoming");
-  if (!game) return new Set();
-  const state = matchState(game);
-  const kickoff = parseMatchDate(game)?.getTime();
-  return new Set(groupGames
-    .filter((item) => matchState(item) === state && (!kickoff || parseMatchDate(item)?.getTime() === kickoff))
-    .map((item) => item.group));
-}
-
 function requestFixtureScroll() {
   pendingFixtureScroll = true;
   settleFixtureScroll();
-}
-
-function requestGroupScroll() {
-  pendingGroupScroll = true;
-  settleGroupScroll();
 }
 
 function settleFixtureScroll() {
   if (!pendingFixtureScroll || activeView !== "fixtures" || !fixturesEl.children.length) return;
   pendingFixtureScroll = false;
   scrollToFixture(hashFixtureTarget());
-}
-
-function settleGroupScroll() {
-  if (!pendingGroupScroll || activeView !== "groups" || !groupsEl.children.length) return;
-  pendingGroupScroll = false;
-  const target = hashGroupTarget() || activeGroupTarget();
-  if (target) scrollToGroup(target);
-  else scrollToTop();
 }
 
 // Center a fixture in the usable viewport below the sticky tabs. Passing null
@@ -1649,12 +1538,6 @@ function scrollToFixture(target) {
     if (activeView !== "fixtures") return;
     const el = target || fixturesEl.querySelector(".fixture.next") || fixturesEl.querySelector(".fixture:last-child");
     if (el) scrollElementToUsableCenter(el);
-  });
-}
-
-function scrollToGroup(target) {
-  afterLayout(() => {
-    if (target && activeView === "groups") scrollElementToUsableCenter(target);
   });
 }
 
@@ -1670,10 +1553,6 @@ function scrollElementToUsableCenter(target) {
 function stickyTabsBottom() {
   const tabs = document.querySelector(".view-tabs");
   return tabs?.getBoundingClientRect().bottom || parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--tabs-height")) || 44;
-}
-
-function activeGroupTarget() {
-  return groupsEl.querySelector(".group-table.active-group");
 }
 
 function markDeepLinkedElement(target) {

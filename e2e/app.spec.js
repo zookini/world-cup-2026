@@ -359,6 +359,29 @@ test("bracket view lays out rounds in true bracket order with a connector per pa
   await expect(page.locator(".bracket-round-final .bracket-third-place .team-name")).toHaveCount(2);
 });
 
+// Regression: a connector used to span center-of-match to center-of-match,
+// so it visually bracketed the bottom team of one match with the top team of
+// the next (e.g. Paraguay-to-France) instead of hugging each whole match —
+// reading as if it connected the wrong two rows. It should span from the top
+// of the pair's first match to the bottom of its second.
+test("bracket connector spans a full match pair, not center-to-center", async ({ page }) => {
+  await page.route("**/site.api.espn.com/**", (route) => route.fulfill({
+    json: { events: [...fullGroupStageEvents(), ...roundOf32Events()] },
+  }));
+
+  await page.goto("/#bracket");
+  await expect(page.locator(".bracket-round-r32 .bracket-connector").first()).toBeAttached();
+
+  const bounds = await page.evaluate(() => {
+    const matches = [...document.querySelectorAll(".bracket-round-r32 .bracket-match")].slice(0, 2)
+      .map((m) => m.getBoundingClientRect());
+    const connector = document.querySelector(".bracket-round-r32 .bracket-connector").getBoundingClientRect();
+    return { firstMatchTop: matches[0].top, secondMatchBottom: matches[1].bottom, connectorTop: connector.top, connectorBottom: connector.bottom };
+  });
+  expect(bounds.connectorTop).toBeCloseTo(bounds.firstMatchTop, 0);
+  expect(bounds.connectorBottom).toBeCloseTo(bounds.secondMatchBottom, 0);
+});
+
 // Regression: the round-of-32 column is much taller than the screen, so
 // #bracket scrolls vertically inside its own fixed-height viewport (rather
 // than the page scrolling, which would carry the round title away with it).

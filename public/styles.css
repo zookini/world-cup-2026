@@ -719,6 +719,117 @@ tr.eliminated {
   order: 3;
 }
 
+/* Bracket view: one horizontally-scrolling, scroll-snapping column per round.
+   All columns stretch to the tallest (R32) column's height, so each shorter
+   round's matches can be centered against it with plain flexbox — no manual
+   connector-line math needed. */
+.bracket-scroll {
+  display: flex;
+  align-items: stretch;
+  gap: 14px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  padding-bottom: 6px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.bracket-round {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  width: 200px;
+  scroll-snap-align: start;
+}
+
+.bracket-round-third {
+  margin-left: 8px;
+  border-left: 1px dashed var(--line);
+  padding-left: 14px;
+}
+
+.bracket-round-title {
+  position: sticky;
+  top: 0;
+  margin-bottom: 10px;
+  padding: 6px 10px;
+  color: var(--muted);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  text-align: center;
+  background: var(--soft);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+}
+
+.bracket-round-matches {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: space-around;
+  gap: 10px;
+}
+
+.bracket-match {
+  display: grid;
+  gap: 4px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+}
+
+.bracket-match.live {
+  border-color: var(--accent);
+  background: var(--soft);
+}
+
+.bracket-match .fixture-team {
+  grid-template-columns: 0 20px minmax(0, 1fr) minmax(20px, auto);
+  gap: 6px;
+}
+
+.bracket-match .fixture-gambler {
+  visibility: hidden;
+}
+
+.bracket-match .team-name {
+  font-size: 0.8rem;
+}
+
+/* Round switcher (segmented control) for the Rounds view. */
+.round-switcher {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 14px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.round-switcher button {
+  flex: 0 0 auto;
+  padding: 8px 12px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  white-space: nowrap;
+  background: var(--soft);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.round-switcher button.active {
+  color: #fff;
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.round-list {
+  display: grid;
+  gap: 10px;
+}
+
 .visually-hidden {
   position: absolute;
   width: 1px;
@@ -735,13 +846,13 @@ tr.eliminated {
 
   .view-tabs {
     gap: 2px;
-    overflow-x: visible;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .view-tabs button {
-    flex: 1 1 0;
-    min-width: 0;
-    padding: 10px 4px;
+    flex: 0 0 auto;
+    padding: 10px 10px;
     font-size: 0.82rem;
     text-align: center;
     white-space: nowrap;
@@ -910,6 +1021,14 @@ tr.eliminated {
 
   .fixture-team .team-name {
     font-size: 0.86rem;
+  }
+
+  .bracket-round {
+    width: 168px;
+  }
+
+  .bracket-match {
+    padding: 6px;
   }
 }
 

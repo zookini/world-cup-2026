@@ -20,12 +20,16 @@ const contendersEl = document.querySelector("#contenders");
 const lastPlaceEl = document.querySelector("#last-place");
 const groupsEl = document.querySelector("#groups");
 const fixturesEl = document.querySelector("#fixtures");
+const bracketEl = document.querySelector("#bracket");
+const roundsEl = document.querySelector("#rounds");
 const syncStatusEl = document.querySelector("#sync-status");
 const viewButtons = document.querySelectorAll("[data-view]");
 const viewPanels = document.querySelectorAll("[data-panel]");
 
-const VIEWS = ["standings", "losers", "fixtures", "groups"];
+const VIEWS = ["standings", "losers", "fixtures", "groups", "bracket", "rounds"];
 let activeView = "standings";
+const KNOCKOUT_TYPES = ["r32", "r16", "qf", "sf", "third", "final"];
+let activeRound = null;
 
 // ESPN's scoreboard API sends Access-Control-Allow-Origin: *, so the browser
 // can call it directly without a same-origin proxy.
@@ -35,7 +39,9 @@ const ESPN_SCOREBOARD_URL =
 async function init() {
   bindViewTabs();
   bindShareButtons(fixturesEl, shareFixture);
+  bindShareButtons(roundsEl, shareFixture);
   bindShareButtons(groupsEl, shareGroup);
+  bindRoundSwitcher();
   applyHashRoute();
   window.addEventListener("hashchange", applyHashRoute);
   await loadSelections();
@@ -279,6 +285,8 @@ function renderLoadingState() {
   lastPlaceEl.innerHTML = "";
   fixturesEl.innerHTML = "";
   groupsEl.innerHTML = "";
+  bracketEl.innerHTML = "";
+  roundsEl.innerHTML = "";
 }
 
 // A finished knockout game that is still level means the feed didn't encode
@@ -945,6 +953,10 @@ function renderActiveView() {
     renderGroups();
   } else if (activeView === "losers") {
     renderLastPlace();
+  } else if (activeView === "bracket") {
+    renderBracket();
+  } else if (activeView === "rounds") {
+    renderRounds();
   } else {
     renderContenders();
   }
@@ -1319,7 +1331,7 @@ function matchMeta(game, state, date) {
   return `<time>${date ? timeLabel(date) : "TBD"}</time>`;
 }
 
-function fixtureRow(game, isNext) {
+function fixtureRow(game, isNext, idPrefix = "fixture") {
   const home = fixtureTeam(game, "home", game);
   const away = fixtureTeam(game, "away", game);
   const state = matchState(game);
@@ -1327,7 +1339,7 @@ function fixtureRow(game, isNext) {
   const stage = game.type === "group" ? `Group ${game.group}` : STAGE_LABELS[game.type] || "Match";
   const date = parseMatchDate(game);
   return `
-    <div id="fixture-${game.id}" class="fixture ${state} ${isNext ? "next" : ""}">
+    <div id="${idPrefix}-${game.id}" class="fixture ${state} ${isNext ? "next" : ""}">
       <div class="card-context">
         <h3>${stage}</h3>
         <span class="fixture-foot-end">
@@ -1339,6 +1351,113 @@ function fixtureRow(game, isNext) {
       ${fixtureTeamLine(away, started ? scoreText(game, "away") : "")}
     </div>
   `;
+}
+
+// The R32 seed labels ("Winner Group A", "3rd Group ...") carry no match
+// number, so the bracket tree only extends through fixtures whose home/away
+// label names a previous match — i.e. every round from R16 up to the final.
+function matchReference(game, side) {
+  const label = game[`${side}_team_label`] || "";
+  const refMatch = /^(Winner|Loser) Match (\d+)$/.exec(label);
+  return refMatch ? { kind: refMatch[1].toLowerCase(), id: refMatch[2] } : null;
+}
+
+// Walks the bracket backwards from the final so each round's matches come out
+// in true left-to-right bracket order (which R16 pairs feed which QF, etc.) —
+// the tsv's own id order interleaves those pairings and can't be used directly.
+function orderedBracketRounds() {
+  const final = games.find((game) => game.type === "final");
+  if (!final) return null;
+  const byId = new Map(games.map((game) => [`${game.id}`, game]));
+  const rounds = { final: [final] };
+  let current = [final];
+  ["sf", "qf", "r16", "r32"].forEach((type) => {
+    const next = [];
+    current.forEach((game) => {
+      ["home", "away"].forEach((side) => {
+        const ref = matchReference(game, side);
+        if (ref?.kind === "winner" && byId.has(ref.id)) next.push(byId.get(ref.id));
+      });
+    });
+    rounds[type] = next;
+    current = next;
+  });
+  const third = games.find((game) => game.type === "third");
+  if (third) rounds.third = [third];
+  return rounds;
+}
+
+function renderBracket() {
+  const rounds = orderedBracketRounds();
+  if (!rounds) {
+    bracketEl.innerHTML = `<p class="fixtures-empty">Bracket not available yet.</p>`;
+    return;
+  }
+  bracketEl.innerHTML = `
+    <div class="bracket-scroll">
+      ${["r32", "r16", "qf", "sf", "final"].map((type) => bracketColumn(type, rounds[type])).join("")}
+      ${rounds.third ? bracketColumn("third", rounds.third) : ""}
+    </div>
+  `;
+}
+
+function bracketColumn(type, matches) {
+  return `
+    <div class="bracket-round bracket-round-${type}">
+      <h3 class="bracket-round-title">${STAGE_LABELS[type]}</h3>
+      <div class="bracket-round-matches">
+        ${matches.map((game) => bracketMatch(game)).join("")}
+      </div>
+    </div>
+  `;
+}
+
+function bracketMatch(game) {
+  const home = fixtureTeam(game, "home", game);
+  const away = fixtureTeam(game, "away", game);
+  const state = matchState(game);
+  const started = state !== "upcoming";
+  return `
+    <div id="bracket-${game.id}" class="bracket-match ${state}">
+      ${fixtureTeamLine(home, started ? scoreText(game, "home") : "")}
+      ${fixtureTeamLine(away, started ? scoreText(game, "away") : "")}
+    </div>
+  `;
+}
+
+function defaultRound() {
+  const present = KNOCKOUT_TYPES.filter((type) => games.some((game) => game.type === type));
+  const unfinished = present.find((type) => games.some((game) => game.type === type && !isFinished(game)));
+  return unfinished || present[present.length - 1] || "r32";
+}
+
+function renderRounds() {
+  const present = KNOCKOUT_TYPES.filter((type) => games.some((game) => game.type === type));
+  if (!present.length) {
+    roundsEl.innerHTML = `<p class="fixtures-empty">No knockout fixtures available yet.</p>`;
+    return;
+  }
+  if (!activeRound || !present.includes(activeRound)) activeRound = defaultRound();
+  const list = games.filter((game) => game.type === activeRound).sort(compareGames);
+  roundsEl.innerHTML = `
+    <div class="round-switcher" role="tablist">
+      ${present.map((type) => `
+        <button type="button" role="tab" class="${type === activeRound ? "active" : ""}" aria-selected="${type === activeRound}" data-round="${type}">${STAGE_LABELS[type]}</button>
+      `).join("")}
+    </div>
+    <div class="round-list">
+      ${list.map((game) => fixtureRow(game, false, "round-fixture")).join("")}
+    </div>
+  `;
+}
+
+function bindRoundSwitcher() {
+  roundsEl.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-round]");
+    if (!button) return;
+    activeRound = button.dataset.round;
+    renderRounds();
+  });
 }
 
 function renderSurvivors(rows) {

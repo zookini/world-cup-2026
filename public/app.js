@@ -1321,6 +1321,7 @@ function renderBracket() {
     </div>
   `;
   sizeBracketScroll();
+  updateBracketScale(true);
   settleBracketScroll();
 }
 
@@ -1337,14 +1338,72 @@ function sizeBracketScroll() {
 }
 
 window.addEventListener("resize", () => {
-  if (activeView === "bracket") sizeBracketScroll();
+  if (activeView !== "bracket") return;
+  sizeBracketScroll();
+  updateBracketScale();
+});
+
+// How many match slots each round's column holds when it is the round the
+// shared column height is based on (the final's column really holds the
+// third-place card too, but the group height clamp below covers that).
+const BRACKET_SLOTS = { r32: 16, r16: 8, qf: 4, sf: 2, final: 1 };
+
+// The aligned tree pins a round's card to the vertical midpoint of the pair
+// feeding it, which doubles the empty space between cards every column — a
+// cost worth paying only for rounds you can actually see. So the tree
+// re-bases as you scroll: the leftmost round still in view is packed to card
+// height and every round to its right doubles from there, keeping the exact
+// same geometry (and connector alignment) at a smaller scale. Rounds fully
+// scrolled off to the left end up squashed below their content height; they
+// are invisible, and .bracket-round-matches clips their overflow.
+function updateBracketScale(instant = false) {
+  const columns = [...bracketEl.querySelectorAll(".bracket-round")];
+  const sample = bracketEl.querySelector(".bracket-round-r32 .bracket-match");
+  if (!columns.length || !sample) return;
+  const slot = sample.offsetHeight + 10; // card plus its 5px top/bottom margins
+  const viewLeft = bracketEl.getBoundingClientRect().left;
+  // A column stops being the base once all but its last 8px has scrolled off
+  // — at that point (e.g. settled on the next round's scroll-snap stop) the
+  // tree shrinks. Scrolling back expands it again as the column re-enters.
+  const base = columns.find((column) => column.getBoundingClientRect().right > viewLeft - 8) || columns[columns.length - 1];
+  const baseType = BRACKET_ROUNDS.find((type) => base.classList.contains(`bracket-round-${type}`));
+  // space-around centers the final's whole card group (final + third place),
+  // which would leave the final card itself sitting above the semi-final
+  // pair's midpoint where the connector points. Push the group down until
+  // the final card is the centered element, and never shrink the shared
+  // height below what keeps the shifted group inside its clipped container.
+  let minHeight = 0;
+  const group = bracketEl.querySelector(".bracket-match-group");
+  const finalCard = group?.querySelector(".bracket-match");
+  if (group && finalCard) {
+    group.style.transform = `translateY(${(group.offsetHeight - finalCard.offsetHeight) / 2}px)`;
+    minHeight = 2 * group.offsetHeight - finalCard.offsetHeight + 12;
+  }
+  const height = Math.max(BRACKET_SLOTS[baseType] * slot, minHeight);
+  columns.forEach((column) => {
+    const matches = column.querySelector(".bracket-round-matches");
+    matches.style.transition = instant ? "none" : "";
+    matches.style.height = `${height}px`;
+  });
+}
+
+let bracketScaleQueued = false;
+bracketEl.addEventListener("scroll", () => {
+  if (bracketScaleQueued) return;
+  bracketScaleQueued = true;
+  requestAnimationFrame(() => {
+    bracketScaleQueued = false;
+    updateBracketScale();
+  });
 });
 
 function bracketColumn(type, matches, thirdPlaceGame, nextGames) {
-  // The final match sits alone in its column; the third-place playoff hangs
-  // off the same column as a sub-row rather than getting its own column
-  // further right.
-  const matchesHtml = type === "final"
+  const isFinal = type === "final";
+  const connectors = isFinal ? "" : bracketConnectors(matches.length);
+  // The final match sits alone in its column (so it stays centered on the
+  // semi-final connectors above it); the third-place playoff hangs off the
+  // same match as a sub-row rather than getting its own column further right.
+  const matchesHtml = isFinal
     ? `
       <div class="bracket-match-group">
         ${bracketMatch(matches[0], nextGames)}
@@ -1362,9 +1421,25 @@ function bracketColumn(type, matches, thirdPlaceGame, nextGames) {
       <h3 class="bracket-round-title">${STAGE_LABELS[type]}</h3>
       <div class="bracket-round-matches">
         ${matchesHtml}
+        ${connectors}
       </div>
     </div>
   `;
+}
+
+// Matches lay out with justify-content: space-around, which puts match i's
+// vertical center at (i + 0.5) / count of the column's height. Each match is
+// its own bordered card, so a connector running center-to-center reads as
+// "this card's middle links to that card's middle" rather than crossing
+// between two different cards' edges. For a power-of-two bracket, a pair's
+// midpoint always lands exactly on the next round's match center, so this
+// still meets the following column's card with no further calculation needed.
+function bracketConnectors(count) {
+  return Array.from({ length: count / 2 }, (_, i) => {
+    const top = ((2 * i + 0.5) / count) * 100;
+    const height = (1 / count) * 100;
+    return `<div class="bracket-connector" style="top:${top}%;height:${height}%"></div>`;
+  }).join("");
 }
 
 function bracketMatch(game, nextGames) {
@@ -1590,7 +1665,14 @@ function scrollToBracketMatch() {
     window.scrollTo({ top: 0, behavior: "auto" });
     sizeBracketScroll();
     const el = bracketEl.querySelector(".bracket-match.next") || bracketEl.querySelector(".bracket-round-final .bracket-match");
-    if (el) el.scrollIntoView({ block: "center", inline: "center", behavior: "auto" });
+    if (!el) return;
+    // Two passes: landing on the match changes which round is leftmost,
+    // which re-bases the tree (updateBracketScale) and moves the match
+    // vertically — so re-base instantly at the new horizontal position,
+    // then center the match again at the settled scale.
+    el.scrollIntoView({ block: "center", inline: "center", behavior: "auto" });
+    updateBracketScale(true);
+    el.scrollIntoView({ block: "center", inline: "center", behavior: "auto" });
   });
 }
 

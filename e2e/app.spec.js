@@ -343,7 +343,7 @@ test("completed round of 32 resolves the round of 16 from match winners", async 
 // feed which fixture, so the bracket view has to walk the "Winner Match N"
 // labels back from the final to lay each round out in true left-to-right
 // bracket order rather than trusting seed id order directly.
-test("bracket view lays out rounds in true bracket order", async ({ page }) => {
+test("bracket view lays out rounds in true bracket order with a connector per pair", async ({ page }) => {
   await page.route("**/site.api.espn.com/**", (route) => route.fulfill({
     json: { events: [...fullGroupStageEvents(), ...roundOf32Events()] },
   }));
@@ -352,36 +352,101 @@ test("bracket view lays out rounds in true bracket order", async ({ page }) => {
 
   await expect(page.locator("#bracket-89 .team-name")).toHaveText(["Germany", "France"]);
   await expect(page.locator("#bracket-90 .team-name")).toHaveText(["South Africa", "Netherlands"]);
-  await expect(page.locator(".bracket-round-r32 .bracket-match")).toHaveCount(16);
-  await expect(page.locator(".bracket-round-r16 .bracket-match")).toHaveCount(8);
+  await expect(page.locator(".bracket-round-r32 .bracket-connector")).toHaveCount(8);
+  await expect(page.locator(".bracket-round-r16 .bracket-connector")).toHaveCount(4);
   // Third place hangs off the final's own column rather than getting a
   // further-right column of its own.
   await expect(page.locator(".bracket-round-final .bracket-third-place .team-name")).toHaveCount(2);
 });
 
-// Regression: every round column used to be stretched to the round-of-32
-// column's height with matches spread evenly across it, so each later round
-// doubled its gaps — by the semi-finals a whole screen showed one match and
-// empty space. Columns now pack their matches from the top, so a later
-// round's matches sit within a screenful instead of a card's height apart
-// per sixteen slots.
-test("bracket packs later rounds compactly instead of stretching to round-of-32 height", async ({ page }) => {
+// Regression: a connector used to span center-of-match to center-of-match,
+// so it visually bracketed the bottom team of one match with the top team of
+// the next (e.g. Paraguay-to-France) instead of hugging each whole match —
+// reading as if it connected the wrong two rows. It should span from the top
+// of the pair's first match to the bottom of its second.
+// Each match is its own bordered card, so a connector should link the
+// vertical middle of one card to the middle of the next, not run from one
+// card's outer edge to the other's — that would read as touching whichever
+// team happens to sit at that edge rather than the card as a whole.
+test("bracket connector spans center-to-center between a match pair", async ({ page }) => {
   await page.route("**/site.api.espn.com/**", (route) => route.fulfill({
     json: { events: [...fullGroupStageEvents(), ...roundOf32Events()] },
   }));
 
   await page.goto("/#bracket");
-  await expect(page.locator(".bracket-round-sf .bracket-match").first()).toBeAttached();
+  await expect(page.locator(".bracket-round-r32 .bracket-connector").first()).toBeAttached();
+  // The initial scroll-to-next-match can land past the round of 32, which
+  // re-bases the tree and squashes the off-screen round-of-32 column; scroll
+  // back so the column being measured is the on-screen base round.
+  await page.waitForTimeout(200);
+  await page.evaluate(() => { document.querySelector("#bracket").scrollLeft = 0; });
+  await page.waitForTimeout(400);
 
-  const heights = await page.evaluate(() => ({
-    sfColumn: document.querySelector(".bracket-round-sf").getBoundingClientRect().height,
-    r32Column: document.querySelector(".bracket-round-r32").getBoundingClientRect().height,
-    sfMatch: document.querySelector(".bracket-round-sf .bracket-match").getBoundingClientRect().height,
+  const bounds = await page.evaluate(() => {
+    const matches = [...document.querySelectorAll(".bracket-round-r32 .bracket-match")].slice(0, 2)
+      .map((m) => m.getBoundingClientRect());
+    const connector = document.querySelector(".bracket-round-r32 .bracket-connector").getBoundingClientRect();
+    const firstCenter = matches[0].top + matches[0].height / 2;
+    const secondCenter = matches[1].top + matches[1].height / 2;
+    return { firstCenter, secondCenter, connectorTop: connector.top, connectorBottom: connector.bottom };
+  });
+  expect(bounds.connectorTop).toBeCloseTo(bounds.firstCenter, 0);
+  expect(bounds.connectorBottom).toBeCloseTo(bounds.secondCenter, 0);
+});
+
+// The aligned tree doubles the gaps between a round's matches every column,
+// which is pure empty space once the rounds to the left have scrolled away.
+// The tree re-bases as you scroll: with the round of 32 and 16 off-screen,
+// the quarter-finals pack to card height and the semi-finals double from
+// there — same geometry at a smaller scale, so pair midpoints (and the
+// connectors riding on them) still land exactly on the next round's centers.
+test("bracket shrinks its empty space once earlier rounds scroll out of view", async ({ page }) => {
+  await page.route("**/site.api.espn.com/**", (route) => route.fulfill({
+    json: { events: [...fullGroupStageEvents(), ...roundOf32Events()] },
   }));
-  // Both semi-finals plus their title fit comfortably within a few cards'
-  // height, nowhere near the round-of-32 column they used to stretch to.
-  expect(heights.sfColumn).toBeLessThan(heights.sfMatch * 4);
-  expect(heights.sfColumn).toBeLessThan(heights.r32Column / 4);
+
+  await page.goto("/#bracket");
+  await expect(page.locator(".bracket-round-r32 .bracket-connector").first()).toBeAttached();
+  // Let the initial scroll-to-next-match settle (it may itself have re-based
+  // the tree), then reset to the round of 32 for a full-scale baseline.
+  await page.waitForTimeout(300);
+  await page.evaluate(() => { document.querySelector("#bracket").scrollLeft = 0; });
+  await page.waitForTimeout(400);
+
+  const fullHeight = await page.evaluate(() =>
+    document.querySelector(".bracket-round-sf .bracket-round-matches").getBoundingClientRect().height);
+
+  // Scroll the quarter-finals to the left edge, pushing R32 and R16 out.
+  await page.evaluate(() => {
+    const bracket = document.querySelector("#bracket");
+    const qf = document.querySelector(".bracket-round-qf").getBoundingClientRect();
+    bracket.scrollLeft += qf.left - bracket.getBoundingClientRect().left;
+  });
+
+  // Wait out the height transition, then check the tree re-based: the
+  // quarter-final column packed down to roughly four card slots.
+  await expect.poll(async () => page.evaluate(() =>
+    document.querySelector(".bracket-round-sf .bracket-round-matches").getBoundingClientRect().height,
+  )).toBeLessThan(fullHeight / 3);
+
+  const bounds = await page.evaluate(() => {
+    const qfPair = [...document.querySelectorAll(".bracket-round-qf .bracket-match")].slice(0, 2)
+      .map((m) => m.getBoundingClientRect());
+    const sfMatch = document.querySelector(".bracket-round-sf .bracket-match").getBoundingClientRect();
+    return {
+      pairMidpoint: (qfPair[0].top + qfPair[0].height / 2 + qfPair[1].top + qfPair[1].height / 2) / 2,
+      sfCenter: sfMatch.top + sfMatch.height / 2,
+    };
+  });
+  // Connector alignment holds at the new scale: the semi-final card still
+  // sits at the midpoint of the quarter-final pair feeding it.
+  expect(bounds.sfCenter).toBeCloseTo(bounds.pairMidpoint, 0);
+
+  // Scrolling back re-expands the tree to the full round-of-32 scale.
+  await page.evaluate(() => { document.querySelector("#bracket").scrollLeft = 0; });
+  await expect.poll(async () => page.evaluate(() =>
+    document.querySelector(".bracket-round-sf .bracket-round-matches").getBoundingClientRect().height,
+  )).toBeCloseTo(fullHeight, 0);
 });
 
 // Regression: the round-of-32 column is much taller than the screen, so

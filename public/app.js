@@ -1314,7 +1314,24 @@ function renderBracket() {
       ${BRACKET_ROUNDS.map((type) => bracketColumn(type, rounds[type] || [], rounds.third?.[0])).join("")}
     </div>
   `;
+  sizeBracketScroll();
 }
+
+// The round-of-32 column is far taller than the screen, so the bracket has to
+// scroll vertically as well as horizontally. Giving #bracket itself (not the
+// flex row inside it — see the CSS comment on .bracket) an actual height,
+// rather than letting it grow to fit its content the way the page itself was
+// scrolling, makes it a real 2D scroll container, which is what lets the
+// round-title pills' position: sticky pin them to its top edge as you scroll
+// down instead of just scrolling away with the page.
+function sizeBracketScroll() {
+  const top = bracketEl.getBoundingClientRect().top;
+  bracketEl.style.height = `calc(100dvh - ${top}px - 16px)`;
+}
+
+window.addEventListener("resize", () => {
+  if (activeView === "bracket") sizeBracketScroll();
+});
 
 function bracketColumn(type, matches, thirdPlaceGame) {
   const isFinal = type === "final";

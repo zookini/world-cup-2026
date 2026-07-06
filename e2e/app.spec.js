@@ -359,6 +359,28 @@ test("bracket view lays out rounds in true bracket order with a connector per pa
   await expect(page.locator(".bracket-round-final .bracket-third-place .team-name")).toHaveCount(2);
 });
 
+// Regression: the round-of-32 column is much taller than the screen, so
+// #bracket scrolls vertically inside its own fixed-height viewport (rather
+// than the page scrolling, which would carry the round title away with it).
+// The round title's position: sticky only takes effect against a real scroll
+// container, and needs an explicit z-index to paint above the match rows
+// that scroll underneath it (both share position: relative/sticky with
+// z-index: auto, so paint order would otherwise fall back to DOM order).
+test("bracket round titles stay pinned to the top while scrolling", async ({ page }) => {
+  await page.route("**/site.api.espn.com/**", (route) => route.fulfill({
+    json: { events: [...fullGroupStageEvents(), ...roundOf32Events()] },
+  }));
+
+  await page.goto("/#bracket");
+  const title = page.locator(".bracket-round-r32 .bracket-round-title");
+  const topBefore = await title.evaluate((el) => el.getBoundingClientRect().top);
+
+  await page.evaluate(() => { document.querySelector("#bracket").scrollTop = 400; });
+  await expect(title).toBeInViewport();
+  const topAfter = await title.evaluate((el) => el.getBoundingClientRect().top);
+  expect(topAfter).toBe(topBefore);
+});
+
 // Regression: mock mode resolved a knockout fixture's team id and name but not
 // its FIFA code, so the owner lookup fell back to a derived 3-letter guess
 // (e.g. "NET" for Netherlands) that missed the real code selections.csv keys

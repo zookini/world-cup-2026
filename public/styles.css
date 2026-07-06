@@ -703,20 +703,28 @@ tr.eliminated {
   order: 3;
 }
 
-/* Bracket view: one horizontally-scrolling, scroll-snapping column per round.
-   All columns stretch to the tallest (R32) column's height, so each shorter
-   round's matches can be centered against it with plain flexbox, and a
-   connector drawn per pair lines up with the next round's match with no
-   manual positioning (see bracketConnectors in app.js for the math). */
+/* Bracket view: a 2D scroll viewport (#bracket, sized to the remaining
+   screen height by sizeBracketScroll in app.js) containing one flex row of
+   columns. The row itself (.bracket-scroll) is NOT given a height of its own
+   — it must stay sized to its tallest column's natural content height (R32)
+   so align-items: stretch can size the shorter rounds against that, and so
+   the round-of-32 column's real height (taller than the viewport) is what
+   makes .bracket scroll vertically in the first place. Giving .bracket-scroll
+   itself a height would force align-items: stretch to shrink every column
+   down to that height instead, corrupting the connector math and the sticky
+   titles' containing block. */
+.bracket {
+  overflow: auto;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+}
+
 .bracket-scroll {
   --bracket-gap: 20px;
   display: flex;
   align-items: stretch;
   gap: var(--bracket-gap);
-  overflow-x: auto;
-  scroll-snap-type: x proximity;
   padding-bottom: 6px;
-  -webkit-overflow-scrolling: touch;
 }
 
 .bracket-round {
@@ -730,6 +738,12 @@ tr.eliminated {
 .bracket-round-title {
   position: sticky;
   top: 0;
+  /* .bracket-round-matches (its DOM-order-later sibling) is also position:
+     relative for the connectors' sake, and with both at z-index: auto,
+     paint order falls back to DOM order — putting scrolled match rows on
+     top of this sticky title instead of under it. An explicit z-index
+     wins regardless of DOM order. */
+  z-index: 1;
   margin-bottom: 10px;
   padding: 6px 10px;
   color: var(--muted);

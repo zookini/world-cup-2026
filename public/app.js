@@ -14,6 +14,7 @@ let dataStatus = "";
 let initialDataLoaded = false;
 let loadingMessage = "";
 let pendingFixtureScroll = false;
+let pendingBracketScroll = false;
 
 const contendersEl = document.querySelector("#contenders");
 const lastPlaceEl = document.querySelector("#last-place");
@@ -136,6 +137,10 @@ function applyHashRoute() {
   if (!anchor) {
     if (resolved === "fixtures") {
       requestFixtureScroll();
+      return;
+    }
+    if (resolved === "bracket") {
+      requestBracketScroll();
       return;
     }
     scrollToTop();
@@ -1309,12 +1314,14 @@ function renderBracket() {
     bracketEl.innerHTML = `<p class="fixtures-empty">Bracket not available yet.</p>`;
     return;
   }
+  const nextGames = nextFixtures(sortedGames());
   bracketEl.innerHTML = `
     <div class="bracket-scroll">
-      ${BRACKET_ROUNDS.map((type) => bracketColumn(type, rounds[type] || [], rounds.third?.[0])).join("")}
+      ${BRACKET_ROUNDS.map((type) => bracketColumn(type, rounds[type] || [], rounds.third?.[0], nextGames)).join("")}
     </div>
   `;
   sizeBracketScroll();
+  settleBracketScroll();
 }
 
 // The round-of-32 column is far taller than the screen, so the bracket has to
@@ -1333,7 +1340,7 @@ window.addEventListener("resize", () => {
   if (activeView === "bracket") sizeBracketScroll();
 });
 
-function bracketColumn(type, matches, thirdPlaceGame) {
+function bracketColumn(type, matches, thirdPlaceGame, nextGames) {
   const isFinal = type === "final";
   const connectors = isFinal ? "" : bracketConnectors(matches.length);
   // The final match sits alone in its column (so it stays centered on the
@@ -1342,16 +1349,16 @@ function bracketColumn(type, matches, thirdPlaceGame) {
   const matchesHtml = isFinal
     ? `
       <div class="bracket-match-group">
-        ${bracketMatch(matches[0])}
+        ${bracketMatch(matches[0], nextGames)}
         ${thirdPlaceGame ? `
           <div class="bracket-third-place">
             <span class="bracket-third-label">Third Place</span>
-            ${bracketMatch(thirdPlaceGame)}
+            ${bracketMatch(thirdPlaceGame, nextGames)}
           </div>
         ` : ""}
       </div>
     `
-    : matches.map((game) => bracketMatch(game)).join("");
+    : matches.map((game) => bracketMatch(game, nextGames)).join("");
   return `
     <div class="bracket-round bracket-round-${type}">
       <h3 class="bracket-round-title">${STAGE_LABELS[type]}</h3>
@@ -1378,22 +1385,37 @@ function bracketConnectors(count) {
   }).join("");
 }
 
-function bracketMatch(game) {
+function bracketMatch(game, nextGames) {
+  const isNext = nextGames.has(game);
   return `
-    <div id="bracket-${game.id}" class="bracket-match ${matchState(game)}">
+    <div id="bracket-${game.id}" class="bracket-match ${matchState(game)} ${isNext ? "next" : ""}">
       ${bracketTeamLine(fixtureTeam(game, "home", game))}
       ${bracketTeamLine(fixtureTeam(game, "away", game))}
     </div>
   `;
 }
 
+// The bracket's columns are narrower than the Fixtures view's cards, so the
+// placeholder labels ("Winner Match 74", "3rd Group A/B/C/D/F") that read
+// fine there just truncate into unreadable "Winner Mat…" noise here. Only
+// applied to placeholders — real team names are left untouched.
+function compactBracketLabel(name) {
+  const winnerMatch = /^Winner Match (\d+)$/.exec(name);
+  if (winnerMatch) return `Winner M${winnerMatch[1]}`;
+  const loserMatch = /^Loser Match (\d+)$/.exec(name);
+  if (loserMatch) return `Loser M${loserMatch[1]}`;
+  if (/^3rd Group /.test(name)) return "3rd Place";
+  const runnerUp = /^Runner-up Group ([A-L])$/.exec(name);
+  if (runnerUp) return `Runner-up ${runnerUp[1]}`;
+  return name;
+}
+
 function bracketTeamLine(team) {
+  const name = team.placeholder ? compactBracketLabel(team.name) : team.name;
   return `
     <div class="bracket-team ${team.status} ${team.placeholder ? "placeholder" : ""}">
-      <div class="bracket-team-main">
-        ${fixtureFlag(team)}
-        <span class="team-name">${team.name}</span>
-      </div>
+      ${fixtureFlag(team)}
+      <span class="team-name">${name}</span>
       ${team.owner ? `<span class="bracket-owner">${team.owner}</span>` : ""}
     </div>
   `;
@@ -1560,6 +1582,33 @@ function scrollToFixture(target) {
     if (activeView !== "fixtures") return;
     const el = target || fixturesEl.querySelector(".fixture.next") || fixturesEl.querySelector(".fixture:last-child");
     if (el) scrollElementToUsableCenter(el);
+  });
+}
+
+function requestBracketScroll() {
+  pendingBracketScroll = true;
+  settleBracketScroll();
+}
+
+function settleBracketScroll() {
+  if (!pendingBracketScroll || activeView !== "bracket" || !bracketEl.querySelector(".bracket-match")) return;
+  pendingBracketScroll = false;
+  scrollToBracketMatch();
+}
+
+// Bracket scrolls in both directions, so bringing the live/next match (or the
+// final, once nothing is left to play) into view is a single scrollIntoView
+// rather than the fixtures view's usable-viewport math. Reset the page scroll
+// first so #bracket sits at its usual spot right below the sticky tabs —
+// sizeBracketScroll measures that position, and it'd otherwise be wrong if
+// the page was left scrolled from whatever view you were on before.
+function scrollToBracketMatch() {
+  afterLayout(() => {
+    if (activeView !== "bracket") return;
+    window.scrollTo({ top: 0, behavior: "auto" });
+    sizeBracketScroll();
+    const el = bracketEl.querySelector(".bracket-match.next") || bracketEl.querySelector(".bracket-round-final .bracket-match");
+    if (el) el.scrollIntoView({ block: "center", inline: "center", behavior: "auto" });
   });
 }
 

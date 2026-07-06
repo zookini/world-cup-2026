@@ -401,6 +401,12 @@ test("bracket round titles stay pinned to the top while scrolling", async ({ pag
   }));
 
   await page.goto("/#bracket");
+  // Let the initial scroll-to-next-match (see the "highlights the live match"
+  // test) finish settling, then reset horizontally back to round of 32 — it
+  // may have scrolled sideways to center a later round's next match, and this
+  // test is only about the vertical sticky-header behavior.
+  await page.waitForTimeout(200);
+  await page.evaluate(() => { document.querySelector("#bracket").scrollLeft = 0; });
   const title = page.locator(".bracket-round-r32 .bracket-round-title");
   const topBefore = await title.evaluate((el) => el.getBoundingClientRect().top);
 
@@ -754,12 +760,14 @@ test("last place tab ranks selected teams by worst group record", async ({ page 
 });
 
 test("plain tab switch resets scroll", async ({ page }) => {
+  // Losers, unlike Fixtures and Bracket, has no next/current-item auto-scroll
+  // of its own — a plain switch to it should just reset to the top.
   await page.route("**/site.api.espn.com/**", (route) => route.fulfill({ json: { events: [] } }));
   await page.goto("/");
   await page.click('[data-view="fixtures"]');
   await rendered(page, "fixtures");
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight / 2));
-  await page.click('[data-view="bracket"]');
+  await page.click('[data-view="losers"]');
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
 });
 
@@ -837,6 +845,23 @@ test("fixtures tab returns to next match", async ({ page }) => {
       return position.centered && position.bottomInView;
     })
     .toBe(true);
+});
+
+test("bracket highlights the live match and returns to it on tab reselect", async ({ page }) => {
+  await page.goto("/?mock=match-80&state=live");
+  await page.click('[data-view="bracket"]');
+  await expect(page.locator("#bracket-80")).toHaveClass(/next/);
+  await expect(page.locator("#bracket-80")).toBeInViewport();
+
+  await page.evaluate(() => {
+    const scroller = document.querySelector("#bracket");
+    scroller.scrollTop = 0;
+    scroller.scrollLeft = 0;
+  });
+  await expect(page.locator("#bracket-80")).not.toBeInViewport();
+
+  await page.click('[data-view="bracket"]');
+  await expect(page.locator("#bracket-80")).toBeInViewport();
 });
 
 // Deep links highlight and scroll, including the bare-slug anchor form.

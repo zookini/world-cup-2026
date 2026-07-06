@@ -783,19 +783,16 @@ tr.eliminated {
   background: var(--bg);
 }
 
-.bracket-match.live {
+.bracket-match.live,
+.bracket-match.next {
   border-color: var(--accent);
   background: var(--soft);
 }
 
+/* Flag, name, and owner all sit on one row (rather than owner on its own
+   line below) — trading horizontal space for roughly half the vertical
+   height per team, so more of the round fits on screen before scrolling. */
 .bracket-team {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  min-width: 0;
-}
-
-.bracket-team-main {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -803,6 +800,8 @@ tr.eliminated {
 }
 
 .bracket-team .team-name {
+  flex: 1 1 auto;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -811,7 +810,8 @@ tr.eliminated {
 }
 
 .bracket-owner {
-  margin-left: 36px;
+  flex: 0 0 auto;
+  max-width: 40%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1067,11 +1067,14 @@ tr.eliminated {
   }
 
   .bracket-scroll {
-    --bracket-gap: 14px;
+    --bracket-gap: 16px;
   }
 
+  /* Wide enough that placeholder labels ("Winner Match 74") and owner names
+     don't truncate into noise — trading off showing only ~2 rounds at a
+     time on a 390px-wide screen instead of 2.5-3. */
   .bracket-round {
-    width: 132px;
+    width: 178px;
   }
 
   .bracket-team .team-name {
@@ -1079,7 +1082,6 @@ tr.eliminated {
   }
 
   .bracket-owner {
-    margin-left: 29px;
     font-size: 0.64rem;
   }
 }

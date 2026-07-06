@@ -1341,12 +1341,10 @@ window.addEventListener("resize", () => {
 });
 
 function bracketColumn(type, matches, thirdPlaceGame, nextGames) {
-  const isFinal = type === "final";
-  const connectors = isFinal ? "" : bracketConnectors(matches.length);
-  // The final match sits alone in its column (so it stays centered on the
-  // semi-final connectors above it); the third-place playoff hangs off the
-  // same match as a sub-row rather than getting its own column further right.
-  const matchesHtml = isFinal
+  // The final match sits alone in its column; the third-place playoff hangs
+  // off the same column as a sub-row rather than getting its own column
+  // further right.
+  const matchesHtml = type === "final"
     ? `
       <div class="bracket-match-group">
         ${bracketMatch(matches[0], nextGames)}
@@ -1364,25 +1362,9 @@ function bracketColumn(type, matches, thirdPlaceGame, nextGames) {
       <h3 class="bracket-round-title">${STAGE_LABELS[type]}</h3>
       <div class="bracket-round-matches">
         ${matchesHtml}
-        ${connectors}
       </div>
     </div>
   `;
-}
-
-// Matches lay out with justify-content: space-around, which puts match i's
-// vertical center at (i + 0.5) / count of the column's height. Each match is
-// now its own bordered card, so a connector running center-to-center reads as
-// "this card's middle links to that card's middle" rather than crossing
-// between two different cards' edges. For a power-of-two bracket, a pair's
-// midpoint always lands exactly on the next round's match center, so this
-// still meets the following column's card with no further calculation needed.
-function bracketConnectors(count) {
-  return Array.from({ length: count / 2 }, (_, i) => {
-    const top = ((2 * i + 0.5) / count) * 100;
-    const height = (1 / count) * 100;
-    return `<div class="bracket-connector" style="top:${top}%;height:${height}%"></div>`;
-  }).join("");
 }
 
 function bracketMatch(game, nextGames) {

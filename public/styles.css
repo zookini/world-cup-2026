@@ -705,14 +705,12 @@ tr.eliminated {
 
 /* Bracket view: a 2D scroll viewport (#bracket, sized to the remaining
    screen height by sizeBracketScroll in app.js) containing one flex row of
-   columns. The row itself (.bracket-scroll) is NOT given a height of its own
-   — it must stay sized to its tallest column's natural content height (R32)
-   so align-items: stretch can size the shorter rounds against that, and so
-   the round-of-32 column's real height (taller than the viewport) is what
-   makes .bracket scroll vertically in the first place. Giving .bracket-scroll
-   itself a height would force align-items: stretch to shrink every column
-   down to that height instead, corrupting the connector math and the sticky
-   titles' containing block. */
+   columns. Columns are top-aligned and each keeps its own natural content
+   height — later rounds pack their matches from the top instead of
+   stretching to the round-of-32 column's height, which used to spread e.g.
+   the two semi-finals across sixteen match slots of empty space. The
+   round-of-32 column being taller than the viewport is what makes .bracket
+   scroll vertically. */
 .bracket {
   overflow: auto;
   scroll-snap-type: x proximity;
@@ -722,7 +720,7 @@ tr.eliminated {
 .bracket-scroll {
   --bracket-gap: 20px;
   display: flex;
-  align-items: stretch;
+  align-items: flex-start;
   gap: var(--bracket-gap);
   padding-bottom: 6px;
 }
@@ -738,11 +736,8 @@ tr.eliminated {
 .bracket-round-title {
   position: sticky;
   top: 0;
-  /* .bracket-round-matches (its DOM-order-later sibling) is also position:
-     relative for the connectors' sake, and with both at z-index: auto,
-     paint order falls back to DOM order — putting scrolled match rows on
-     top of this sticky title instead of under it. An explicit z-index
-     wins regardless of DOM order. */
+  /* Keeps scrolled match rows painting under this sticky title regardless
+     of how the rows below happen to stack. */
   z-index: 1;
   margin-bottom: 10px;
   padding: 6px 10px;
@@ -757,26 +752,23 @@ tr.eliminated {
 }
 
 .bracket-round-matches {
-  position: relative;
   display: flex;
-  flex: 1;
   flex-direction: column;
-  justify-content: space-around;
+  gap: 8px;
 }
 
-/* Padding (not a flex gap) separates one match from the next, so every match
-   in a round stays the same height and bracketConnectors' center-of-slot math
-   (see app.js) keeps landing exactly right regardless of how much padding
-   this is set to. */
-/* Margin is split evenly above and below (rather than e.g. margin-bottom
-   alone) so each card sits centered within its own space-around slot —
-   otherwise the visible card's center would sit off from the slot center the
-   connector math (bracketConnectors in app.js) aligns to. */
+/* Matches that feed the same next-round fixture sit close together, with a
+   wider break before the next pair — the pairing that the old full-height
+   tree connectors used to draw is carried by spacing alone now that columns
+   pack compactly from the top. */
+.bracket-round-matches > .bracket-match:nth-child(even):not(:last-child) {
+  margin-bottom: 12px;
+}
+
 .bracket-match {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  margin: 5px 0;
   padding: 8px 10px;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -829,33 +821,6 @@ tr.eliminated {
 .bracket-team.eliminated .bracket-owner {
   opacity: 0.4;
   filter: grayscale(1);
-}
-
-/* A pair's connector spans exactly the height of its two match slots, with a
-   right border drawing the vertical stroke that meets the next column. */
-/* The bracket's vertical stroke stops short of the next round's card, with a
-   thin stub (::after) continuing on at the vertex to reach it — a single
-   line pointing into the card, rather than the whole curved stroke sitting
-   flush against its edge. */
-.bracket-connector {
-  position: absolute;
-  right: calc(-1 * var(--bracket-gap) + 6px);
-  width: calc(var(--bracket-gap) - 6px);
-  border: 2px solid var(--line);
-  border-left: 0;
-  border-radius: 0 6px 6px 0;
-  pointer-events: none;
-}
-
-.bracket-connector::after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  right: -6px;
-  width: 6px;
-  height: 2px;
-  background: var(--line);
-  transform: translateY(-50%);
 }
 
 .bracket-match-group {

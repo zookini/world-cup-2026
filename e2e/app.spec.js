@@ -343,7 +343,7 @@ test("completed round of 32 resolves the round of 16 from match winners", async 
 // feed which fixture, so the bracket view has to walk the "Winner Match N"
 // labels back from the final to lay each round out in true left-to-right
 // bracket order rather than trusting seed id order directly.
-test("bracket view lays out rounds in true bracket order with a connector per pair", async ({ page }) => {
+test("bracket view lays out rounds in true bracket order", async ({ page }) => {
   await page.route("**/site.api.espn.com/**", (route) => route.fulfill({
     json: { events: [...fullGroupStageEvents(), ...roundOf32Events()] },
   }));
@@ -352,40 +352,36 @@ test("bracket view lays out rounds in true bracket order with a connector per pa
 
   await expect(page.locator("#bracket-89 .team-name")).toHaveText(["Germany", "France"]);
   await expect(page.locator("#bracket-90 .team-name")).toHaveText(["South Africa", "Netherlands"]);
-  await expect(page.locator(".bracket-round-r32 .bracket-connector")).toHaveCount(8);
-  await expect(page.locator(".bracket-round-r16 .bracket-connector")).toHaveCount(4);
+  await expect(page.locator(".bracket-round-r32 .bracket-match")).toHaveCount(16);
+  await expect(page.locator(".bracket-round-r16 .bracket-match")).toHaveCount(8);
   // Third place hangs off the final's own column rather than getting a
   // further-right column of its own.
   await expect(page.locator(".bracket-round-final .bracket-third-place .team-name")).toHaveCount(2);
 });
 
-// Regression: a connector used to span center-of-match to center-of-match,
-// so it visually bracketed the bottom team of one match with the top team of
-// the next (e.g. Paraguay-to-France) instead of hugging each whole match —
-// reading as if it connected the wrong two rows. It should span from the top
-// of the pair's first match to the bottom of its second.
-// Each match is its own bordered card, so a connector should link the
-// vertical middle of one card to the middle of the next, not run from one
-// card's outer edge to the other's — that would read as touching whichever
-// team happens to sit at that edge rather than the card as a whole.
-test("bracket connector spans center-to-center between a match pair", async ({ page }) => {
+// Regression: every round column used to be stretched to the round-of-32
+// column's height with matches spread evenly across it, so each later round
+// doubled its gaps — by the semi-finals a whole screen showed one match and
+// empty space. Columns now pack their matches from the top, so a later
+// round's matches sit within a screenful instead of a card's height apart
+// per sixteen slots.
+test("bracket packs later rounds compactly instead of stretching to round-of-32 height", async ({ page }) => {
   await page.route("**/site.api.espn.com/**", (route) => route.fulfill({
     json: { events: [...fullGroupStageEvents(), ...roundOf32Events()] },
   }));
 
   await page.goto("/#bracket");
-  await expect(page.locator(".bracket-round-r32 .bracket-connector").first()).toBeAttached();
+  await expect(page.locator(".bracket-round-sf .bracket-match").first()).toBeAttached();
 
-  const bounds = await page.evaluate(() => {
-    const matches = [...document.querySelectorAll(".bracket-round-r32 .bracket-match")].slice(0, 2)
-      .map((m) => m.getBoundingClientRect());
-    const connector = document.querySelector(".bracket-round-r32 .bracket-connector").getBoundingClientRect();
-    const firstCenter = matches[0].top + matches[0].height / 2;
-    const secondCenter = matches[1].top + matches[1].height / 2;
-    return { firstCenter, secondCenter, connectorTop: connector.top, connectorBottom: connector.bottom };
-  });
-  expect(bounds.connectorTop).toBeCloseTo(bounds.firstCenter, 0);
-  expect(bounds.connectorBottom).toBeCloseTo(bounds.secondCenter, 0);
+  const heights = await page.evaluate(() => ({
+    sfColumn: document.querySelector(".bracket-round-sf").getBoundingClientRect().height,
+    r32Column: document.querySelector(".bracket-round-r32").getBoundingClientRect().height,
+    sfMatch: document.querySelector(".bracket-round-sf .bracket-match").getBoundingClientRect().height,
+  }));
+  // Both semi-finals plus their title fit comfortably within a few cards'
+  // height, nowhere near the round-of-32 column they used to stretch to.
+  expect(heights.sfColumn).toBeLessThan(heights.sfMatch * 4);
+  expect(heights.sfColumn).toBeLessThan(heights.r32Column / 4);
 });
 
 // Regression: the round-of-32 column is much taller than the screen, so

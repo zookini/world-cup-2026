@@ -359,6 +359,17 @@ test("bracket view lays out rounds in true bracket order with a connector per pa
   await expect(page.locator(".bracket-round-final .bracket-third-place .team-name")).toHaveCount(2);
 });
 
+// Regression: mock mode resolved a knockout fixture's team id and name but not
+// its FIFA code, so the owner lookup fell back to a derived 3-letter guess
+// (e.g. "NET" for Netherlands) that missed the real code selections.csv keys
+// on ("NED"), silently dropping the owner name for any team whose guess
+// didn't happen to match.
+test("bracket shows the owning player even for teams whose 3-letter code guess would miss", async ({ page }) => {
+  await page.goto(`${MOCK}#bracket`);
+  const netherlands = page.locator(".bracket-round-r32 .bracket-team", { hasText: "Netherlands" });
+  await expect(netherlands.locator(".bracket-owner")).toHaveText("Colm");
+});
+
 // The feed names the team differently than the seed ("Côte d'Ivoire" vs the
 // seed's "Ivory Coast") and lists the sides flipped, but the shared FIFA code
 // (CIV) still lands the result on seed match 9 with the score oriented to the

@@ -1371,8 +1371,11 @@ function bracketMatch(game) {
 function bracketTeamLine(team) {
   return `
     <div class="bracket-team ${team.status} ${team.placeholder ? "placeholder" : ""}">
-      ${fixtureFlag(team)}
-      <span class="team-name">${team.name}</span>
+      <div class="bracket-team-main">
+        ${fixtureFlag(team)}
+        <span class="team-name">${team.name}</span>
+      </div>
+      ${team.owner ? `<span class="bracket-owner">${team.owner}</span>` : ""}
     </div>
   `;
 }

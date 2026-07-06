@@ -121,15 +121,15 @@ function buildMatchDayData({ groups, games, targetMatch, mockState }) {
 function indexTeams(games) {
   const teamById = new Map();
   games.forEach((game) => {
-    addTeam(teamById, game.home_team_id, game.home_team_name_en);
-    addTeam(teamById, game.away_team_id, game.away_team_name_en);
+    addTeam(teamById, game.home_team_id, game.home_team_name_en, game.home_team_code);
+    addTeam(teamById, game.away_team_id, game.away_team_name_en, game.away_team_code);
   });
   return teamById;
 }
 
-function addTeam(teamById, id, name) {
+function addTeam(teamById, id, name, code) {
   if (!id || !name || name.toLowerCase().includes("winner") || name.toLowerCase().includes("runner")) return;
-  teamById.set(`${id}`, { id: `${id}`, name });
+  teamById.set(`${id}`, { id: `${id}`, name, code: code || "" });
 }
 
 function shouldFinishMockGame(game, targetGame, { excludeTarget = false } = {}) {
@@ -229,6 +229,7 @@ function assignBracketTeam(game, side, team) {
   if (!team) return;
   game[`${side}_team_id`] = team.id;
   game[`${side}_team_name_en`] = team.name;
+  game[`${side}_team_code`] = team.code;
 }
 
 function applyPredictedScore(game, teamById, { allowDraw }) {

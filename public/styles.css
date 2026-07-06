@@ -750,13 +750,25 @@ tr.eliminated {
   justify-content: space-around;
 }
 
+/* Padding (not a flex gap) separates one match from the next, so every match
+   in a round stays the same height and bracketConnectors' center-of-slot math
+   (see app.js) keeps landing exactly right regardless of how much padding
+   this is set to. */
 .bracket-match {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
+  padding: 8px 0;
 }
 
 .bracket-team {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.bracket-team-main {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -771,13 +783,23 @@ tr.eliminated {
   font-size: 0.82rem;
 }
 
+.bracket-owner {
+  margin-left: 36px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+  font-size: 0.68rem;
+}
+
 .bracket-team.placeholder .team-name {
   color: var(--muted);
   font-style: italic;
 }
 
 .bracket-team.eliminated .team-name,
-.bracket-team.eliminated .table-flag {
+.bracket-team.eliminated .table-flag,
+.bracket-team.eliminated .bracket-owner {
   opacity: 0.4;
   filter: grayscale(1);
 }
@@ -1012,6 +1034,11 @@ tr.eliminated {
 
   .bracket-team .team-name {
     font-size: 0.78rem;
+  }
+
+  .bracket-owner {
+    margin-left: 29px;
+    font-size: 0.64rem;
   }
 }
 

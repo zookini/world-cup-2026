@@ -1364,18 +1364,16 @@ function bracketColumn(type, matches, thirdPlaceGame) {
 }
 
 // Matches lay out with justify-content: space-around, which puts match i's
-// slot spanning [i, i+1) / count of the column's height. A connector for pair
-// i spans both of its full match slots — [2i, 2i+2) / count — so it visibly
-// hugs each whole match (top of the first to bottom of the second) instead of
-// running center-to-center, which reads as bracketing the wrong two rows
-// (the bottom team of the first match with the top team of the second). Its
-// vertical midpoint, (2i+1)/count, is unchanged by that and still lands
-// exactly on the next round's match center for a power-of-two bracket, so it
-// still meets the following column with no further calculation needed.
+// vertical center at (i + 0.5) / count of the column's height. Each match is
+// now its own bordered card, so a connector running center-to-center reads as
+// "this card's middle links to that card's middle" rather than crossing
+// between two different cards' edges. For a power-of-two bracket, a pair's
+// midpoint always lands exactly on the next round's match center, so this
+// still meets the following column's card with no further calculation needed.
 function bracketConnectors(count) {
   return Array.from({ length: count / 2 }, (_, i) => {
-    const top = ((2 * i) / count) * 100;
-    const height = (2 / count) * 100;
+    const top = ((2 * i + 0.5) / count) * 100;
+    const height = (1 / count) * 100;
     return `<div class="bracket-connector" style="top:${top}%;height:${height}%"></div>`;
   }).join("");
 }

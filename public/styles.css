@@ -768,12 +768,24 @@ tr.eliminated {
    in a round stays the same height and bracketConnectors' center-of-slot math
    (see app.js) keeps landing exactly right regardless of how much padding
    this is set to. */
+/* Margin is split evenly above and below (rather than e.g. margin-bottom
+   alone) so each card sits centered within its own space-around slot —
+   otherwise the visible card's center would sit off from the slot center the
+   connector math (bracketConnectors in app.js) aligns to. */
 .bracket-match {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--line);
+  gap: 6px;
+  margin: 5px 0;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+}
+
+.bracket-match.live {
+  border-color: var(--accent);
+  background: var(--soft);
 }
 
 .bracket-team {

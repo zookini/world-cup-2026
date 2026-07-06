@@ -364,7 +364,11 @@ test("bracket view lays out rounds in true bracket order with a connector per pa
 // the next (e.g. Paraguay-to-France) instead of hugging each whole match —
 // reading as if it connected the wrong two rows. It should span from the top
 // of the pair's first match to the bottom of its second.
-test("bracket connector spans a full match pair, not center-to-center", async ({ page }) => {
+// Each match is its own bordered card, so a connector should link the
+// vertical middle of one card to the middle of the next, not run from one
+// card's outer edge to the other's — that would read as touching whichever
+// team happens to sit at that edge rather than the card as a whole.
+test("bracket connector spans center-to-center between a match pair", async ({ page }) => {
   await page.route("**/site.api.espn.com/**", (route) => route.fulfill({
     json: { events: [...fullGroupStageEvents(), ...roundOf32Events()] },
   }));
@@ -376,10 +380,12 @@ test("bracket connector spans a full match pair, not center-to-center", async ({
     const matches = [...document.querySelectorAll(".bracket-round-r32 .bracket-match")].slice(0, 2)
       .map((m) => m.getBoundingClientRect());
     const connector = document.querySelector(".bracket-round-r32 .bracket-connector").getBoundingClientRect();
-    return { firstMatchTop: matches[0].top, secondMatchBottom: matches[1].bottom, connectorTop: connector.top, connectorBottom: connector.bottom };
+    const firstCenter = matches[0].top + matches[0].height / 2;
+    const secondCenter = matches[1].top + matches[1].height / 2;
+    return { firstCenter, secondCenter, connectorTop: connector.top, connectorBottom: connector.bottom };
   });
-  expect(bounds.connectorTop).toBeCloseTo(bounds.firstMatchTop, 0);
-  expect(bounds.connectorBottom).toBeCloseTo(bounds.secondMatchBottom, 0);
+  expect(bounds.connectorTop).toBeCloseTo(bounds.firstCenter, 0);
+  expect(bounds.connectorBottom).toBeCloseTo(bounds.secondCenter, 0);
 });
 
 // Regression: the round-of-32 column is much taller than the screen, so

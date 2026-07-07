@@ -734,7 +734,7 @@ tr.eliminated {
   display: flex;
   flex: 0 0 auto;
   flex-direction: column;
-  width: 186px;
+  width: 192px;
   scroll-snap-align: start;
 }
 
@@ -803,7 +803,10 @@ tr.eliminated {
    the narrow bracket cards stay one row tall per team. */
 .bracket-team {
   display: grid;
-  grid-template-columns: 44px 23px minmax(0, 1fr);
+  /* The gambler column must hold the longest name in selections.csv in the
+     theme's display font — measure with the webfont actually loaded before
+     trimming this. */
+  grid-template-columns: 50px 23px minmax(0, 1fr);
   gap: 6px;
   align-items: center;
   min-width: 0;
@@ -832,7 +835,7 @@ tr.eliminated {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   line-height: 1.2;
 }
 
@@ -1093,10 +1096,6 @@ tr.eliminated {
 
   .bracket-team .team-name {
     font-size: 0.78rem;
-  }
-
-  .bracket-team .gambler-name {
-    font-size: 0.68rem;
   }
 }
 

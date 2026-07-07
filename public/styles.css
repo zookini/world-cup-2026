@@ -727,11 +727,14 @@ tr.eliminated {
   padding-bottom: 6px;
 }
 
+/* Wide enough that team and gambler names don't truncate into noise —
+   trading off showing only ~2 rounds at a time on a 390px-wide screen
+   instead of 2.5-3. */
 .bracket-round {
   display: flex;
   flex: 0 0 auto;
   flex-direction: column;
-  width: 150px;
+  width: 186px;
   scroll-snap-align: start;
 }
 
@@ -795,18 +798,23 @@ tr.eliminated {
   background: var(--soft);
 }
 
-/* Flag, name, and owner all sit on one row (rather than owner on its own
-   line below) — trading horizontal space for roughly half the vertical
-   height per team, so more of the round fits on screen before scrolling. */
+/* Gambler, flag, and name in the same order (and the same fixed-column
+   alignment) as the Fixtures view's team rows, just on a tighter grid so
+   the narrow bracket cards stay one row tall per team. */
 .bracket-team {
-  display: flex;
-  align-items: center;
+  display: grid;
+  grid-template-columns: 44px 23px minmax(0, 1fr);
   gap: 6px;
+  align-items: center;
   min-width: 0;
 }
 
+.bracket-team .table-flag {
+  width: 23px;
+  height: 16px;
+}
+
 .bracket-team .team-name {
-  flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -815,14 +823,22 @@ tr.eliminated {
   font-size: 0.82rem;
 }
 
-.bracket-owner {
-  flex: 0 0 auto;
-  max-width: 40%;
+.bracket-gambler {
+  overflow: hidden;
+}
+
+.bracket-team .gambler-name {
+  display: block;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-size: 0.72rem;
+  line-height: 1.2;
+}
+
+.bracket-team .gambler-name.eliminated {
   color: var(--muted);
-  font-size: 0.68rem;
+  opacity: 0.45;
 }
 
 .bracket-team.placeholder .team-name {
@@ -831,8 +847,7 @@ tr.eliminated {
 }
 
 .bracket-team.eliminated .team-name,
-.bracket-team.eliminated .table-flag,
-.bracket-team.eliminated .bracket-owner {
+.bracket-team.eliminated .table-flag {
   opacity: 0.4;
   filter: grayscale(1);
 }
@@ -1076,19 +1091,12 @@ tr.eliminated {
     --bracket-gap: 16px;
   }
 
-  /* Wide enough that placeholder labels ("Winner Match 74") and owner names
-     don't truncate into noise — trading off showing only ~2 rounds at a
-     time on a 390px-wide screen instead of 2.5-3. */
-  .bracket-round {
-    width: 178px;
-  }
-
   .bracket-team .team-name {
     font-size: 0.78rem;
   }
 
-  .bracket-owner {
-    font-size: 0.64rem;
+  .bracket-team .gambler-name {
+    font-size: 0.68rem;
   }
 }
 

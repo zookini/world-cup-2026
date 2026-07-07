@@ -397,8 +397,10 @@ test("bracket connector spans center-to-center between a match pair", async ({ p
 // The aligned tree doubles the gaps between a round's matches every column,
 // which is pure empty space once the rounds to the left have scrolled away.
 // The tree re-bases as you scroll: with the round of 32 and 16 off-screen,
-// the quarter-finals pack to card height and the semi-finals double from
-// there — same geometry at a smaller scale, so pair midpoints (and the
+// the quarter-finals pack down — but no further than the bracket viewport,
+// since once everything fits on screen there is nothing left to gain by
+// shrinking; the remaining rounds spread over the visible area instead.
+// Same geometry at a smaller scale either way, so pair midpoints (and the
 // connectors riding on them) still land exactly on the next round's centers.
 test("bracket shrinks its empty space once earlier rounds scroll out of view", async ({ page }) => {
   await page.route("**/site.api.espn.com/**", (route) => route.fulfill({
@@ -423,11 +425,18 @@ test("bracket shrinks its empty space once earlier rounds scroll out of view", a
     bracket.scrollLeft += qf.left - bracket.getBoundingClientRect().left;
   });
 
-  // Wait out the height transition, then check the tree re-based: the
-  // quarter-final column packed down to roughly four card slots.
+  // Wait out the height transition, then check the tree re-based: it packed
+  // down from the round-of-32 scale, but stopped at the bracket viewport's
+  // height — everything fits on screen, so it shrinks no further than that.
+  const matchArea = await page.evaluate(() => {
+    const bracket = document.querySelector("#bracket");
+    const title = document.querySelector(".bracket-round-qf .bracket-round-title");
+    return bracket.clientHeight - title.offsetHeight - 16;
+  });
+  expect(matchArea).toBeLessThan(fullHeight);
   await expect.poll(async () => page.evaluate(() =>
     document.querySelector(".bracket-round-sf .bracket-round-matches").getBoundingClientRect().height,
-  )).toBeLessThan(fullHeight / 3);
+  )).toBeCloseTo(matchArea, 0);
 
   const bounds = await page.evaluate(() => {
     const qfPair = [...document.querySelectorAll(".bracket-round-qf .bracket-match")].slice(0, 2)
@@ -485,7 +494,7 @@ test("bracket round titles stay pinned to the top while scrolling", async ({ pag
 test("bracket shows the owning player even for teams whose 3-letter code guess would miss", async ({ page }) => {
   await page.goto(`${MOCK}#bracket`);
   const netherlands = page.locator(".bracket-round-r32 .bracket-team", { hasText: "Netherlands" });
-  await expect(netherlands.locator(".bracket-owner")).toHaveText("Colm");
+  await expect(netherlands.locator(".gambler-name")).toHaveText("Colm");
 });
 
 // The feed names the team differently than the seed ("Côte d'Ivoire" vs the

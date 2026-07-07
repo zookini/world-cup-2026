@@ -1379,7 +1379,13 @@ function updateBracketScale(instant = false) {
     group.style.transform = `translateY(${(group.offsetHeight - finalCard.offsetHeight) / 2}px)`;
     minHeight = 2 * group.offsetHeight - finalCard.offsetHeight + 12;
   }
-  const height = Math.max(BRACKET_SLOTS[baseType] * slot, minHeight);
+  // Once the packed tree would fit inside the bracket viewport there is
+  // nothing left to gain by shrinking further — hold the height at exactly
+  // the visible match area instead, so later rounds spread over the screen
+  // rather than bunching up at the top of an otherwise empty view.
+  const title = base.querySelector(".bracket-round-title");
+  const matchArea = bracketEl.clientHeight - (title ? title.offsetHeight + 10 : 0) - 6;
+  const height = Math.max(BRACKET_SLOTS[baseType] * slot, minHeight, matchArea);
   columns.forEach((column) => {
     const matches = column.querySelector(".bracket-round-matches");
     matches.style.transition = instant ? "none" : "";
@@ -1453,27 +1459,26 @@ function bracketMatch(game, nextGames) {
 }
 
 // The bracket's columns are narrower than the Fixtures view's cards, so the
-// placeholder labels ("Winner Match 74", "3rd Group A/B/C/D/F") that read
-// fine there just truncate into unreadable "Winner Mat…" noise here. Only
-// applied to placeholders — real team names are left untouched.
+// placeholder labels ("3rd Group A/B/C/D/F") that read fine there just
+// truncate into unreadable noise here. "Winner/Loser Match N" labels are
+// dropped entirely — the tree's connectors already show which match feeds
+// each slot. Only applied to placeholders — real team names are untouched.
 function compactBracketLabel(name) {
-  const winnerMatch = /^Winner Match (\d+)$/.exec(name);
-  if (winnerMatch) return `Winner M${winnerMatch[1]}`;
-  const loserMatch = /^Loser Match (\d+)$/.exec(name);
-  if (loserMatch) return `Loser M${loserMatch[1]}`;
+  if (/^(Winner|Loser) Match \d+$/.test(name)) return "TBD";
   if (/^3rd Group /.test(name)) return "3rd Place";
   const runnerUp = /^Runner-up Group ([A-L])$/.exec(name);
   if (runnerUp) return `Runner-up ${runnerUp[1]}`;
   return name;
 }
 
+// Same column order as the Fixtures view's team rows: gambler, flag, name.
 function bracketTeamLine(team) {
   const name = team.placeholder ? compactBracketLabel(team.name) : team.name;
   return `
     <div class="bracket-team ${team.status} ${team.placeholder ? "placeholder" : ""}">
+      <span class="bracket-gambler">${ownerBadge(team.owner, team.ownerStatus)}</span>
       ${fixtureFlag(team)}
       <span class="team-name">${name}</span>
-      ${team.owner ? `<span class="bracket-owner">${team.owner}</span>` : ""}
     </div>
   `;
 }
